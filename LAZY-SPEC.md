@@ -1,4 +1,4 @@
-# Neovim Configuration Specification (`LAZY-SPEC.md`)
+ # Neovim Configuration Specification (`LAZY-SPEC.md`)
 
 > **Note for AI Agents & LLMs:**
 > This document is a standalone declarative specification for reproducing this Neovim environment on any machine. When instructed to configure a fresh machine or Neovim instance, read this spec and generate the corresponding Lua configuration files in `~/.config/nvim/`.
