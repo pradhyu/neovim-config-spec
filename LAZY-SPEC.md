@@ -1,4 +1,4 @@
- # Neovim Configuration Specification (`LAZY-SPEC.md`)
+# Neovim Configuration Specification (`LAZY-SPEC.md`)
 
 > **Note for AI Agents & LLMs:**
 > This document is a standalone declarative specification for reproducing this Neovim environment on any machine. When instructed to configure a fresh machine or Neovim instance, read this spec and generate the corresponding Lua configuration files in `~/.config/nvim/`.
@@ -12,13 +12,27 @@
   * `ripgrep` (`rg`) - for fast project search.
   * `fd` - for fast file search.
   * `agy` (Antigravity CLI) - for AI pair programming.
-  * `helix` (`hx`) - installed as secondary editor.
+  * `helix` (`hx`) - secondary modal editor.
 
 ---
 
 ## 2. Plugin Inventory & Specifications
 
-### A. Color Schemes & Theme Switcher
+### A. Projects & Multi-Workspace Management (VSCode-like)
+* **`folke/snacks.nvim` (Projects Picker)**:
+  * Automatically indexes repositories in `~/git`, `~/projects`, `~/workspace`, and `~/.config`.
+  * Detects project roots using `.git`, `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`.
+  * Keymaps:
+    * `<leader>fp` or `<leader>sp`: Find & Switch Projects / Workspaces
+* **`folke/persistence.nvim` (Session & Workspace State)**:
+  * Saves and restores full buffer lists, tab layouts, and cursor positions per project and per git branch.
+  * Keymaps:
+    * `<leader>qs`: Restore current workspace session
+    * `<leader>qS`: Select from saved workspace sessions
+    * `<leader>ql`: Restore last session
+    * `<leader>qd`: Don't save current session
+
+### B. Color Schemes & Theme Switcher
 * **`zaldih/themery.nvim`**: Interactive theme switcher with instant live preview.
   * Keymaps: `<leader>th` and `<leader>uC` $\rightarrow$ `:Themery`
   * Preloaded theme list: `tokyonight-night`, `tokyonight-storm`, `tokyonight-moon`, `catppuccin-mocha`, `catppuccin-macchiato`, `catppuccin-frappe`, `catppuccin-latte`, `kanagawa-wave`, `kanagawa-dragon`, `kanagawa-lotus`, `rose-pine-main`, `rose-pine-moon`, `rose-pine-dawn`, `cyberdream`, `gruvbox`, `everforest`, `solarized-osaka`, `onedark`, `nightfox`, `duskfox`, `nordfox`, `carbonfox`, `terafox`.
@@ -34,7 +48,7 @@
   9. `navarasu/onedark.nvim` (Deep / dark atom style)
   10. `folke/tokyonight.nvim` (Default LazyVim dark blue)
 
-### B. AI & Agent Integration
+### C. AI & Agent Integration
 * **`folke/sidekick.nvim`**:
   * Tools: `antigravity` (`cmd = { "agy" }`)
   * Keymaps:
@@ -44,7 +58,7 @@
   * Keymap: `<leader>ag` $\rightarrow$ Floating terminal running `agy` (85% width/height, rounded border).
 * **`antigravity.nvim`**: Local remote RPC helper for Antigravity skills.
 
-### C. Custom / Specialized Plugins
+### D. Custom / Specialized Plugins
 * **`nepali-calendar.nvim`** (Local repo: `~/git/neovim-nepali-calendar`):
   * Keymaps:
     * `<leader>nc`: Toggle Nepali Calendar popup
@@ -83,7 +97,8 @@ Replaces standard `gf`, `<CR>` (in markdown/terminal), and `<C-LeftMouse>` with 
 When asked to setup Neovim on another machine using this spec:
 1. Ensure Neovim `>= 0.10` and `git` are installed.
 2. If `~/.config/nvim` does not exist, clone the standard LazyVim starter.
-3. Write `~/.config/nvim/lua/plugins/colorschemes.lua` with the theme list and `themery.nvim`.
-4. Write `~/.config/nvim/lua/plugins/antigravity.lua` with `sidekick.nvim` and `snacks.nvim` configs.
-5. Write `~/.config/nvim/lua/config/keymaps.lua` containing the smart `gf` resolver and navigation keymaps.
-6. Launch Neovim in headless mode or execute `nvim --headless "+Lazy! sync" +qa` to pull all plugins automatically.
+3. Write `~/.config/nvim/lua/plugins/projects.lua` with the project picker and branch session persistence.
+4. Write `~/.config/nvim/lua/plugins/colorschemes.lua` with the theme list and `themery.nvim`.
+5. Write `~/.config/nvim/lua/plugins/antigravity.lua` with `sidekick.nvim` and `snacks.nvim` configs.
+6. Write `~/.config/nvim/lua/config/keymaps.lua` containing the smart `gf` resolver and navigation keymaps.
+7. Launch Neovim in headless mode or execute `nvim --headless "+Lazy! sync" +qa` to pull all plugins automatically.
