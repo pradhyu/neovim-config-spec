@@ -22,27 +22,31 @@ function M.attach_to_buffer(buf, win)
     end
   end, b_opts)
 
-  -- Floating terminal quick-close handlers
+  -- Quick-close handler for all terminal window types (float, horizontal split, vertical split)
+  local function close_terminal_win()
+    local target_win = (win and vim.api.nvim_win_is_valid(win)) and win or vim.api.nvim_get_current_win()
+    if vim.api.nvim_win_is_valid(target_win) then
+      local tab_wins = vim.api.nvim_tabpage_list_wins(0)
+      local cfg = vim.api.nvim_win_get_config(target_win)
+      if cfg.relative ~= "" or #tab_wins > 1 then
+        pcall(vim.api.nvim_win_close, target_win, true)
+      else
+        vim.cmd("bprevious")
+      end
+    end
+  end
+
+  -- Normal mode: 'q' hides/closes the terminal window (split or float)
+  vim.keymap.set("n", "q", close_terminal_win, b_opts)
+
+  -- Terminal mode: <C-q> hides/closes the terminal window directly without needing normal mode
+  vim.keymap.set("t", "<C-q>", function()
+    close_terminal_win()
+  end, b_opts)
+
+  -- Floating window extra handler: '<Esc>' also closes
   if is_float then
-    -- Normal mode: 'q' or '<Esc>' closes the floating window
-    vim.keymap.set("n", "q", function()
-      if vim.api.nvim_win_is_valid(win) then
-        vim.api.nvim_win_close(win, true)
-      end
-    end, b_opts)
-
-    vim.keymap.set("n", "<Esc>", function()
-      if vim.api.nvim_win_is_valid(win) then
-        vim.api.nvim_win_close(win, true)
-      end
-    end, b_opts)
-
-    -- Terminal mode: <C-q> closes the floating window directly
-    vim.keymap.set("t", "<C-q>", function()
-      if vim.api.nvim_win_is_valid(win) then
-        vim.api.nvim_win_close(win, true)
-      end
-    end, b_opts)
+    vim.keymap.set("n", "<Esc>", close_terminal_win, b_opts)
   end
 end
 
