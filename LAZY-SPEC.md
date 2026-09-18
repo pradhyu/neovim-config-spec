@@ -87,7 +87,7 @@
     * `<leader>um`: Lua Memory and Garbage Collection
 * **`terminal-enhancement.nvim`** (Local repo: `~/git/neovim-config/terminal-enhancement`):
   * Multi-direction persistent terminals, tool launchers (`lazygit`, `htop`, `agy`, REPLs), and smart compiler/stacktrace link navigation.
-  * Commands: `:TermToggle`, `:TermFloat`, `:TermSplit`, `:TermTool`, `:TermRun`, `:TermSend`, `:TermSelect`, `:TermTarget`, `:TermList`
+  * Commands: `:TermToggle`, `:TermFloat`, `:TermSplit`, `:TermTool`, `:TermRun`, `:TermSend`, `:TermSelect`, `:TermTarget`, `:TermBuffer`, `:TermList`
   * Keymaps:
     * `<leader>tt`: Toggle Default Terminal
     * `<leader>tf`: Toggle Centered Floating Terminal
@@ -97,6 +97,7 @@
     * `<leader>top`: Open htop Process Monitor Terminal
     * `<leader>ts`: Send current line or visual selection to target terminal
     * `<leader>tc`: Interactive prompt to select/change target terminal
+    * `<leader>tB`: Open terminal directly as a regular buffer in current window
 
 ---
 

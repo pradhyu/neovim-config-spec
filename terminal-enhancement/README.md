@@ -34,6 +34,7 @@ return {
       { "<leader>top", "<cmd>TermTool htop<cr>", desc = "htop Process Monitor" },
       { "<leader>ts", "<cmd>TermSend<cr>", mode = { "n", "v" }, desc = "Send Line / Selection to Terminal" },
       { "<leader>tc", "<cmd>TermSelect<cr>", desc = "Select / Change Target Terminal" },
+      { "<leader>tB", "<cmd>TermBuffer<cr>", desc = "Open Terminal as Regular Buffer" },
     },
     opts = {
       direction = "float",
@@ -58,6 +59,7 @@ return {
 | `:TermToggle [float\|horizontal\|vertical]` | Toggle Terminal | Toggles persistent terminal in specified direction. |
 | `:TermFloat` | Floating Terminal | Opens centered floating terminal. |
 | `:TermSplit [horizontal\|vertical]` | Split Terminal | Opens horizontal/vertical terminal split. |
+| `:TermBuffer [id]` | Open as Buffer | Opens terminal directly into active window as a regular buffer. |
 | `:TermTool <name>` | Tool Launcher | Opens dedicated tool (`lazygit`, `htop`, `agy`, `python`, `node`). |
 | `:TermRun <cmd>` | Run Shell Command | Runs command in floating popup terminal. |
 | `:TermSend` | Send Selection | Sends visual line selection into target terminal. |

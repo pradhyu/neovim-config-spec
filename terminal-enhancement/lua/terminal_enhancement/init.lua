@@ -35,6 +35,12 @@ function M.toggle(direction, id)
   terminal.toggle(id or terminal.default_target or "default", nil, direction)
 end
 
+---Open terminal directly in active window like a normal buffer
+---@param id? string
+function M.open_as_buffer(id)
+  terminal.open_as_buffer(id)
+end
+
 ---Open specific tool terminal
 ---@param tool_name string
 function M.open_tool(tool_name)

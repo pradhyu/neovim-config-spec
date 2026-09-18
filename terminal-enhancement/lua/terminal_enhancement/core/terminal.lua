@@ -19,7 +19,7 @@ M.instances = {}
 M.default_target = nil
 
 ---Get all currently active and valid terminal instances
----@return table[] list of { id: string, title: string, is_open: boolean, is_default: boolean }
+---@return table[] list of { id: string, title: string, is_open: boolean, is_default: boolean, buf: integer }
 function M.get_active_terminals()
   local list = {}
   for id, inst in pairs(M.instances) do
@@ -114,7 +114,7 @@ function M.select_target_terminal(on_selected)
   end)
 end
 
----Get or create a terminal instance
+---Get or create a terminal instance as a listed visible buffer
 ---@param id? string
 ---@param cmd? string
 ---@param direction? "float"|"horizontal"|"vertical"
@@ -137,10 +137,15 @@ function M.get_or_create(id, cmd, direction, title)
     return inst
   end
 
-  local buf = vim.api.nvim_create_buf(false, true)
+  -- Create listed buffer (visible in :ls, bufferline tabs, telescope buffers)
+  local buf = vim.api.nvim_create_buf(true, false)
+  vim.api.nvim_set_option_value("buflisted", true, { buf = buf })
   vim.api.nvim_set_option_value("swapfile", false, { buf = buf })
   vim.api.nvim_set_option_value("bufhidden", "hide", { buf = buf })
   vim.api.nvim_set_option_value("filetype", "terminal", { buf = buf })
+
+  -- Set buffer name for bufferline tab display
+  pcall(vim.api.nvim_buf_set_name, buf, "term://" .. term_id)
 
   local command = cmd or vim.o.shell
 
@@ -230,6 +235,35 @@ function M.toggle(id, cmd, direction, title, focus)
     if orig_win and vim.api.nvim_win_is_valid(orig_win) then
       pcall(vim.api.nvim_set_current_win, orig_win)
     end
+  end
+end
+
+---Open terminal directly into the active editor window like a standard buffer
+---@param id? string
+function M.open_as_buffer(id)
+  local term_id = id or M.default_target or "default"
+  local inst = M.get_or_create(term_id)
+
+  vim.api.nvim_set_current_buf(inst.buf)
+  window_ui.apply_terminal_styling(inst.buf, vim.api.nvim_get_current_win())
+
+  if not inst.job_id or inst.job_id <= 0 then
+    inst.job_id = vim.fn.jobstart(inst.cmd or vim.o.shell, {
+      term = true,
+      on_exit = function()
+        if vim.api.nvim_buf_is_valid(inst.buf) then
+          pcall(vim.api.nvim_buf_delete, inst.buf, { force = true })
+        end
+        M.instances[term_id] = nil
+        if M.default_target == term_id then
+          M.default_target = nil
+        end
+      end,
+    })
+  end
+
+  if config.options.auto_insert then
+    vim.cmd("startinsert")
   end
 end
 

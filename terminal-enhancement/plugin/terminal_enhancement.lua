@@ -93,17 +93,32 @@ end, {
   desc = "Set or switch default target terminal for code execution",
 })
 
+vim.api.nvim_create_user_command("TermBuffer", function(opts)
+  local arg = opts.args ~= "" and opts.args or nil
+  require("terminal_enhancement.core.terminal").open_as_buffer(arg)
+end, {
+  nargs = "?",
+  complete = function()
+    local matches = {}
+    for _, item in ipairs(term_enh.get_active_terminals()) do
+      table.insert(matches, item.id)
+    end
+    return matches
+  end,
+  desc = "Open terminal directly into current window as a regular buffer",
+})
+
 vim.api.nvim_create_user_command("TermList", function()
   local list = term_enh.get_active_terminals()
   if #list == 0 then
     vim.notify("[TermEnhance] No active terminals currently running.", vim.log.levels.INFO)
     return
   end
-  local lines = { "Active Terminals:" }
+  local lines = { "Active Terminals (Available in :buffers / :b term://<name>):" }
   for _, item in ipairs(list) do
-    local def = item.is_default and " [DEFAULT TARGET]" or ""
+    local def = item.is_default and " [ACTIVE TARGET]" or ""
     local state = item.is_open and "Visible" or "Hidden"
-    table.insert(lines, string.format(" • %s (%s)%s", item.title, state, def))
+    table.insert(lines, string.format(" • %s (%s)%s  [Buf #%d]", item.title, state, def, item.buf))
   end
   vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO)
 end, {

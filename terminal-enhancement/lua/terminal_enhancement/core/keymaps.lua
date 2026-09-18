@@ -89,6 +89,11 @@ function M.setup()
   vim.keymap.set("n", "<leader>tc", function()
     runner.select_target()
   end, { desc = "Select / Change target terminal" })
+
+  -- Open terminal as full regular buffer in current window
+  vim.keymap.set("n", "<leader>tB", function()
+    require("terminal_enhancement.core.terminal").open_as_buffer()
+  end, { desc = "Open terminal as regular buffer" })
 end
 
 return M
