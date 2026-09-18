@@ -133,9 +133,10 @@ return {
 
 | Keybinding | Mode | Action | Description |
 | :--- | :--- | :--- | :--- |
-| **`q`** | Normal Mode (after `<Esc><Esc>`) | **Quick Hide** | Hides/closes the terminal window immediately |
+| **`q`** | Normal Mode | **Quick Hide** | Hides/closes the terminal window immediately |
+| **`<Esc><Esc><Esc>`** | Terminal / Normal Mode | **Quick Hide** | Triple Escape closes the terminal window immediately |
 | **`<C-q>`** | Terminal Mode | **Instant Hide** | Hides/closes the terminal window directly without leaving terminal mode |
-| **`<Esc><Esc>`** | Terminal Mode | **Normal Mode** | Exits terminal input mode to terminal normal mode for text navigation/yanking |
+| **`<C-\><C-n>`** | Terminal Mode | **Normal Mode** | Exits terminal input mode to normal mode for text navigation/yanking |
 | **`<C-h/j/k/l>`** | Terminal Mode | **Navigate Window** | Jumps focus to adjacent editor window left/down/up/right |
 | **`<CR>`** | Normal Mode on error/path | **Smart Jump** | Resolves stack trace / compiler error under cursor and opens the target file |
 | **`gf`** | Normal Mode | **Smart Resolver** | Resolves and jumps to file / URL under cursor |
