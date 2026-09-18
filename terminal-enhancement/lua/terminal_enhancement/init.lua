@@ -76,6 +76,27 @@ function M.get_active_terminals()
   return terminal.get_active_terminals()
 end
 
+---Kill terminal by ID or buffer number
+---@param id_or_buf? string|integer
+function M.kill(id_or_buf)
+  return terminal.kill(id_or_buf)
+end
+
+---Kill all hidden/background terminals to free PTYs and memory
+function M.kill_hidden()
+  return terminal.kill_hidden()
+end
+
+---Kill all active terminals
+function M.kill_all()
+  return terminal.kill_all()
+end
+
+---Interactive prompt to terminate or clean terminals
+function M.kill_interactive()
+  terminal.kill_interactive()
+end
+
 ---Resolve and open link/file at cursor
 ---@param target? string
 function M.open_link(target)

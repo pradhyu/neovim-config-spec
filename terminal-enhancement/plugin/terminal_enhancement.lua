@@ -124,3 +124,46 @@ vim.api.nvim_create_user_command("TermList", function()
 end, {
   desc = "List all active terminal instances",
 })
+
+vim.api.nvim_create_user_command("TermKill", function(opts)
+  local arg = opts.args ~= "" and opts.args or nil
+  if arg then
+    local ok, msg = term_enh.kill(arg)
+    if ok then
+      vim.notify("[TermEnhance] " .. msg, vim.log.levels.INFO)
+    else
+      vim.notify("[TermEnhance] " .. msg, vim.log.levels.WARN)
+    end
+  else
+    term_enh.kill_interactive()
+  end
+end, {
+  nargs = "?",
+  complete = function()
+    local matches = { "hidden", "all" }
+    for _, item in ipairs(term_enh.get_active_terminals()) do
+      table.insert(matches, item.id)
+    end
+    return matches
+  end,
+  desc = "Kill terminal buffer/process or open interactive kill selector",
+})
+
+vim.api.nvim_create_user_command("TermClean", function()
+  term_enh.kill_hidden()
+end, {
+  desc = "Kill and purge all hidden/background terminal buffers",
+})
+
+vim.api.nvim_create_user_command("TermKillHidden", function()
+  term_enh.kill_hidden()
+end, {
+  desc = "Kill and purge all hidden/background terminal buffers",
+})
+
+vim.api.nvim_create_user_command("TermKillAll", function()
+  term_enh.kill_all()
+end, {
+  desc = "Kill and terminate all active terminal sessions",
+})
+

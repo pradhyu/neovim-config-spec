@@ -121,7 +121,11 @@ function M.select_target_terminal(on_selected)
   local active = M.get_active_terminals()
 
   local items = {}
+  local hidden_count = 0
   for _, item in ipairs(active) do
+    if not item.is_open then
+      hidden_count = hidden_count + 1
+    end
     local state = item.is_open and "🟢 Visible" or "⚪ Background"
     local def_badge = (M.default_target == item.id) and " [ACTIVE TARGET]" or ""
     table.insert(items, {
@@ -134,6 +138,20 @@ function M.select_target_terminal(on_selected)
     id = "__new__",
     label = "➕ Create & Open New Terminal...",
   })
+
+  if hidden_count > 0 then
+    table.insert(items, {
+      id = "__clean_hidden__",
+      label = string.format("🧹 Clean %d Background / Hidden Terminal(s)...", hidden_count),
+    })
+  end
+
+  if #active > 0 then
+    table.insert(items, {
+      id = "__kill_menu__",
+      label = "❌ Kill / Terminate Terminals...",
+    })
+  end
 
   vim.ui.select(items, {
     prompt = "Select Target Terminal for Code Execution:",
@@ -161,6 +179,10 @@ function M.select_target_terminal(on_selected)
           on_selected(clean_name)
         end
       end)
+    elseif choice.id == "__clean_hidden__" then
+      M.kill_hidden()
+    elseif choice.id == "__kill_menu__" then
+      M.kill_interactive()
     else
       M.set_default_target(choice.id)
       if on_selected then
@@ -367,6 +389,213 @@ function M.send(id, text)
       vim.fn.chansend(chan, payload)
     end
   end
+end
+
+---Kill and purge a terminal by ID or buffer number
+---@param id_or_buf? string|integer
+---@return boolean, string
+function M.kill(id_or_buf)
+  local target_id = id_or_buf or M.default_target or "default"
+  local target_buf = nil
+  local inst = nil
+
+  if type(target_id) == "number" then
+    target_buf = target_id
+    for id, i in pairs(M.instances) do
+      if i.buf == target_buf then
+        inst = i
+        target_id = id
+        break
+      end
+    end
+  else
+    inst = M.instances[tostring(target_id)]
+    if inst then
+      target_buf = inst.buf
+    else
+      local b_num = tonumber(tostring(target_id):match("^buf_(%d+)$") or tostring(target_id))
+      if b_num and vim.api.nvim_buf_is_valid(b_num) then
+        target_buf = b_num
+      end
+    end
+  end
+
+  if not target_buf or not vim.api.nvim_buf_is_valid(target_buf) then
+    return false, string.format("Terminal '%s' not found or already closed", tostring(id_or_buf or target_id))
+  end
+
+  -- Close any open window for this instance/buffer
+  if inst and inst.win and vim.api.nvim_win_is_valid(inst.win) then
+    pcall(vim.api.nvim_win_close, inst.win, true)
+    inst.win = nil
+  end
+  local win_on_screen = vim.fn.bufwinid(target_buf)
+  if win_on_screen ~= -1 and vim.api.nvim_win_is_valid(win_on_screen) then
+    local tab_wins = vim.api.nvim_tabpage_list_wins(0)
+    if #tab_wins > 1 then
+      pcall(vim.api.nvim_win_close, win_on_screen, true)
+    end
+  end
+
+  -- Stop job channel
+  local chan = (inst and inst.job_id) or vim.bo[target_buf].channel or vim.b[target_buf].terminal_job_id or 0
+  if chan and chan > 0 then
+    pcall(vim.fn.jobstop, chan)
+  end
+
+  -- Delete buffer
+  pcall(vim.api.nvim_buf_delete, target_buf, { force = true })
+
+  -- Cleanup instance table
+  if inst then
+    M.instances[inst.id] = nil
+  end
+  for k, v in pairs(M.instances) do
+    if v.buf == target_buf then
+      M.instances[k] = nil
+    end
+  end
+
+  -- Reset default_target if it matched
+  if M.default_target == tostring(target_id) or M.default_target == tostring(target_buf) then
+    M.default_target = nil
+    local remaining = M.get_active_terminals()
+    if #remaining > 0 then
+      M.default_target = remaining[1].id
+    end
+  end
+
+  return true, string.format("Killed terminal '%s' (Buf #%d)", tostring(target_id), target_buf)
+end
+
+---Kill all hidden/background terminal buffers to free memory and PTYs
+---@return integer count of terminals killed
+function M.kill_hidden()
+  local all_bufs = vim.api.nvim_list_bufs()
+  local killed_count = 0
+
+  for _, buf in ipairs(all_bufs) do
+    if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buftype == "terminal" then
+      local win = vim.fn.bufwinid(buf)
+      if win == -1 then
+        -- This terminal is in the background
+        local chan = vim.bo[buf].channel or vim.b[buf].terminal_job_id or 0
+        if chan and chan > 0 then
+          pcall(vim.fn.jobstop, chan)
+        end
+        pcall(vim.api.nvim_buf_delete, buf, { force = true })
+
+        -- Clean up instances
+        for k, v in pairs(M.instances) do
+          if v.buf == buf then
+            M.instances[k] = nil
+            if M.default_target == k or M.default_target == tostring(buf) then
+              M.default_target = nil
+            end
+          end
+        end
+
+        killed_count = killed_count + 1
+      end
+    end
+  end
+
+  -- Pick remaining default target if reset
+  if not M.default_target then
+    local remaining = M.get_active_terminals()
+    if #remaining > 0 then
+      M.default_target = remaining[1].id
+    end
+  end
+
+  if killed_count > 0 then
+    vim.notify(string.format("[TermEnhance] 🧹 Cleaned %d hidden terminal(s). Freed PTYs and memory.", killed_count), vim.log.levels.INFO)
+  else
+    vim.notify("[TermEnhance] No hidden/background terminals found to clean.", vim.log.levels.INFO)
+  end
+
+  return killed_count
+end
+
+---Kill all active terminals (both visible and hidden)
+---@return integer count of terminals killed
+function M.kill_all()
+  local active = M.get_active_terminals()
+  local count = 0
+  for _, item in ipairs(active) do
+    local ok = M.kill(item.id)
+    if ok then
+      count = count + 1
+    end
+  end
+  M.instances = {}
+  M.default_target = nil
+  vim.notify(string.format("[TermEnhance] 🧹 Terminated all %d active terminal(s).", count), vim.log.levels.INFO)
+  return count
+end
+
+---Interactive prompt to kill specific terminal, kill hidden, or kill all
+function M.kill_interactive()
+  local active = M.get_active_terminals()
+  if #active == 0 then
+    vim.notify("[TermEnhance] No running terminals to kill.", vim.log.levels.INFO)
+    return
+  end
+
+  local hidden_count = 0
+  for _, item in ipairs(active) do
+    if not item.is_open then
+      hidden_count = hidden_count + 1
+    end
+  end
+
+  local items = {}
+
+  if hidden_count > 0 then
+    table.insert(items, {
+      action = "clean_hidden",
+      label = string.format("🧹 Clean All Hidden Terminals (%d background %s)", hidden_count, hidden_count == 1 and "buffer" or "buffers"),
+    })
+  end
+
+  table.insert(items, {
+    action = "kill_all",
+    label = string.format("💥 Kill ALL Terminals (%d total)", #active),
+  })
+
+  for _, item in ipairs(active) do
+    local state = item.is_open and "🟢 Visible" or "⚪ Background"
+    local def_badge = (M.default_target == item.id) and " [ACTIVE TARGET]" or ""
+    table.insert(items, {
+      action = "kill_one",
+      id = item.id,
+      label = string.format("❌ Kill %-12s %s%s", state, item.title, def_badge),
+    })
+  end
+
+  vim.ui.select(items, {
+    prompt = "Select Terminal to Terminate/Kill:",
+    format_item = function(item)
+      return item.label
+    end,
+  }, function(choice)
+    if not choice then
+      return
+    end
+
+    if choice.action == "clean_hidden" then
+      M.kill_hidden()
+    elseif choice.action == "kill_all" then
+      M.kill_all()
+    elseif choice.action == "kill_one" and choice.id then
+      local ok, msg = M.kill(choice.id)
+      if ok then
+        vim.notify("[TermEnhance] " .. msg, vim.log.levels.INFO)
+      else
+        vim.notify("[TermEnhance] " .. msg, vim.log.levels.WARN)
+      end
+    end
+  end)
 end
 
 return M

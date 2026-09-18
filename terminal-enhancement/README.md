@@ -12,6 +12,7 @@
 * ⌨️ **Seamless Navigation**: Exit terminal mode effortlessly with `<Esc><Esc>` and jump between terminal windows using standard `<C-h/j/k/l>`.
 * 🎨 **Clean Visual Styling**: Strips clutter (no line numbers, no signcolumn, no foldcolumn) and applies themed window highlights.
 * 📤 **Selection & Line Runner**: Send visual selections or lines directly to the active terminal.
+* 🧹 **Process & Memory Cleanup**: One-key cleanup to kill and purge background/hidden terminals or selectively terminate processes.
 
 ---
 
@@ -24,7 +25,22 @@ return {
   {
     dir = "/Users/pkshrestha/git/neovim-config/terminal-enhancement",
     name = "terminal-enhancement.nvim",
-    cmd = { "TermToggle", "TermFloat", "TermSplit", "TermTool", "TermRun", "TermSend" },
+    cmd = {
+      "TermToggle",
+      "TermFloat",
+      "TermSplit",
+      "TermTool",
+      "TermRun",
+      "TermSend",
+      "TermSelect",
+      "TermTarget",
+      "TermBuffer",
+      "TermList",
+      "TermKill",
+      "TermClean",
+      "TermKillHidden",
+      "TermKillAll",
+    },
     keys = {
       { "<leader>tt", "<cmd>TermToggle<cr>", desc = "Toggle Terminal (Default)" },
       { "<leader>tf", "<cmd>TermFloat<cr>", desc = "Toggle Floating Terminal" },
@@ -35,6 +51,8 @@ return {
       { "<leader>ts", "<cmd>TermSend<cr>", mode = { "n", "v" }, desc = "Send Line / Selection to Terminal" },
       { "<leader>tc", "<cmd>TermSelect<cr>", desc = "Select / Change Target Terminal" },
       { "<leader>tB", "<cmd>TermBuffer<cr>", desc = "Open Terminal as Regular Buffer" },
+      { "<leader>tk", "<cmd>TermKill<cr>", desc = "Kill / Terminate Terminal (Interactive)" },
+      { "<leader>tX", "<cmd>TermClean<cr>", desc = "Clean All Hidden Terminals" },
     },
     opts = {
       direction = "float",
@@ -65,6 +83,9 @@ return {
 | `:TermSend` | Send Selection | Sends visual line selection into target terminal. |
 | `:TermSelect` / `:TermTarget` | Change Target | Interactive selector to switch default target terminal. |
 | `:TermList` | List Terminals | Lists all active terminal instances and default target. |
+| `:TermClean` / `:TermKillHidden` | Clean Hidden | Terminates all hidden/background terminal jobs and frees memory/PTYs. |
+| `:TermKill [id\|buf]` | Kill Terminal | Interactively select terminal to terminate, or kill by ID/buffer number. |
+| `:TermKillAll` | Kill All | Terminates all active terminal sessions and closes windows. |
 
 ---
 

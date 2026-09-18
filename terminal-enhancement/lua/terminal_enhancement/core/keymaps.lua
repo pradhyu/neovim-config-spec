@@ -94,6 +94,16 @@ function M.setup()
   vim.keymap.set("n", "<leader>tB", function()
     require("terminal_enhancement.core.terminal").open_as_buffer()
   end, { desc = "Open terminal as regular buffer" })
+
+  -- Kill / Terminate terminal selector
+  vim.keymap.set("n", "<leader>tk", function()
+    require("terminal_enhancement.core.terminal").kill_interactive()
+  end, { desc = "Kill / Terminate terminal" })
+
+  -- Clean all hidden/background terminals
+  vim.keymap.set("n", "<leader>tX", function()
+    require("terminal_enhancement.core.terminal").kill_hidden()
+  end, { desc = "Clean all hidden terminal buffers" })
 end
 
 return M
