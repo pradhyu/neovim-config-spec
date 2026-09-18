@@ -534,68 +534,9 @@ function M.kill_all()
   return count
 end
 
----Interactive prompt to kill specific terminal, kill hidden, or kill all
+---Interactive multi-select floating prompt to kill specific or multiple terminals
 function M.kill_interactive()
-  local active = M.get_active_terminals()
-  if #active == 0 then
-    vim.notify("[TermEnhance] No running terminals to kill.", vim.log.levels.INFO)
-    return
-  end
-
-  local hidden_count = 0
-  for _, item in ipairs(active) do
-    if not item.is_open then
-      hidden_count = hidden_count + 1
-    end
-  end
-
-  local items = {}
-
-  if hidden_count > 0 then
-    table.insert(items, {
-      action = "clean_hidden",
-      label = string.format("🧹 Clean All Hidden Terminals (%d background %s)", hidden_count, hidden_count == 1 and "buffer" or "buffers"),
-    })
-  end
-
-  table.insert(items, {
-    action = "kill_all",
-    label = string.format("💥 Kill ALL Terminals (%d total)", #active),
-  })
-
-  for _, item in ipairs(active) do
-    local state = item.is_open and "🟢 Visible" or "⚪ Background"
-    local def_badge = (M.default_target == item.id) and " [ACTIVE TARGET]" or ""
-    table.insert(items, {
-      action = "kill_one",
-      id = item.id,
-      label = string.format("❌ Kill %-12s %s%s", state, item.title, def_badge),
-    })
-  end
-
-  vim.ui.select(items, {
-    prompt = "Select Terminal to Terminate/Kill:",
-    format_item = function(item)
-      return item.label
-    end,
-  }, function(choice)
-    if not choice then
-      return
-    end
-
-    if choice.action == "clean_hidden" then
-      M.kill_hidden()
-    elseif choice.action == "kill_all" then
-      M.kill_all()
-    elseif choice.action == "kill_one" and choice.id then
-      local ok, msg = M.kill(choice.id)
-      if ok then
-        vim.notify("[TermEnhance] " .. msg, vim.log.levels.INFO)
-      else
-        vim.notify("[TermEnhance] " .. msg, vim.log.levels.WARN)
-      end
-    end
-  end)
+  require("terminal_enhancement.ui.kill_picker").open()
 end
 
 return M
