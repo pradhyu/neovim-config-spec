@@ -28,7 +28,7 @@ function M.get_active_terminals()
       local is_default = (M.default_target == id)
       table.insert(list, {
         id = id,
-        title = inst.title or id,
+        title = inst.title or string.format("Terminal: %s", id),
         buf = inst.buf,
         win = inst.win,
         is_open = is_open,
@@ -51,7 +51,7 @@ end
 ---@param id string
 function M.set_default_target(id)
   M.default_target = id
-  vim.notify(string.format("[TermEnhance] Target terminal set to '%s'", id), vim.log.levels.INFO)
+  vim.notify(string.format("[TermEnhance] Active target terminal set to '%s'", id), vim.log.levels.INFO)
 end
 
 ---Interactive prompt to select or change default target terminal
@@ -62,20 +62,20 @@ function M.select_target_terminal(on_selected)
   local items = {}
   for _, item in ipairs(active) do
     local state = item.is_open and "Visible" or "Hidden"
-    local def_badge = (M.default_target == item.id) and " [DEFAULT]" or ""
+    local def_badge = (M.default_target == item.id) and " [ACTIVE TARGET]" or ""
     table.insert(items, {
       id = item.id,
-      label = string.format("%s (%s)%s", item.title, state, def_badge),
+      label = string.format("• %s (%s)%s", item.title, state, def_badge),
     })
   end
 
   table.insert(items, {
     id = "__new__",
-    label = "➕ Create & Switch to New Terminal...",
+    label = "➕ Create & Open New Named Terminal...",
   })
 
   vim.ui.select(items, {
-    prompt = "Select Target Terminal for Code Execution:",
+    prompt = "Select / Switch Target Terminal:",
     format_item = function(item)
       return item.label
     end,
@@ -85,19 +85,28 @@ function M.select_target_terminal(on_selected)
     end
 
     if choice.id == "__new__" then
-      vim.ui.input({ prompt = "New Terminal Name (e.g. python, node, term2): ", default = "term_" .. (#active + 1) }, function(name)
+      local default_name = "term_" .. (#active + 1)
+      vim.ui.input({ prompt = "New Terminal Name (e.g. python, node, term2): ", default = default_name }, function(name)
         if not name or name == "" then
           return
         end
         local clean_name = name:gsub("%s+", "_")
-        M.get_or_create(clean_name)
+        local custom_title = string.format(" Terminal: %s ", clean_name)
+        M.get_or_create(clean_name, nil, nil, custom_title)
         M.set_default_target(clean_name)
+        -- Open the new terminal and keep it open with that custom title!
+        M.toggle(clean_name, nil, nil, custom_title, true)
         if on_selected then
           on_selected(clean_name)
         end
       end)
     else
       M.set_default_target(choice.id)
+      -- Ensure the selected terminal is open and visible
+      local inst = M.instances[choice.id]
+      if inst and not (inst.win and vim.api.nvim_win_is_valid(inst.win)) then
+        M.toggle(choice.id, nil, nil, inst.title, false)
+      end
       if on_selected then
         on_selected(choice.id)
       end
@@ -164,7 +173,7 @@ function M.toggle(id, cmd, direction, title, focus)
     focus = true
   end
 
-  local term_id = id or "default"
+  local term_id = id or M.default_target or "default"
   local inst = M.get_or_create(term_id, cmd, direction, title)
 
   -- If window is currently open and valid, close/hide it
@@ -224,7 +233,7 @@ function M.toggle(id, cmd, direction, title, focus)
   end
 end
 
----Send raw text/command into a terminal instance and preserve user focus
+---Send raw text/command into a terminal instance and keep it open
 ---@param id string
 ---@param text string
 function M.send(id, text)
@@ -233,7 +242,7 @@ function M.send(id, text)
   local just_started = false
 
   if not inst or not inst.job_id or inst.job_id <= 0 or not (inst.win and vim.api.nvim_win_is_valid(inst.win)) then
-    -- Open terminal split/float if not already visible, but preserve focus in editor!
+    -- Open terminal window if not already visible, but preserve user editor focus
     M.toggle(target_id, nil, nil, nil, false)
     inst = M.instances[target_id]
     just_started = true
