@@ -2,32 +2,41 @@ local terminal = require("terminal_enhancement.core.terminal")
 
 local M = {}
 
----Extract text from visual selection
----@return string?
-local function get_visual_selection()
-  local mode = vim.fn.mode()
-  if mode:match("[vV\22]") then
-    -- Exit visual mode to ensure '< and '> are updated
-    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "x", false)
+---Expand a line range (start_line, end_line) to include all connected continuation lines (\ or `)
+---@param bufnr integer
+---@param start_line integer 1-indexed
+---@param end_line integer 1-indexed
+---@return integer expanded_start, integer expanded_end
+local function expand_continuation_range(bufnr, start_line, end_line)
+  local total_lines = vim.api.nvim_buf_line_count(bufnr)
+
+  local function has_continuation(line_str)
+    return line_str:match("\\%s*$") ~= nil or line_str:match("`%s*$") ~= nil
   end
 
-  local s_pos = vim.fn.getpos("'<")
-  local e_pos = vim.fn.getpos("'>")
-  local s_line = s_pos[2]
-  local e_line = e_pos[2]
-
-  if s_line > e_line then
-    s_line, e_line = e_line, s_line
-  end
-
-  if s_line > 0 and e_line > 0 then
-    local lines = vim.api.nvim_buf_get_lines(0, s_line - 1, e_line, false)
-    if #lines > 0 then
-      return table.concat(lines, "\n")
+  -- 1. Scan backwards from start_line as long as previous line had a continuation character
+  local s = start_line
+  while s > 1 do
+    local prev = vim.api.nvim_buf_get_lines(bufnr, s - 2, s - 1, false)[1] or ""
+    if has_continuation(prev) then
+      s = s - 1
+    else
+      break
     end
   end
 
-  return nil
+  -- 2. Scan forwards from end_line as long as current line has a continuation character
+  local e = end_line
+  while e <= total_lines do
+    local cur = vim.api.nvim_buf_get_lines(bufnr, e - 1, e, false)[1] or ""
+    if has_continuation(cur) and e < total_lines then
+      e = e + 1
+    else
+      break
+    end
+  end
+
+  return s, e
 end
 
 ---Internal helper to send text to resolved or chosen target terminal
@@ -87,48 +96,34 @@ local function dispatch_to_terminal(text, line_count, mode)
   end
 end
 
----Detect if the line at cursor is part of a multi-line command with line continuations (\ or `)
----and extract the entire multi-line command block automatically.
----@return string text, integer line_count
-local function get_multiline_command_at_cursor()
-  local bufnr = 0
-  local cur_line_num = vim.api.nvim_win_get_cursor(0)[1] -- 1-indexed
-  local total_lines = vim.api.nvim_buf_line_count(bufnr)
-
-  local function has_continuation(line_str)
-    -- Line ends with \ (Bash/Zsh) or ` (PowerShell) optionally followed by trailing whitespace
-    return line_str:match("\\%s*$") ~= nil or line_str:match("`%s*$") ~= nil
+---Extract text from visual selection, automatically expanding multi-line continuation blocks
+---@return string? text, integer line_count
+local function get_visual_selection()
+  local mode = vim.fn.mode()
+  if mode:match("[vV\22]") then
+    -- Exit visual mode to ensure '< and '> are updated
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "x", false)
   end
 
-  local cur_line = vim.api.nvim_buf_get_lines(bufnr, cur_line_num - 1, cur_line_num, false)[1] or ""
-  if cur_line:match("^%s*$") then
-    return cur_line, 1
+  local s_pos = vim.fn.getpos("'<")
+  local e_pos = vim.fn.getpos("'>")
+  local s_line = s_pos[2]
+  local e_line = e_pos[2]
+
+  if s_line > e_line then
+    s_line, e_line = e_line, s_line
   end
 
-  -- 1. Find start line: Scan backwards as long as previous line had a continuation character
-  local start_line = cur_line_num
-  while start_line > 1 do
-    local prev_line = vim.api.nvim_buf_get_lines(bufnr, start_line - 2, start_line - 1, false)[1] or ""
-    if has_continuation(prev_line) then
-      start_line = start_line - 1
-    else
-      break
+  if s_line > 0 and e_line > 0 then
+    -- Expand selection if any line is part of a multi-line command (\ or `)
+    s_line, e_line = expand_continuation_range(0, s_line, e_line)
+    local lines = vim.api.nvim_buf_get_lines(0, s_line - 1, e_line, false)
+    if #lines > 0 then
+      return table.concat(lines, "\n"), #lines
     end
   end
 
-  -- 2. Find end line: Scan forwards as long as current line has a continuation character
-  local end_line = cur_line_num
-  while end_line <= total_lines do
-    local this_line = vim.api.nvim_buf_get_lines(bufnr, end_line - 1, end_line, false)[1] or ""
-    if has_continuation(this_line) and end_line < total_lines then
-      end_line = end_line + 1
-    else
-      break
-    end
-  end
-
-  local lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
-  return table.concat(lines, "\n"), #lines
+  return nil, 0
 end
 
 ---Send visual selection or current line to the active/default terminal
@@ -140,7 +135,8 @@ function M.send_selection(line1, line2, mode)
   local line_count = 1
 
   if line1 and line2 and line1 > 0 and line2 > 0 and (line1 ~= line2 or vim.fn.mode():match("[vV\22]")) then
-    local lines = vim.api.nvim_buf_get_lines(0, line1 - 1, line2, false)
+    local s, e = expand_continuation_range(0, line1, line2)
+    local lines = vim.api.nvim_buf_get_lines(0, s - 1, e, false)
     if #lines > 0 then
       text = table.concat(lines, "\n")
       line_count = #lines
@@ -148,16 +144,18 @@ function M.send_selection(line1, line2, mode)
   end
 
   if not text then
-    text = get_visual_selection()
-    if text then
-      local _, count = text:gsub("\n", "\n")
-      line_count = count + 1
-    end
+    text, line_count = get_visual_selection()
   end
 
   -- If still nil (Normal mode), check if cursor is on a multi-line command with \ or `
   if not text or text == "" then
-    text, line_count = get_multiline_command_at_cursor()
+    local cur = vim.api.nvim_win_get_cursor(0)[1]
+    local s, e = expand_continuation_range(0, cur, cur)
+    local lines = vim.api.nvim_buf_get_lines(0, s - 1, e, false)
+    if #lines > 0 then
+      text = table.concat(lines, "\n")
+      line_count = #lines
+    end
   end
 
   if not text or text:match("^%s*$") then
@@ -170,7 +168,12 @@ end
 
 ---Send current line or multi-line command at cursor to terminal
 function M.send_current_line()
-  local text, line_count = get_multiline_command_at_cursor()
+  local cur = vim.api.nvim_win_get_cursor(0)[1]
+  local s, e = expand_continuation_range(0, cur, cur)
+  local lines = vim.api.nvim_buf_get_lines(0, s - 1, e, false)
+  local text = table.concat(lines, "\n")
+  local line_count = #lines
+
   if not text or text:match("^%s*$") then
     vim.notify("[TermEnhance] Current line is empty.", vim.log.levels.WARN)
     return
