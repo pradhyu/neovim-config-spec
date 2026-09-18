@@ -84,10 +84,15 @@ function M.setup()
     runner.send_current_line()
   end, { desc = "Send current line to target terminal" })
 
-  -- Visual mode sends highlighted lines
+  -- Visual mode sends highlighted lines with atomic bracketed paste & dedent
   vim.keymap.set("v", "<leader>ts", function()
     runner.send_selection()
   end, { desc = "Send visual selection to target terminal" })
+
+  -- Send visual selection joined with line continuation (\ for Bash, ` for PowerShell)
+  vim.keymap.set({ "n", "v" }, "<leader>tS", function()
+    runner.send_joined()
+  end, { desc = "Send lines joined with continuation (\\ or `)" })
 
   -- Change / Select default target terminal
   vim.keymap.set("n", "<leader>tc", function()

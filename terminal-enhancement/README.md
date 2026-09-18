@@ -11,7 +11,8 @@
 * 🔗 **Smart Link & Error Trace Resolver**: Intelligent `gf`, `<CR>`, and `<C-LeftMouse>` click resolver that parses compiler errors, stack traces, `file:///path#L10-L20`, `:line:col`, `(line)`, and web URLs.
 * ⌨️ **Seamless Navigation**: Exit terminal mode effortlessly with `<Esc><Esc>` and jump between terminal windows using standard `<C-h/j/k/l>`.
 * 🎨 **Clean Visual Styling**: Strips clutter (no line numbers, no signcolumn, no foldcolumn) and applies themed window highlights.
-* 📤 **Selection & Line Runner**: Send visual selections or lines directly to the active terminal.
+* 📤 **Selection & Line Runner**: Send visual selections or lines directly to the active terminal with auto-dedent and Bracketed Paste.
+* 🔗 **Smart Multi-Line Continuation**: Send multi-line commands joined with `\` (Bash/Zsh) or `` ` `` (PowerShell) or compound `&&`.
 * 🧹 **Process & Memory Cleanup**: One-key cleanup to kill and purge background/hidden terminals or selectively terminate processes.
 
 ---
@@ -32,6 +33,7 @@ return {
       "TermTool",
       "TermRun",
       "TermSend",
+      "TermSendJoined",
       "TermSelect",
       "TermTarget",
       "TermBuffer",
@@ -49,7 +51,8 @@ return {
       { "<leader>tv", "<cmd>TermToggle vertical<cr>", desc = "Toggle Terminal (Vertical Split)" },
       { "<leader>tg", "<cmd>TermTool lazygit<cr>", desc = "LazyGit Terminal" },
       { "<leader>top", "<cmd>TermTool htop<cr>", desc = "htop Process Monitor" },
-      { "<leader>ts", "<cmd>TermSend<cr>", mode = { "n", "v" }, desc = "Send Line / Selection to Terminal" },
+      { "<leader>ts", "<cmd>TermSend<cr>", mode = { "n", "v" }, desc = "Send Line / Selection (Bracketed Paste)" },
+      { "<leader>tS", "<cmd>TermSendJoined<cr>", mode = { "n", "v" }, desc = "Send Lines Joined with \\ or `" },
       { "<leader>tc", "<cmd>TermSelect<cr>", desc = "Select / Change Target Terminal" },
       { "<leader>tr", "<cmd>TermRename<cr>", desc = "Rename Terminal" },
       { "<leader>tB", "<cmd>TermBuffer<cr>", desc = "Open Terminal as Regular Buffer" },
@@ -62,6 +65,9 @@ return {
       clean_buffer = true,
       smart_navigation = true,
       smart_link_resolver = true,
+      bracketed_paste = true,
+      auto_dedent = true,
+      shell_continuation = "auto", -- "auto" (detects bash vs powershell), "bash" (\), "powershell" (`)
     },
     config = function(_, opts)
       require("terminal_enhancement").setup(opts)
@@ -82,7 +88,8 @@ return {
 | `:TermBuffer [id]` | Open as Buffer | Opens terminal directly into active window as a regular buffer. |
 | `:TermTool <name>` | Tool Launcher | Opens dedicated tool (`lazygit`, `htop`, `agy`, `python`, `node`). |
 | `:TermRun <cmd>` | Run Shell Command | Runs command in floating popup terminal. |
-| `:TermSend` | Send Selection | Sends visual line selection into target terminal. |
+| `:TermSend` | Send Selection | Sends visual line selection with Bracketed Paste and dedent. |
+| `:TermSendJoined [and\|continuation]` | Send Joined | Joins lines with `\` (Bash) or `` ` `` (PowerShell) or `&&`. |
 | `:TermSelect` / `:TermTarget` | Change Target | Interactive selector to switch default target terminal. |
 | `:TermRename [name]` | Rename Terminal | Renames terminal session and buffer title. |
 | `:TermList` | List Terminals | Lists all active terminal instances and default target. |

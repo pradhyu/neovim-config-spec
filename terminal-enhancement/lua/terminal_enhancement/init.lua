@@ -71,8 +71,17 @@ end
 ---Send visual selection or current line to terminal
 ---@param line1? integer
 ---@param line2? integer
-function M.send_selection(line1, line2)
-  runner.send_selection(line1, line2)
+---@param mode? "raw"|"join_continuation"|"join_and"
+function M.send_selection(line1, line2, mode)
+  runner.send_selection(line1, line2, mode)
+end
+
+---Send visual selection joined into a single command with \ (Bash) or ` (PowerShell)
+---@param line1? integer
+---@param line2? integer
+---@param mode? "join_continuation"|"join_and"
+function M.send_joined(line1, line2, mode)
+  runner.send_joined(line1, line2, mode)
 end
 
 ---Send current line to terminal

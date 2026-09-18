@@ -27,6 +27,9 @@ M.defaults = {
   clean_buffer = true,
   smart_navigation = true,
   smart_link_resolver = true,
+  bracketed_paste = true,
+  auto_dedent = true,
+  shell_continuation = "auto", -- "auto" (detects bash/zsh vs pwsh), "bash" (\), "powershell" (`)
   tools = {
     lazygit = { cmd = "lazygit", direction = "float", desc = "LazyGit GUI" },
     htop = { cmd = "htop", direction = "float", desc = "Process Monitor (htop)" },

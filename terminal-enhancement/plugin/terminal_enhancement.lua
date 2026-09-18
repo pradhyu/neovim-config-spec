@@ -62,10 +62,22 @@ end, {
 })
 
 vim.api.nvim_create_user_command("TermSend", function(opts)
-  term_enh.send_selection(opts.line1, opts.line2)
+  term_enh.send_selection(opts.line1, opts.line2, "raw")
 end, {
   range = true,
-  desc = "Send line or visual selection to target terminal",
+  desc = "Send line or visual selection to target terminal with bracketed paste",
+})
+
+vim.api.nvim_create_user_command("TermSendJoined", function(opts)
+  local mode = (opts.args == "and" or opts.args == "&&") and "join_and" or "join_continuation"
+  term_enh.send_joined(opts.line1, opts.line2, mode)
+end, {
+  range = true,
+  nargs = "?",
+  complete = function()
+    return { "continuation", "and" }
+  end,
+  desc = "Send lines joined with line continuation (\\ or `) or &&",
 })
 
 vim.api.nvim_create_user_command("TermSelect", function()

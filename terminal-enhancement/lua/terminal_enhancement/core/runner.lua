@@ -33,17 +33,33 @@ end
 ---Internal helper to send text to resolved or chosen target terminal
 ---@param text string
 ---@param line_count integer
-local function dispatch_to_terminal(text, line_count)
+---@param mode? "raw"|"join_continuation"|"join_and"
+local function dispatch_to_terminal(text, line_count, mode)
   local active = terminal.get_active_terminals()
+  local shell_helper = require("terminal_enhancement.core.shell_helper")
 
   local function do_send(target_id)
-    terminal.send(target_id, text)
-    local preview = text:sub(1, 40):gsub("\n", " ")
-    if #text > 40 then
+    local inst = terminal.instances[target_id]
+    local shell_type = shell_helper.detect_shell_type(inst)
+    local formatted = shell_helper.format_multiline_command(text, mode, shell_type)
+
+    terminal.send(target_id, formatted)
+
+    local preview = formatted:sub(1, 40):gsub("\n", " ")
+    if #formatted > 40 then
       preview = preview .. "..."
     end
+
+    local mode_desc = ""
+    if mode == "join_continuation" then
+      local cont = shell_helper.get_continuation_char(shell_type)
+      mode_desc = string.format(" [Joined with %s]", cont)
+    elseif mode == "join_and" then
+      mode_desc = " [Joined with &&]"
+    end
+
     vim.notify(
-      string.format("[TermEnhance -> %s] Sent %d line(s): %s", target_id, line_count, preview),
+      string.format("[TermEnhance -> %s%s] Sent %d line(s): %s", target_id, mode_desc, line_count, preview),
       vim.log.levels.INFO
     )
   end
@@ -74,7 +90,8 @@ end
 ---Send visual selection or current line to the active/default terminal
 ---@param line1? integer
 ---@param line2? integer
-function M.send_selection(line1, line2)
+---@param mode? "raw"|"join_continuation"|"join_and"
+function M.send_selection(line1, line2, mode)
   local text = nil
 
   if line1 and line2 and line1 > 0 and line2 > 0 and (line1 ~= line2 or vim.fn.mode():match("[vV\22]")) then
@@ -100,7 +117,7 @@ function M.send_selection(line1, line2)
 
   local _, count = text:gsub("\n", "\n")
   local line_count = count + 1
-  dispatch_to_terminal(text, line_count)
+  dispatch_to_terminal(text, line_count, mode or "raw")
 end
 
 ---Send current line to terminal
@@ -111,7 +128,15 @@ function M.send_current_line()
     return
   end
 
-  dispatch_to_terminal(line, 1)
+  dispatch_to_terminal(line, 1, "raw")
+end
+
+---Send visual selection joined into a single multi-line command with \ (Bash) or ` (PowerShell)
+---@param line1? integer
+---@param line2? integer
+---@param join_mode? "join_continuation"|"join_and"
+function M.send_joined(line1, line2, join_mode)
+  M.send_selection(line1, line2, join_mode or "join_continuation")
 end
 
 ---Prompt user to switch or change default target terminal

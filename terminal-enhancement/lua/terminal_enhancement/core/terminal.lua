@@ -378,6 +378,11 @@ function M.send(id, text)
   end
 
   local payload = text
+  if not raw and text:find("\n") then
+    local shell_helper = require("terminal_enhancement.core.shell_helper")
+    payload = shell_helper.wrap_bracketed_paste(text)
+  end
+
   if not payload:match("\n$") then
     payload = payload .. "\n"
   end
