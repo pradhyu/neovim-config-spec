@@ -6,13 +6,13 @@ local M = {}
 
 ---Attach buffer-local keymaps to a newly opened terminal buffer
 ---@param buf integer
----@param win integer
+---@param win? integer
 function M.attach_to_buffer(buf, win)
-  if not vim.api.nvim_buf_is_valid(buf) or not vim.api.nvim_win_is_valid(win) then
+  if not buf or not vim.api.nvim_buf_is_valid(buf) then
     return
   end
 
-  local is_float = vim.api.nvim_win_get_config(win).relative ~= ""
+  local is_float = win and vim.api.nvim_win_is_valid(win) and (vim.api.nvim_win_get_config(win).relative ~= "")
   local b_opts = { buffer = buf, silent = true, noremap = true }
 
   -- Press <CR> in normal mode on an error line / file path to jump directly to it
@@ -24,7 +24,7 @@ function M.attach_to_buffer(buf, win)
 
   -- Quick-close handler for all terminal window types (float, horizontal split, vertical split)
   local function close_terminal_win()
-    local target_win = (win and vim.api.nvim_win_is_valid(win)) and win or vim.api.nvim_get_current_win()
+    local target_win = vim.api.nvim_get_current_win()
     if vim.api.nvim_win_is_valid(target_win) then
       local tab_wins = vim.api.nvim_tabpage_list_wins(0)
       local cfg = vim.api.nvim_win_get_config(target_win)
@@ -93,6 +93,11 @@ function M.setup()
   vim.keymap.set("n", "<leader>tc", function()
     runner.select_target()
   end, { desc = "Select / Change target terminal" })
+
+  -- Rename active or chosen terminal
+  vim.keymap.set("n", "<leader>tr", function()
+    require("terminal_enhancement.core.terminal").rename_interactive()
+  end, { desc = "Rename terminal" })
 
   -- Open terminal as full regular buffer in current window
   vim.keymap.set("n", "<leader>tB", function()

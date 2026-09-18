@@ -40,6 +40,7 @@ return {
       "TermClean",
       "TermKillHidden",
       "TermKillAll",
+      "TermRename",
     },
     keys = {
       { "<leader>tt", "<cmd>TermToggle<cr>", desc = "Toggle Terminal (Default)" },
@@ -50,6 +51,7 @@ return {
       { "<leader>top", "<cmd>TermTool htop<cr>", desc = "htop Process Monitor" },
       { "<leader>ts", "<cmd>TermSend<cr>", mode = { "n", "v" }, desc = "Send Line / Selection to Terminal" },
       { "<leader>tc", "<cmd>TermSelect<cr>", desc = "Select / Change Target Terminal" },
+      { "<leader>tr", "<cmd>TermRename<cr>", desc = "Rename Terminal" },
       { "<leader>tB", "<cmd>TermBuffer<cr>", desc = "Open Terminal as Regular Buffer" },
       { "<leader>tk", "<cmd>TermKill<cr>", desc = "Kill / Terminate Terminal (Interactive)" },
       { "<leader>tX", "<cmd>TermClean<cr>", desc = "Clean All Hidden Terminals" },
@@ -82,6 +84,7 @@ return {
 | `:TermRun <cmd>` | Run Shell Command | Runs command in floating popup terminal. |
 | `:TermSend` | Send Selection | Sends visual line selection into target terminal. |
 | `:TermSelect` / `:TermTarget` | Change Target | Interactive selector to switch default target terminal. |
+| `:TermRename [name]` | Rename Terminal | Renames terminal session and buffer title. |
 | `:TermList` | List Terminals | Lists all active terminal instances and default target. |
 | `:TermClean` / `:TermKillHidden` | Clean Hidden | Terminates all hidden/background terminal jobs and frees memory/PTYs. |
 | `:TermKill [id\|buf]` | Kill Terminal | Interactively select terminal to terminate, or kill by ID/buffer number. |

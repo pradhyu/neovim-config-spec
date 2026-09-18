@@ -13,15 +13,29 @@ function M.setup(user_opts)
   config.setup(user_opts)
   keymaps.setup()
 
-  -- Autocmd to format terminal buffers upon creation
-  vim.api.nvim_create_autocmd("TermOpen", {
+  local function setup_term_buffer(buf)
+    if vim.api.nvim_buf_is_valid(buf) and (vim.bo[buf].buftype == "terminal" or vim.bo[buf].filetype:match("terminal")) then
+      local win = vim.fn.bufwinid(buf)
+      if win ~= -1 and vim.api.nvim_win_is_valid(win) then
+        require("terminal_enhancement.ui.window").apply_terminal_styling(buf, win)
+      end
+      keymaps.attach_to_buffer(buf, win ~= -1 and win or nil)
+    end
+  end
+
+  -- Attach to all existing terminal buffers across Neovim
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    setup_term_buffer(buf)
+  end
+
+  -- Autocmd to format terminal buffers upon creation and entry
+  vim.api.nvim_create_autocmd({ "TermOpen", "BufEnter", "FileType" }, {
     group = vim.api.nvim_create_augroup("TerminalEnhancementAuto", { clear = true }),
+    pattern = { "*", "terminal", "sidekick_terminal" },
     callback = function(args)
       local buf = args.buf
-      local win = vim.api.nvim_get_current_win()
-      require("terminal_enhancement.ui.window").apply_terminal_styling(buf, win)
-      keymaps.attach_to_buffer(buf, win)
-      if config.options.auto_insert then
+      setup_term_buffer(buf)
+      if args.event == "TermOpen" and config.options.auto_insert then
         vim.cmd("startinsert")
       end
     end,
@@ -95,6 +109,19 @@ end
 ---Interactive prompt to terminate or clean terminals
 function M.kill_interactive()
   terminal.kill_interactive()
+end
+
+---Rename a terminal
+---@param old_id string
+---@param new_name string
+function M.rename(old_id, new_name)
+  return terminal.rename(old_id, new_name)
+end
+
+---Interactive prompt to rename a terminal
+---@param id? string
+function M.rename_interactive(id)
+  terminal.rename_interactive(id)
 end
 
 ---Resolve and open link/file at cursor

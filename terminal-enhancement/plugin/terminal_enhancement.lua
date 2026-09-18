@@ -167,3 +167,19 @@ end, {
   desc = "Kill and terminate all active terminal sessions",
 })
 
+vim.api.nvim_create_user_command("TermRename", function(opts)
+  local arg = opts.args ~= "" and opts.args or nil
+  term_enh.rename_interactive(arg)
+end, {
+  nargs = "?",
+  complete = function()
+    local matches = {}
+    for _, item in ipairs(term_enh.get_active_terminals()) do
+      table.insert(matches, item.id)
+    end
+    return matches
+  end,
+  desc = "Rename terminal session or open interactive rename prompt",
+})
+
+

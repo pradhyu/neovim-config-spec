@@ -148,6 +148,10 @@ function M.select_target_terminal(on_selected)
 
   if #active > 0 then
     table.insert(items, {
+      id = "__rename__",
+      label = "🏷️ Rename a Terminal...",
+    })
+    table.insert(items, {
       id = "__kill_menu__",
       label = "❌ Kill / Terminate Terminals...",
     })
@@ -181,6 +185,8 @@ function M.select_target_terminal(on_selected)
       end)
     elseif choice.id == "__clean_hidden__" then
       M.kill_hidden()
+    elseif choice.id == "__rename__" then
+      M.rename_interactive()
     elseif choice.id == "__kill_menu__" then
       M.kill_interactive()
     else
@@ -532,6 +538,126 @@ function M.kill_all()
   M.default_target = nil
   vim.notify(string.format("[TermEnhance] 🧹 Terminated all %d active terminal(s).", count), vim.log.levels.INFO)
   return count
+end
+
+---Rename a terminal instance
+---@param old_id string
+---@param new_name string
+---@return boolean, string
+function M.rename(old_id, new_name)
+  if not old_id or old_id == "" then
+    return false, "Invalid terminal ID"
+  end
+  if not new_name or new_name == "" then
+    return false, "New name cannot be empty"
+  end
+
+  local clean_name = new_name:gsub("%s+", "_")
+  local inst = M.instances[old_id]
+
+  if not inst then
+    local b_num = tonumber(old_id:match("^buf_(%d+)$") or old_id)
+    if b_num and vim.api.nvim_buf_is_valid(b_num) then
+      for id, i in pairs(M.instances) do
+        if i.buf == b_num then
+          inst = i
+          old_id = id
+          break
+        end
+      end
+    end
+  end
+
+  if not inst or not vim.api.nvim_buf_is_valid(inst.buf) then
+    return false, string.format("Terminal '%s' not found", old_id)
+  end
+
+  -- Update buffer name
+  pcall(vim.api.nvim_buf_set_name, inst.buf, "term://" .. clean_name)
+
+  -- Update title
+  local new_title = string.format(" Terminal: %s ", clean_name)
+  inst.title = new_title
+  inst.id = clean_name
+
+  -- Update M.instances table
+  M.instances[old_id] = nil
+  M.instances[clean_name] = inst
+
+  -- Update default target if needed
+  if M.default_target == old_id then
+    M.default_target = clean_name
+  end
+
+  -- If floating window is open, update its title
+  if inst.win and vim.api.nvim_win_is_valid(inst.win) then
+    local cfg = vim.api.nvim_win_get_config(inst.win)
+    if cfg.relative ~= "" then
+      pcall(vim.api.nvim_win_set_config, inst.win, { title = new_title })
+    end
+  end
+
+  return true, string.format("Terminal '%s' renamed to '%s'", old_id, clean_name)
+end
+
+---Interactive prompt to rename a terminal
+---@param id? string
+function M.rename_interactive(id)
+  local active = M.get_active_terminals()
+  if #active == 0 then
+    vim.notify("[TermEnhance] No active terminals to rename.", vim.log.levels.INFO)
+    return
+  end
+
+  local function prompt_new_name(target_id)
+    vim.ui.input({ prompt = string.format("New name for '%s': ", target_id), default = target_id }, function(new_name)
+      if not new_name or new_name == "" or new_name == target_id then
+        return
+      end
+      local ok, msg = M.rename(target_id, new_name)
+      if ok then
+        vim.notify("[TermEnhance] 🏷️ " .. msg, vim.log.levels.INFO)
+      else
+        vim.notify("[TermEnhance] " .. msg, vim.log.levels.WARN)
+      end
+    end)
+  end
+
+  if id and id ~= "" then
+    prompt_new_name(id)
+    return
+  end
+
+  -- If cursor is currently in a terminal buffer, offer to rename this one directly
+  local cur_buf = vim.api.nvim_get_current_buf()
+  for _, item in ipairs(active) do
+    if item.buf == cur_buf then
+      prompt_new_name(item.id)
+      return
+    end
+  end
+
+  if #active == 1 then
+    prompt_new_name(active[1].id)
+  else
+    local items = {}
+    for _, item in ipairs(active) do
+      table.insert(items, {
+        id = item.id,
+        label = string.format("%s (%s, Buf #%d)", item.title, item.is_open and "Visible" or "Background", item.buf),
+      })
+    end
+    vim.ui.select(items, {
+      prompt = "Select Terminal to Rename:",
+      format_item = function(item)
+        return item.label
+      end,
+    }, function(choice)
+      if choice and choice.id then
+        prompt_new_name(choice.id)
+      end
+    end)
+  end
 end
 
 ---Interactive multi-select floating prompt to kill specific or multiple terminals
