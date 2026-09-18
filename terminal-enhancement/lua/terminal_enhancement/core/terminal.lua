@@ -15,31 +15,92 @@ local M = {}
 ---@type table<string, TermInstance>
 M.instances = {}
 
----@type string? Default target terminal ID for sending text
+---@type string? Default target terminal ID or buffer string for sending text
 M.default_target = nil
 
----Get all currently active and valid terminal instances
----@return table[] list of { id: string, title: string, is_open: boolean, is_default: boolean, buf: integer }
+---Format a clean display title for any terminal buffer
+---@param buf integer
+---@param raw_name string
+---@return string
+local function format_term_display(buf, raw_name)
+  local prog = raw_name:match("([^:/]+)$") or "terminal"
+  local win = vim.fn.bufwinid(buf)
+  local is_open = (win ~= -1)
+  local state = is_open and string.format("Visible in Win #%d", win) or "Background"
+  return string.format("Terminal [%s] (Buf #%d, %s)", prog, buf, state)
+end
+
+---Get all active terminals (both managed instances and any open terminal splits/buffers)
+---@return table[] list of { id: string, title: string, is_open: boolean, is_default: boolean, buf: integer, chan: integer }
 function M.get_active_terminals()
   local list = {}
+  local seen_bufs = {}
+
+  -- 1. Add managed instances
   for id, inst in pairs(M.instances) do
     if inst and inst.buf and vim.api.nvim_buf_is_valid(inst.buf) then
-      local is_open = inst.win ~= nil and vim.api.nvim_win_is_valid(inst.win)
-      local is_default = (M.default_target == id)
+      local win = inst.win
+      local win_on_screen = vim.fn.bufwinid(inst.buf)
+      local is_open = (win ~= nil and vim.api.nvim_win_is_valid(win)) or (win_on_screen ~= -1)
+      local is_default = (M.default_target == id or M.default_target == tostring(inst.buf))
+      local chan = inst.job_id or vim.bo[inst.buf].channel or vim.b[inst.buf].terminal_job_id or 0
+
       table.insert(list, {
         id = id,
         title = inst.title or string.format("Terminal: %s", id),
         buf = inst.buf,
-        win = inst.win,
+        win = win or (win_on_screen ~= -1 and win_on_screen or nil),
+        chan = chan,
+        is_open = is_open,
+        is_default = is_default,
+      })
+      seen_bufs[inst.buf] = true
+    end
+  end
+
+  -- 2. Discover any other open terminal buffers in Neovim (e.g. sidekick, split terminals, :terminal)
+  local all_bufs = vim.api.nvim_list_bufs()
+  for _, buf in ipairs(all_bufs) do
+    if not seen_bufs[buf] and vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buftype == "terminal" then
+      local b_name = vim.api.nvim_buf_get_name(buf)
+      local win = vim.fn.bufwinid(buf)
+      local is_open = (win ~= -1)
+      local id_str = "buf_" .. buf
+      local is_default = (M.default_target == id_str or M.default_target == tostring(buf))
+      local chan = vim.bo[buf].channel or vim.b[buf].terminal_job_id or 0
+
+      local display_title = format_term_display(buf, b_name)
+
+      -- Register into instances so it can be targeted and toggled seamlessly
+      M.instances[id_str] = {
+        id = id_str,
+        buf = buf,
+        win = (win ~= -1) and win or nil,
+        job_id = chan,
+        cmd = b_name,
+        title = display_title,
+        direction = "float",
+      }
+
+      table.insert(list, {
+        id = id_str,
+        title = display_title,
+        buf = buf,
+        win = (win ~= -1) and win or nil,
+        chan = chan,
         is_open = is_open,
         is_default = is_default,
       })
     end
   end
 
+  -- Sort: visible terminals first, default target at top
   table.sort(list, function(a, b)
     if a.is_default ~= b.is_default then
       return a.is_default and not b.is_default
+    end
+    if a.is_open ~= b.is_open then
+      return a.is_open and not b.is_open
     end
     return a.id < b.id
   end)
@@ -51,31 +112,31 @@ end
 ---@param id string
 function M.set_default_target(id)
   M.default_target = id
-  vim.notify(string.format("[TermEnhance] Active target terminal set to '%s'", id), vim.log.levels.INFO)
+  vim.notify(string.format("[TermEnhance] Target terminal set to '%s'", id), vim.log.levels.INFO)
 end
 
----Interactive prompt to select or change default target terminal
+---Interactive prompt to select or change target terminal (shows all open & hidden terminals)
 ---@param on_selected? fun(id: string)
 function M.select_target_terminal(on_selected)
   local active = M.get_active_terminals()
 
   local items = {}
   for _, item in ipairs(active) do
-    local state = item.is_open and "Visible" or "Hidden"
+    local state = item.is_open and "🟢 Visible" or "⚪ Background"
     local def_badge = (M.default_target == item.id) and " [ACTIVE TARGET]" or ""
     table.insert(items, {
       id = item.id,
-      label = string.format("• %s (%s)%s", item.title, state, def_badge),
+      label = string.format("%-14s %s%s", state, item.title, def_badge),
     })
   end
 
   table.insert(items, {
     id = "__new__",
-    label = "➕ Create & Open New Named Terminal...",
+    label = "➕ Create & Open New Terminal...",
   })
 
   vim.ui.select(items, {
-    prompt = "Select / Switch Target Terminal:",
+    prompt = "Select Target Terminal for Code Execution:",
     format_item = function(item)
       return item.label
     end,
@@ -94,7 +155,7 @@ function M.select_target_terminal(on_selected)
         local custom_title = string.format(" Terminal: %s ", clean_name)
         M.get_or_create(clean_name, nil, nil, custom_title)
         M.set_default_target(clean_name)
-        -- Open the new terminal and keep it open with that custom title!
+        -- Open the new terminal and keep it open
         M.toggle(clean_name, nil, nil, custom_title, true)
         if on_selected then
           on_selected(clean_name)
@@ -102,11 +163,6 @@ function M.select_target_terminal(on_selected)
       end)
     else
       M.set_default_target(choice.id)
-      -- Ensure the selected terminal is open and visible
-      local inst = M.instances[choice.id]
-      if inst and not (inst.win and vim.api.nvim_win_is_valid(inst.win)) then
-        M.toggle(choice.id, nil, nil, inst.title, false)
-      end
       if on_selected then
         on_selected(choice.id)
       end
@@ -267,18 +323,29 @@ function M.open_as_buffer(id)
   end
 end
 
----Send raw text/command into a terminal instance and keep it open
----@param id string
+---Send raw text/command into any target terminal (open split, visible window, or background instance)
+---@param id? string
 ---@param text string
 function M.send(id, text)
   local target_id = id or M.default_target or "default"
   local inst = M.instances[target_id]
   local just_started = false
 
-  if not inst or not inst.job_id or inst.job_id <= 0 or not (inst.win and vim.api.nvim_win_is_valid(inst.win)) then
-    -- Open terminal window if not already visible, but preserve user editor focus
+  -- If target not registered or invalid, try to get/create
+  if not inst then
+    inst = M.get_or_create(target_id)
+  end
+
+  local chan = inst.job_id or (inst.buf and vim.bo[inst.buf].channel) or (inst.buf and vim.b[inst.buf].terminal_job_id)
+
+  -- If terminal job is not running or window not visible and not open anywhere:
+  local is_open = (inst.win and vim.api.nvim_win_is_valid(inst.win)) or (inst.buf and vim.fn.bufwinid(inst.buf) ~= -1)
+
+  if not is_open or not chan or chan <= 0 then
+    -- Open terminal split/float if not already visible anywhere
     M.toggle(target_id, nil, nil, nil, false)
     inst = M.instances[target_id]
+    chan = inst.job_id or (inst.buf and vim.bo[inst.buf].channel) or (inst.buf and vim.b[inst.buf].terminal_job_id)
     just_started = true
   end
 
@@ -290,13 +357,14 @@ function M.send(id, text)
   if just_started then
     -- Allow shell 60ms to initialize pty stdin
     vim.defer_fn(function()
-      if inst and inst.job_id and inst.job_id > 0 then
-        vim.fn.chansend(inst.job_id, payload)
+      local active_chan = inst.job_id or (inst.buf and vim.bo[inst.buf].channel) or (inst.buf and vim.b[inst.buf].terminal_job_id)
+      if active_chan and active_chan > 0 then
+        vim.fn.chansend(active_chan, payload)
       end
     end, 60)
   else
-    if inst and inst.job_id and inst.job_id > 0 then
-      vim.fn.chansend(inst.job_id, payload)
+    if chan and chan > 0 then
+      vim.fn.chansend(chan, payload)
     end
   end
 end
