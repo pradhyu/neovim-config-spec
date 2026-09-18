@@ -21,7 +21,7 @@ If you prefer not to use plugins, we can enhance the built-in Neovim terminal wi
 *   **Statusline Integration:** Make sure your statusline (like `lualine.nvim`) correctly displays when you are in a terminal buffer and hides unnecessary information (like file size or git branch).
 
 ## 4. Edgy.nvim (Advanced Window Management)
-LazyVim often uses `edgy.nvim` to manage sidebars and bottom panels. We can configure edgy to manage your terminal windows, ensuring they always open in a designated area (e.g., a fixed bottom panel) without messing up your main window layout.
+LazyVim often uses `edgy.nvim` to manage sidebars and bottom panels . We can configure edgy to manage your terminal windows, ensuring they always open in a designated area (e.g., a fixed bottom panel) without messing up your main window layout.
 
 ## 5. Smart Link & File Path Navigation in Terminal
 Commands running in the terminal (compiler errors, test runners, grep outputs, git logs, or AI CLI tools like `agy`) frequently print file paths, line numbers, and web URLs.
@@ -35,3 +35,7 @@ Please let me know which direction you'd like to take!
 1.  **Full Plugin Route:** Proceed with configuring `toggleterm.nvim`.
 2.  **Minimalist Route:** Enhance the built-in terminal with keymaps and visual tweaks.
 3.  **LazyVim Integration:** Integrate terminal management directly with `edgy.nvim`.
+
+
+
+

@@ -12,6 +12,7 @@
   * `ripgrep` (`rg`) - for fast project search.
   * `fd` - for fast file search.
   * `agy` (Antigravity CLI) - for AI pair programming.
+  * `mermaid-cli` (`mmdc`) - for compiling Mermaid diagrams into terminal images.
   * `helix` (`hx`) - secondary modal editor.
 
 ---
@@ -58,7 +59,14 @@
   * Keymap: `<leader>ag` $\rightarrow$ Floating terminal running `agy` (85% width/height, rounded border).
 * **`antigravity.nvim`**: Local remote RPC helper for Antigravity skills.
 
-### D. Custom / Specialized Plugins
+### D. Markdown & Documentation
+* **`lazyvim.plugins.extras.lang.markdown`**:
+  * **`MeanderingProgrammer/render-markdown.nvim`**: Full in-buffer rich rendering of Markdown tables, callout blocks (`> [!NOTE]`), interactive checkboxes, styled headings, and code block badges.
+  * **`iamcco/markdown-preview.nvim`**: Real-time browser preview with synchronous scrolling and interactive Mermaid graphs.
+* **`folke/snacks.nvim` (Image & Mermaid Rendering)**:
+  * In-buffer graphical rendering of Mermaid diagrams (`flowchart`, `sequenceDiagram`, `erDiagram`, etc.) and image attachments directly within Ghostty/Kitty-compatible terminals via `mermaid-cli` (`mmdc`).
+
+### E. Custom / Specialized Plugins
 * **`nepali-calendar.nvim`** (Local repo: `~/git/neovim-nepali-calendar`):
   * Keymaps:
     * `<leader>nc`: Toggle Nepali Calendar popup
@@ -68,6 +76,27 @@
     * `<leader>nd`: Date converter (BS $\leftrightarrow$ AD)
 * **`json-plot.nvim`** (Local repo: `~/git/neovim-json-visualizer`):
   * Commands: `:JsonPlot`, `:JsonPlotReload`
+* **`nvim-perf-lens.nvim`** (Local repo: `~/git/neovim-config/perf-lens`):
+  * Performance profiler, frame-drop jitter detector, on-demand plugin manager, and automated optimization advisor.
+  * Commands: `:PerfLens`, `:PerfLens plugins`, `:PerfLens advisor`, `:PerfLens waterfall`, `:PerfLens disable <plugin>`, `:PerfLens enable <plugin>`, `:PerfLens memory`, `:PerfLens export`
+  * Keymaps:
+    * `<leader>up`: Toggle Performance Lens Dashboard
+    * `<leader>uP`: Interactive Plugin Manager & On-Demand Toggler
+    * `<leader>ua`: Optimization Advisor Rules & Code Snippets
+    * `<leader>uw`: Startup Waterfall Timeline View
+    * `<leader>um`: Lua Memory and Garbage Collection
+* **`terminal-enhancement.nvim`** (Local repo: `~/git/neovim-config/terminal-enhancement`):
+  * Multi-direction persistent terminals, tool launchers (`lazygit`, `htop`, `agy`, REPLs), and smart compiler/stacktrace link navigation.
+  * Commands: `:TermToggle`, `:TermFloat`, `:TermSplit`, `:TermTool`, `:TermRun`, `:TermSend`, `:TermSelect`, `:TermTarget`, `:TermList`
+  * Keymaps:
+    * `<leader>tt`: Toggle Default Terminal
+    * `<leader>tf`: Toggle Centered Floating Terminal
+    * `<leader>th`: Toggle Horizontal Split Terminal
+    * `<leader>tv`: Toggle Vertical Split Terminal
+    * `<leader>tg`: Open LazyGit Popup Terminal
+    * `<leader>top`: Open htop Process Monitor Terminal
+    * `<leader>ts`: Send current line or visual selection to target terminal
+    * `<leader>tc`: Interactive prompt to select/change target terminal
 
 ---
 
