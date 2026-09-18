@@ -20,11 +20,20 @@
 ## 2. Plugin Inventory & Specifications
 
 ### A. Projects & Multi-Workspace Management (VSCode-like)
-* **`folke/snacks.nvim` (Projects Picker)**:
+* **`folke/snacks.nvim` (Projects & Search Suite)**:
   * Automatically indexes repositories in `~/git`, `~/projects`, `~/workspace`, and `~/.config`.
   * Detects project roots using `.git`, `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`.
-  * Keymaps:
-    * `<leader>fp` or `<leader>sp`: Find & Switch Projects / Workspaces
+  * **Search & Grep Capabilities:**
+    * `<leader>fb` / `<leader>,`: Search **Buffer Names & Paths** (finds buffers by file path / name).
+    * `<leader>sB`: **Grep Open Buffers** (searches / greps actual text & content across all loaded buffers and active terminals).
+    * `<leader>sb`: **Buffer Lines** (fuzzy search / grep text within current active buffer).
+    * `<leader>/` or `<leader>sg`: **Live Grep** across entire project workspace.
+    * `<leader>sw` / `<leader>sW`: **Grep Word** under cursor across workspace.
+    * `<leader><space>` / `<leader>ff`: **Find Files** in workspace.
+    * `<leader>fp` or `<leader>sp`: **Find & Switch Projects / Workspaces**.
+  * **Commands & Fuzzy Palette:**
+    * `<leader>:`: **Command History Picker** (fuzzy search previous commands with live preview).
+    * `<leader>sC`: **All Commands Palette** (fuzzy search every Neovim & plugin command).
 * **`folke/persistence.nvim` (Session & Workspace State)**:
   * Saves and restores full buffer lists, tab layouts, and cursor positions per project and per git branch.
   * Keymaps:
@@ -86,18 +95,29 @@
     * `<leader>uw`: Startup Waterfall Timeline View
     * `<leader>um`: Lua Memory and Garbage Collection
 * **`terminal-enhancement.nvim`** (Local repo: `~/git/neovim-config/terminal-enhancement`):
-  * Multi-direction persistent terminals, tool launchers (`lazygit`, `htop`, `agy`, REPLs), and smart compiler/stacktrace link navigation.
-  * Commands: `:TermToggle`, `:TermFloat`, `:TermSplit`, `:TermTool`, `:TermRun`, `:TermSend`, `:TermSelect`, `:TermTarget`, `:TermBuffer`, `:TermList`
-  * Keymaps:
-    * `<leader>tt`: Toggle Default Terminal
+  * Multi-direction persistent terminals, atomic multi-line code runners, multi-select process termination, dynamic terminal renaming, and smart compiler/stacktrace link navigation.
+  * **Key Features:**
+    * **Multi-Line Continuation & Auto-Expansion:** Automatically detects `\` (Bash/Zsh) and `` ` `` (PowerShell) continuations. Selecting any single line of a multi-line command automatically captures and sends the entire command.
+    * **Atomic Bracketed Paste:** Wraps multi-line code blocks in `\e[200~ ... \e[201~` with auto-dedent to prevent premature execution.
+    * **Multi-Select Process Killer:** Floating UI (`<Space>`, `a`, `h`, `<CR>`) to selectively or batch terminate background terminal processes.
+    * **One-Key Background Purge:** Instantly terminates hidden terminals and frees PTYs/memory (`:TermClean`).
+    * **Dynamic Renaming:** Runtime terminal and buffer renaming (`term://<name>`).
+    * **Universal Quick-Close:** `q` (in Normal mode) and `<C-q>` (in Terminal mode) uniformly closes/hides floats, horizontal splits, and vertical splits.
+  * **Commands:** `:TermToggle`, `:TermFloat`, `:TermSplit`, `:TermTool`, `:TermRun`, `:TermSend`, `:TermSendJoined`, `:TermSelect`, `:TermTarget`, `:TermRename`, `:TermBuffer`, `:TermList`, `:TermKill`, `:TermClean`, `:TermKillHidden`, `:TermKillAll`
+  * **Keymaps:**
+    * `<leader>tt`: Toggle Default Floating Terminal
     * `<leader>tf`: Toggle Centered Floating Terminal
-    * `<leader>th`: Toggle Horizontal Split Terminal
-    * `<leader>tv`: Toggle Vertical Split Terminal
+    * `<leader>th`: Toggle Horizontal Bottom Split Terminal
+    * `<leader>tv`: Toggle Vertical Right Split Terminal
+    * `<leader>ts`: Send current line / selection with Bracketed Paste (auto-expands multi-line commands)
+    * `<leader>tS`: Send lines joined with `\` (Bash) or `` ` `` (PowerShell)
+    * `<leader>tc`: Interactive prompt to select/change target terminal
+    * `<leader>tr`: Rename terminal session
+    * `<leader>tk`: Interactive Multi-Select Terminal Killer
+    * `<leader>tX`: Clean all background/hidden terminal buffers
+    * `<leader>tB`: Open terminal directly as a regular buffer in current window
     * `<leader>tg`: Open LazyGit Popup Terminal
     * `<leader>top`: Open htop Process Monitor Terminal
-    * `<leader>ts`: Send current line or visual selection to target terminal
-    * `<leader>tc`: Interactive prompt to select/change target terminal
-    * `<leader>tB`: Open terminal directly as a regular buffer in current window
 
 ---
 
