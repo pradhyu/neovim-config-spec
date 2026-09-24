@@ -44,9 +44,9 @@ function M.open(initial_tab)
     if not vim.api.nvim_buf_is_valid(buf) then return end
     current_items = {}
 
-    local tab1_badge = (active_tab == 1) and "▶ [1] ⚡ Frequent Commands ◀" or "  [1] ⚡ Frequent Commands  "
-    local tab2_badge = (active_tab == 2) and "▶ [2] 🗺️ Keymap Explorer ◀"  or "  [2] 🗺️ Keymap Explorer  "
-    local tab3_badge = (active_tab == 3) and "▶ [3] ⚙️ Overrides ◀"        or "  [3] ⚙️ Overrides  "
+    local tab1_badge = (active_tab == 1) and "▶ ⚡ Frequent Commands ◀" or "  ⚡ Frequent Commands  "
+    local tab2_badge = (active_tab == 2) and "▶ 🗺️ Keymap Explorer ◀"  or "  🗺️ Keymap Explorer  "
+    local tab3_badge = (active_tab == 3) and "▶ ⚙️ Overrides ◀"        or "  ⚙️ Overrides  "
 
     local lines = {}
     table.insert(lines, string.format(" %s | %s | %s", tab1_badge, tab2_badge, tab3_badge))
@@ -62,12 +62,12 @@ function M.open(initial_tab)
         table.insert(lines, "   [ No commands tracked yet. Execute ':' commands in Neovim to populate ]")
         table.insert(lines, "")
       else
-        table.insert(lines, "   #   PIN  USES  COMMAND                                  LAST RUN")
+        table.insert(lines, "   KEY  PIN  USES  COMMAND                                  LAST RUN")
         table.insert(lines, "   " .. string.rep("─", width - 6))
 
         for idx, rec in ipairs(top_cmds) do
           local pin_icon = rec.pinned and "📌" or "  "
-          local num_badge = string.format("#%-2d", idx)
+          local num_badge = (idx <= 9) and string.format("[%d]", idx) or string.format("#%-2d", idx)
           local cmd_str = rec.cmd
           if #cmd_str > 40 then
             cmd_str = cmd_str:sub(1, 37) .. "..."
@@ -82,7 +82,7 @@ function M.open(initial_tab)
       end
 
       table.insert(lines, " " .. string.rep("─", width - 4))
-      table.insert(lines, "  <CR>/<Space> Run | p Pin | d Delete | 1/2/3/<Tab> Switch Tab | q Close")
+      table.insert(lines, "  1-9 Run Fast | <CR> Run | p Pin | d Delete | <Tab>/H/L Switch Tab | q Close")
 
     elseif active_tab == 2 then
       -- TAB 2: Keymap Explorer
@@ -196,16 +196,22 @@ function M.open(initial_tab)
 
   local k_opts = { buffer = buf, silent = true, noremap = true }
 
-  -- Tab switching (1, 2, 3, <Tab>, <S-Tab>, h, l)
-  vim.keymap.set("n", "1", function() active_tab = 1; render() end, k_opts)
-  vim.keymap.set("n", "2", function() active_tab = 2; render() end, k_opts)
-  vim.keymap.set("n", "3", function() active_tab = 3; render() end, k_opts)
+  -- Tab switching (<Tab>, <S-Tab>, H, L, [, ])
   vim.keymap.set("n", "<Tab>", function() active_tab = (active_tab % 3) + 1; render() end, k_opts)
   vim.keymap.set("n", "<S-Tab>", function() active_tab = (active_tab == 1) and 3 or (active_tab - 1); render() end, k_opts)
+  vim.keymap.set("n", "H", function() active_tab = (active_tab == 1) and 3 or (active_tab - 1); render() end, k_opts)
+  vim.keymap.set("n", "L", function() active_tab = (active_tab % 3) + 1; render() end, k_opts)
   vim.keymap.set("n", "[", function() active_tab = (active_tab == 1) and 3 or (active_tab - 1); render() end, k_opts)
   vim.keymap.set("n", "]", function() active_tab = (active_tab % 3) + 1; render() end, k_opts)
-  vim.keymap.set("n", "h", function() active_tab = (active_tab == 1) and 3 or (active_tab - 1); render() end, k_opts)
-  vim.keymap.set("n", "l", function() active_tab = (active_tab % 3) + 1; render() end, k_opts)
+
+  -- Fast numeric command execution (1..9) in Tab 1
+  for i = 1, 9 do
+    vim.keymap.set("n", tostring(i), function()
+      if active_tab == 1 then
+        run_number(i)
+      end
+    end, k_opts)
+  end
 
   -- Execution / Actions
   vim.keymap.set("n", "<CR>", execute_current, k_opts)
