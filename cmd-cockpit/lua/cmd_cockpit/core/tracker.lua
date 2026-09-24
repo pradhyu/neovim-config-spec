@@ -3,6 +3,20 @@ local config = require("cmd_cockpit.config")
 
 local M = {}
 
+---Import recent command history from Neovim history table
+local function import_recent_history()
+  local total = vim.fn.histnr("cmd")
+  if total > 0 then
+    local count = math.min(total, 50)
+    for i = count, 1, -1 do
+      local cmd = vim.fn.histget("cmd", -i)
+      if cmd and cmd ~= "" then
+        stats.record_command(cmd)
+      end
+    end
+  end
+end
+
 ---Initialize command tracking autocommand
 function M.setup()
   if not config.options.track_history then
@@ -10,19 +24,18 @@ function M.setup()
   end
 
   stats.load()
+  import_recent_history()
 
   local group = vim.api.nvim_create_augroup("CmdCockpitTracker", { clear = true })
   vim.api.nvim_create_autocmd("CmdlineLeave", {
     group = group,
     callback = function()
-      local cmd_type = vim.fn.getcmdtype()
-      -- Only track ':' Ex commands (not '/' or '?' search)
-      if cmd_type == ":" then
-        local cmd_line = vim.fn.getcmdline()
-        if cmd_line and cmd_line ~= "" then
-          vim.schedule(function()
-            stats.record_command(cmd_line)
-          end)
+      local ev = vim.v.event
+      -- Check if it was an Ex command and not aborted with <Esc>/<C-c>
+      if (ev.cmdtype == ":" or ev.cmdtype == "" or ev.cmdtype == nil) and not ev.abort then
+        local cmd = vim.fn.histget("cmd", -1)
+        if cmd and cmd ~= "" then
+          stats.record_command(cmd)
         end
       end
     end,
