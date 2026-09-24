@@ -133,6 +133,52 @@ function M.rename_interactive(id)
   terminal.rename_interactive(id)
 end
 
+---Send a POSIX signal to a terminal's process tree
+---@param id_or_buf? string|integer
+---@param signal? string|integer
+function M.send_signal(id_or_buf, signal)
+  return terminal.send_signal(id_or_buf, signal)
+end
+
+---Send interrupt (SIGINT / Ctrl+C) to a terminal
+---@param id_or_buf? string|integer
+function M.send_interrupt(id_or_buf)
+  return terminal.send_interrupt(id_or_buf)
+end
+
+---Kill child process tree without closing terminal buffer
+---@param id_or_buf? string|integer
+---@param signal? string|integer
+function M.kill_tree(id_or_buf, signal)
+  return terminal.kill_tree(id_or_buf, signal)
+end
+
+---Kill process listening on a port
+---@param port integer
+---@param signal? string|integer
+---@param id_or_buf? string|integer
+function M.kill_port(port, signal, id_or_buf)
+  return terminal.kill_port(port, signal, id_or_buf)
+end
+
+---Interactive prompt to kill a port
+---@param id_or_buf? string|integer
+function M.kill_port_interactive(id_or_buf)
+  terminal.kill_port_interactive(id_or_buf)
+end
+
+---Interactive prompt to send signal to terminal process
+---@param id_or_buf? string|integer
+function M.send_signal_interactive(id_or_buf)
+  terminal.send_signal_interactive(id_or_buf)
+end
+
+---Get diagnostic info for a terminal (shell type, PID, processes, ports)
+---@param id_or_buf? string|integer
+function M.get_terminal_info(id_or_buf)
+  return terminal.get_terminal_info(id_or_buf)
+end
+
 ---Resolve and open link/file at cursor
 ---@param target? string
 function M.open_link(target)

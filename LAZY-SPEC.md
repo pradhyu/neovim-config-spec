@@ -75,26 +75,50 @@
 * **`folke/snacks.nvim` (Image & Mermaid Rendering)**:
   * In-buffer graphical rendering of Mermaid diagrams (`flowchart`, `sequenceDiagram`, `erDiagram`, etc.) and image attachments directly within Ghostty/Kitty-compatible terminals via `mermaid-cli` (`mmdc`).
 
-### E. Custom / Specialized Plugins
-* **`nepali-calendar.nvim`** (Local repo: `~/git/neovim-nepali-calendar`):
-  * Keymaps:
+### E. Custom / Specialized Plugins Developed
+* **`harness-use-neovim`** (Repo: `pkshrestha/harness-use-neovim`, Local: `~/git/harness-use-neovim`):
+  * High-performance, 100% pure Lua remote bridge for Neovim pairing with AI harnesses (Antigravity, Claude, etc.) and terminal subshells.
+  * **Key Features:**
+    * Full RPC execution (`eval`, `expr`, `exec`, `keys`, `call`) with structured JSON or raw text return values.
+    * Complete buffer, window, tab, cursor, and visual selection manipulation.
+    * In-editor UI popups, toasts (`vim.notify`), and side-by-side diffs.
+    * Seamless `$EDITOR` / `GIT_EDITOR` blocking wait mode (`nvim-cli.lua edit --wait`) eliminating nested Neovim sessions inside `:terminal`.
+    * Autocmd event pub/sub streaming (`BufWritePost`, `CursorMoved`, `User`, etc.).
+    * Dynamic hot-reloading (`:NvimCLIReload` or `nvim-cli.lua reload`) without restarting Neovim.
+  * **Commands:** `:NvimCLI info`, `:NvimCLI reload`, `:NvimCLI socket`, `:NvimCLIReload`, `:NvimCLISocket`
+
+* **`rest-master.nvim`** (Repo: `pkshrestha/rest-master`, Local: `~/git/rest-master`):
+  * Powerful, native Neovim REST API client and HTTP request runner with live response split, syntax highlighting, environment variables, and header management.
+  * **Commands:** `:RestMasterRun`, `:RestMasterEnv`, `:RestMasterHistory`, `:RestMasterHeaders`
+
+* **`neovim-send-to-terminal`** (Repo: `pkshrestha/neovim-send-to-terminal`, Local: `~/git/neovim-send-to-terminal`):
+  * Smart code/command dispatcher to active Neovim terminal buffers with markdown code-block awareness, command filtering, and multi-terminal target routing.
+  * **Commands:** `:SendToTerminal`, `:SendToTerminalSelect`, `:SendToTerminalBlock`
+
+* **`nepali-calendar.nvim`** (Repo: `pkshrestha/neovim-nepali-calendar`, Local: `~/git/neovim-nepali-calendar`):
+  * Bikram Sambat (BS) Nepali calendar in Neovim with upcoming festival reminders, daily tithi, and date conversion (BS $\leftrightarrow$ AD).
+  * **Keymaps:**
     * `<leader>nc`: Toggle Nepali Calendar popup
     * `<leader>nt`: Show today's Bikram Sambat date
     * `<leader>nu`: Update festivals and events
     * `<leader>ns`: Search Nepali festivals
     * `<leader>nd`: Date converter (BS $\leftrightarrow$ AD)
+
 * **`json-plot.nvim`** (Local repo: `~/git/neovim-json-visualizer`):
-  * Commands: `:JsonPlot`, `:JsonPlotReload`
-* **`nvim-perf-lens.nvim`** (Local repo: `~/git/neovim-config/perf-lens`):
+  * In-editor JSON visualizer and data plotter.
+  * **Commands:** `:JsonPlot`, `:JsonPlotReload`
+
+* **`nvim-perf-lens.nvim`** (Local repo: `~/git/neovim-config-spec/perf-lens`):
   * Performance profiler, frame-drop jitter detector, on-demand plugin manager, and automated optimization advisor.
-  * Commands: `:PerfLens`, `:PerfLens plugins`, `:PerfLens advisor`, `:PerfLens waterfall`, `:PerfLens disable <plugin>`, `:PerfLens enable <plugin>`, `:PerfLens memory`, `:PerfLens export`
-  * Keymaps:
+  * **Commands:** `:PerfLens`, `:PerfLens plugins`, `:PerfLens advisor`, `:PerfLens waterfall`, `:PerfLens disable <plugin>`, `:PerfLens enable <plugin>`, `:PerfLens memory`, `:PerfLens export`
+  * **Keymaps:**
     * `<leader>up`: Toggle Performance Lens Dashboard
     * `<leader>uP`: Interactive Plugin Manager & On-Demand Toggler
     * `<leader>ua`: Optimization Advisor Rules & Code Snippets
     * `<leader>uw`: Startup Waterfall Timeline View
     * `<leader>um`: Lua Memory and Garbage Collection
-* **`terminal-enhancement.nvim`** (Local repo: `~/git/neovim-config/terminal-enhancement`):
+
+* **`terminal-enhancement.nvim`** (Local repo: `~/git/neovim-config-spec/terminal-enhancement`):
   * Multi-direction persistent terminals, atomic multi-line code runners, multi-select process termination, dynamic terminal renaming, and smart compiler/stacktrace link navigation.
   * **Key Features:**
     * **Multi-Line Continuation & Auto-Expansion:** Automatically detects `\` (Bash/Zsh) and `` ` `` (PowerShell) continuations. Selecting any single line of a multi-line command automatically captures and sends the entire command.

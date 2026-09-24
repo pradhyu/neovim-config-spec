@@ -36,6 +36,8 @@ function M.get_active_terminals()
   local list = {}
   local seen_bufs = {}
 
+  local process = require("terminal_enhancement.core.process")
+
   -- 1. Add managed instances
   for id, inst in pairs(M.instances) do
     if inst and inst.buf and vim.api.nvim_buf_is_valid(inst.buf) then
@@ -45,6 +47,11 @@ function M.get_active_terminals()
       local is_default = (M.default_target == id or M.default_target == tostring(inst.buf))
       local chan = inst.job_id or vim.bo[inst.buf].channel or vim.b[inst.buf].terminal_job_id or 0
 
+      local shell_type = process.detect_shell_type(inst)
+      local pid = process.get_terminal_pid(inst)
+      local fg_proc = process.get_foreground_process(inst)
+      local ports = process.get_terminal_ports(inst)
+
       table.insert(list, {
         id = id,
         title = inst.title or string.format("Terminal: %s", id),
@@ -53,6 +60,10 @@ function M.get_active_terminals()
         chan = chan,
         is_open = is_open,
         is_default = is_default,
+        shell_type = shell_type,
+        pid = pid,
+        fg_proc = fg_proc,
+        ports = ports,
       })
       seen_bufs[inst.buf] = true
     end
@@ -82,6 +93,11 @@ function M.get_active_terminals()
         direction = "float",
       }
 
+      local shell_type = process.detect_shell_type(buf)
+      local pid = process.get_terminal_pid(buf)
+      local fg_proc = process.get_foreground_process(buf)
+      local ports = process.get_terminal_ports(buf)
+
       table.insert(list, {
         id = id_str,
         title = display_title,
@@ -90,6 +106,10 @@ function M.get_active_terminals()
         chan = chan,
         is_open = is_open,
         is_default = is_default,
+        shell_type = shell_type,
+        pid = pid,
+        fg_proc = fg_proc,
+        ports = ports,
       })
     end
   end
@@ -448,6 +468,15 @@ function M.kill(id_or_buf)
     end
   end
 
+  -- Terminate process tree and reclaim any listening ports
+  local process = require("terminal_enhancement.core.process")
+  local ports = process.get_terminal_ports(target_buf)
+  local shell_type = process.detect_shell_type(target_buf)
+  process.kill_tree(target_buf, 15, true)
+  for _, p in ipairs(ports) do
+    process.kill_port(p.port, 9, shell_type)
+  end
+
   -- Stop job channel
   local chan = (inst and inst.job_id) or vim.bo[target_buf].channel or vim.b[target_buf].terminal_job_id or 0
   if chan and chan > 0 then
@@ -484,12 +513,20 @@ end
 function M.kill_hidden()
   local all_bufs = vim.api.nvim_list_bufs()
   local killed_count = 0
+  local process = require("terminal_enhancement.core.process")
 
   for _, buf in ipairs(all_bufs) do
     if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buftype == "terminal" then
       local win = vim.fn.bufwinid(buf)
       if win == -1 then
-        -- This terminal is in the background
+        -- This terminal is in the background: terminate process tree and reclaim ports
+        local ports = process.get_terminal_ports(buf)
+        local shell_type = process.detect_shell_type(buf)
+        process.kill_tree(buf, 15, true)
+        for _, p in ipairs(ports) do
+          process.kill_port(p.port, 9, shell_type)
+        end
+
         local chan = vim.bo[buf].channel or vim.b[buf].terminal_job_id or 0
         if chan and chan > 0 then
           pcall(vim.fn.jobstop, chan)
@@ -668,6 +705,224 @@ end
 ---Interactive multi-select floating prompt to kill specific or multiple terminals
 function M.kill_interactive()
   require("terminal_enhancement.ui.kill_picker").open()
+end
+
+---Send a POSIX signal to a terminal's foreground process or process tree
+---@param id_or_buf? string|integer
+---@param signal? string|integer
+---@return boolean, string
+function M.send_signal(id_or_buf, signal)
+  local target_id = id_or_buf or M.default_target or "default"
+  local target_buf = nil
+  local inst = M.instances[tostring(target_id)]
+  if inst then
+    target_buf = inst.buf
+  elseif type(target_id) == "number" and vim.api.nvim_buf_is_valid(target_id) then
+    target_buf = target_id
+  else
+    local cur_buf = vim.api.nvim_get_current_buf()
+    if vim.bo[cur_buf].buftype == "terminal" then
+      target_buf = cur_buf
+    end
+  end
+
+  if not target_buf or not vim.api.nvim_buf_is_valid(target_buf) then
+    return false, "Target terminal buffer not found"
+  end
+
+  local process = require("terminal_enhancement.core.process")
+  local sig_num = process.normalize_signal(signal or 15)
+
+  -- Send signal to the entire process tree of child processes
+  local ok, msg, count = process.kill_tree(target_buf, sig_num, false)
+  if ok and count > 0 then
+    return true, string.format("Sent signal %d to %d process(es) in tree", sig_num, count)
+  end
+
+  local fg = process.get_foreground_process(target_buf)
+  if fg and fg.pid > 0 then
+    local s_ok, s_msg = process.send_signal(fg.pid, sig_num)
+    return s_ok, string.format("Sent signal %d to '%s' (PID %d)", sig_num, fg.comm, fg.pid)
+  end
+
+  return process.kill_tree(target_buf, sig_num, false)
+end
+
+---Send interrupt (SIGINT / Ctrl+C) to a terminal
+---@param id_or_buf? string|integer
+---@return boolean, string
+function M.send_interrupt(id_or_buf)
+  local target_id = id_or_buf or M.default_target or "default"
+  local target_buf = nil
+  local inst = M.instances[tostring(target_id)]
+  if inst then
+    target_buf = inst.buf
+  elseif type(target_id) == "number" and vim.api.nvim_buf_is_valid(target_id) then
+    target_buf = target_id
+  else
+    local cur_buf = vim.api.nvim_get_current_buf()
+    if vim.bo[cur_buf].buftype == "terminal" then
+      target_buf = cur_buf
+    end
+  end
+
+  local process = require("terminal_enhancement.core.process")
+  return process.send_interrupt(target_buf or (inst or target_id))
+end
+
+---Kill the child process tree of a terminal without closing the terminal buffer
+---@param id_or_buf? string|integer
+---@param signal? string|integer
+---@return boolean, string
+function M.kill_tree(id_or_buf, signal)
+  local target_id = id_or_buf or M.default_target or "default"
+  local target_buf = nil
+  local inst = M.instances[tostring(target_id)]
+  if inst then
+    target_buf = inst.buf
+  elseif type(target_id) == "number" and vim.api.nvim_buf_is_valid(target_id) then
+    target_buf = target_id
+  else
+    local cur_buf = vim.api.nvim_get_current_buf()
+    if vim.bo[cur_buf].buftype == "terminal" then
+      target_buf = cur_buf
+    end
+  end
+
+  local process = require("terminal_enhancement.core.process")
+  local ok, msg, count = process.kill_tree(target_buf or inst, signal or 15, false)
+  return ok, msg
+end
+
+---Kill process listening on a port, using the shell type of the target terminal
+---@param port integer
+---@param signal? string|integer
+---@param id_or_buf? string|integer
+---@return boolean, string, table[]
+function M.kill_port(port, signal, id_or_buf)
+  local process = require("terminal_enhancement.core.process")
+  local target_shell = "bash"
+  if id_or_buf then
+    local inst = M.instances[tostring(id_or_buf)]
+    target_shell = process.detect_shell_type(inst or id_or_buf)
+  else
+    local cur_buf = vim.api.nvim_get_current_buf()
+    if vim.bo[cur_buf].buftype == "terminal" then
+      target_shell = process.detect_shell_type(cur_buf)
+    elseif M.default_target and M.instances[M.default_target] then
+      target_shell = process.detect_shell_type(M.instances[M.default_target])
+    end
+  end
+
+  return process.kill_port(port, signal or 15, target_shell)
+end
+
+---Interactive prompt to kill a port
+---@param id_or_buf? string|integer
+function M.kill_port_interactive(id_or_buf)
+  local process = require("terminal_enhancement.core.process")
+  local target_buf = nil
+  local inst = nil
+  if id_or_buf then
+    inst = M.instances[tostring(id_or_buf)]
+    target_buf = inst and inst.buf or (type(id_or_buf) == "number" and id_or_buf or nil)
+  else
+    local cur_buf = vim.api.nvim_get_current_buf()
+    if vim.bo[cur_buf].buftype == "terminal" then
+      target_buf = cur_buf
+    elseif M.default_target and M.instances[M.default_target] then
+      inst = M.instances[M.default_target]
+      target_buf = inst.buf
+    end
+  end
+
+  local shell_type = process.detect_shell_type(target_buf or inst)
+  local detected_ports = target_buf and process.get_terminal_ports(target_buf) or {}
+  local default_port = (#detected_ports > 0) and tostring(detected_ports[1].port) or ""
+
+  local prompt_label = string.format("Kill Port [%s]%s: ", shell_type, default_port ~= "" and (" (detected: " .. default_port .. ")") or "")
+
+  vim.ui.input({ prompt = prompt_label, default = default_port }, function(input)
+    if not input or input == "" then
+      return
+    end
+    local port = tonumber(vim.trim(input))
+    if not port then
+      vim.notify(string.format("[TermEnhance] Invalid port: '%s'", input), vim.log.levels.WARN)
+      return
+    end
+    local ok, msg = M.kill_port(port, 15, target_buf or inst)
+    if ok then
+      vim.notify("[TermEnhance] 🛑 " .. msg, vim.log.levels.INFO)
+    else
+      vim.notify("[TermEnhance] " .. msg, vim.log.levels.WARN)
+    end
+  end)
+end
+
+---Interactive prompt to send signal to terminal process
+---@param id_or_buf? string|integer
+function M.send_signal_interactive(id_or_buf)
+  local items = {
+    { sig = 15, label = "SIGTERM (15) - Graceful Termination" },
+    { sig = 2,  label = "SIGINT  (2)  - Interrupt (Ctrl+C)" },
+    { sig = 9,  label = "SIGKILL (9)  - Force Kill Immediately" },
+    { sig = 1,  label = "SIGHUP  (1)  - Hangup / Reload" },
+    { sig = 3,  label = "SIGQUIT (3)  - Quit & Core Dump" },
+    { sig = 19, label = "SIGSTOP (19) - Pause / Suspend Process" },
+    { sig = 18, label = "SIGCONT (18) - Resume / Continue Process" },
+  }
+
+  vim.ui.select(items, {
+    prompt = "Select POSIX Signal to Send:",
+    format_item = function(item)
+      return item.label
+    end,
+  }, function(choice)
+    if not choice then return end
+    local ok, msg = M.send_signal(id_or_buf, choice.sig)
+    if ok then
+      vim.notify("[TermEnhance] 📡 " .. msg, vim.log.levels.INFO)
+    else
+      vim.notify("[TermEnhance] " .. msg, vim.log.levels.WARN)
+    end
+  end)
+end
+
+---Get diagnostic information about a terminal's shell, processes, and ports
+---@param id_or_buf? string|integer
+---@return table?
+function M.get_terminal_info(id_or_buf)
+  local target_id = id_or_buf or M.default_target or "default"
+  local inst = M.instances[tostring(target_id)]
+  local target_buf = inst and inst.buf or (type(target_id) == "number" and target_id or nil)
+  if not target_buf then
+    local cur_buf = vim.api.nvim_get_current_buf()
+    if vim.bo[cur_buf].buftype == "terminal" then
+      target_buf = cur_buf
+    end
+  end
+
+  if not target_buf then
+    return nil
+  end
+
+  local process = require("terminal_enhancement.core.process")
+  local root_pid = process.get_terminal_pid(target_buf)
+  local shell_type = process.detect_shell_type(target_buf)
+  local tree = root_pid and process.get_process_tree(root_pid) or {}
+  local fg = process.get_foreground_process(target_buf)
+  local ports = process.get_terminal_ports(target_buf)
+
+  return {
+    id = inst and inst.id or ("buf_" .. target_buf),
+    buf = target_buf,
+    shell_type = shell_type,
+    root_pid = root_pid,
+    tree = tree,
+    fg_process = fg,
+    ports = ports,
+  }
 end
 
 return M

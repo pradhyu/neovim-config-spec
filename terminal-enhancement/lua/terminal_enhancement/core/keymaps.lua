@@ -109,7 +109,17 @@ function M.setup()
   -- Kill / Terminate terminal selector
   vim.keymap.set("n", "<leader>tk", function()
     require("terminal_enhancement.core.terminal").kill_interactive()
-  end, { desc = "Kill / Terminate terminal" })
+  end, { desc = "Kill / Terminate terminal (Interactive)" })
+
+  -- Kill process listening to a port (Bash / PowerShell)
+  vim.keymap.set("n", "<leader>tp", function()
+    require("terminal_enhancement.core.terminal").kill_port_interactive()
+  end, { desc = "Kill process listening on port" })
+
+  -- Send Interrupt (Ctrl+C / SIGINT) to terminal
+  vim.keymap.set("n", "<leader>ti", function()
+    require("terminal_enhancement.core.terminal").send_interrupt()
+  end, { desc = "Send interrupt (Ctrl+C) to terminal" })
 
   -- Clean all hidden/background terminals
   vim.keymap.set("n", "<leader>tX", function()

@@ -194,4 +194,141 @@ end, {
   desc = "Rename terminal session or open interactive rename prompt",
 })
 
+vim.api.nvim_create_user_command("TermKillPort", function(opts)
+  local args = vim.split(vim.trim(opts.args), "%s+")
+  local port = tonumber(args[1])
+  local sig = args[2]
+
+  if not port then
+    term_enh.kill_port_interactive()
+    return
+  end
+
+  local ok, msg = term_enh.kill_port(port, sig)
+  if ok then
+    vim.notify("[TermEnhance] 🛑 " .. msg, vim.log.levels.INFO)
+  else
+    vim.notify("[TermEnhance] " .. msg, vim.log.levels.WARN)
+  end
+end, {
+  nargs = "*",
+  desc = "Kill process listening on a port: :TermKillPort <port> [signal]",
+})
+
+vim.api.nvim_create_user_command("TermSignal", function(opts)
+  local args = vim.split(vim.trim(opts.args), "%s+")
+  local sig = args[1]
+  local term_id = args[2]
+
+  if not sig or sig == "" then
+    term_enh.send_signal_interactive(term_id)
+    return
+  end
+
+  local ok, msg = term_enh.send_signal(term_id, sig)
+  if ok then
+    vim.notify("[TermEnhance] 📡 " .. msg, vim.log.levels.INFO)
+  else
+    vim.notify("[TermEnhance] " .. msg, vim.log.levels.WARN)
+  end
+end, {
+  nargs = "*",
+  complete = function()
+    return { "SIGTERM", "SIGKILL", "SIGINT", "SIGHUP", "SIGQUIT", "SIGSTOP", "SIGCONT" }
+  end,
+  desc = "Send POSIX signal to terminal process: :TermSignal <signal> [term_id]",
+})
+
+vim.api.nvim_create_user_command("TermInterrupt", function(opts)
+  local arg = opts.args ~= "" and opts.args or nil
+  local ok, msg = term_enh.send_interrupt(arg)
+  if ok then
+    vim.notify("[TermEnhance] ⚡ " .. msg, vim.log.levels.INFO)
+  end
+end, {
+  nargs = "?",
+  complete = function()
+    local matches = {}
+    for _, item in ipairs(term_enh.get_active_terminals()) do
+      table.insert(matches, item.id)
+    end
+    return matches
+  end,
+  desc = "Send interrupt (Ctrl+C / SIGINT) to terminal",
+})
+
+vim.api.nvim_create_user_command("TermKillTree", function(opts)
+  local args = vim.split(vim.trim(opts.args), "%s+")
+  local term_id = args[1] ~= "" and args[1] or nil
+  local sig = args[2]
+
+  local ok, msg = term_enh.kill_tree(term_id, sig)
+  if ok then
+    vim.notify("[TermEnhance] 🛑 " .. msg, vim.log.levels.INFO)
+  else
+    vim.notify("[TermEnhance] " .. msg, vim.log.levels.WARN)
+  end
+end, {
+  nargs = "*",
+  complete = function()
+    local matches = {}
+    for _, item in ipairs(term_enh.get_active_terminals()) do
+      table.insert(matches, item.id)
+    end
+    return matches
+  end,
+  desc = "Kill child process tree without closing terminal: :TermKillTree [term_id] [signal]",
+})
+
+vim.api.nvim_create_user_command("TermInfo", function(opts)
+  local arg = opts.args ~= "" and opts.args or nil
+  local info = term_enh.get_terminal_info(arg)
+  if not info then
+    vim.notify("[TermEnhance] No terminal found to inspect.", vim.log.levels.WARN)
+    return
+  end
+
+  local lines = {
+    string.format("Terminal Diagnostics for '%s' (Buf #%d):", info.id, info.buf),
+    string.format(" • Shell Type: %s", info.shell_type:upper()),
+    string.format(" • Root Shell PID: %s", info.root_pid and tostring(info.root_pid) or "none"),
+  }
+
+  if info.fg_process and info.fg_process.pid ~= info.root_pid then
+    table.insert(lines, string.format(" • Foreground Process: '%s' (PID %d)", info.fg_process.comm, info.fg_process.pid))
+    table.insert(lines, string.format("   Command: %s", info.fg_process.cmdline))
+  else
+    table.insert(lines, " • Foreground Process: [Idle at shell prompt]")
+  end
+
+  if info.ports and #info.ports > 0 then
+    local p_strs = {}
+    for _, p in ipairs(info.ports) do
+      table.insert(p_strs, string.format(":%d (%s, PID %s)", p.port, p.proto:upper(), tostring(p.pid or "unknown")))
+    end
+    table.insert(lines, string.format(" • Active Listening Ports: %s", table.concat(p_strs, ", ")))
+  else
+    table.insert(lines, " • Active Listening Ports: None")
+  end
+
+  if #info.tree > 1 then
+    table.insert(lines, string.format(" • Process Tree (%d processes):", #info.tree))
+    for idx, proc in ipairs(info.tree) do
+      table.insert(lines, string.format("   [%d] PID %d: %s (%s)", idx, proc.pid, proc.comm, proc.cmdline:sub(1, 60)))
+    end
+  end
+
+  vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO)
+end, {
+  nargs = "?",
+  complete = function()
+    local matches = {}
+    for _, item in ipairs(term_enh.get_active_terminals()) do
+      table.insert(matches, item.id)
+    end
+    return matches
+  end,
+  desc = "Inspect terminal shell, process tree, and listening ports: :TermInfo [term_id]",
+})
+
 
