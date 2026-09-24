@@ -179,6 +179,24 @@ function M.get_terminal_info(id_or_buf)
   return terminal.get_terminal_info(id_or_buf)
 end
 
+---Switch focus to terminal (open if needed)
+---@param id_or_buf string|integer
+---@param direction? "float"|"horizontal"|"vertical"
+function M.focus(id_or_buf, direction)
+  terminal.focus(id_or_buf, direction)
+end
+
+---Open interactive Quick-Filter terminal switcher modal
+---@param opts? table
+function M.filter_interactive(opts)
+  terminal.filter_interactive(opts)
+end
+
+---Alias for filter_interactive
+function M.open_picker(opts)
+  terminal.filter_interactive(opts)
+end
+
 ---Resolve and open link/file at cursor
 ---@param target? string
 function M.open_link(target)

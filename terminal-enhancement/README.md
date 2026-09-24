@@ -65,10 +65,19 @@ return {
       "TermClean",
       "TermKillHidden",
       "TermKillAll",
+      "TermKillPort",
+      "TermSignal",
+      "TermInterrupt",
+      "TermKillTree",
+      "TermInfo",
+      "TermPicker",
+      "TermSwitch",
+      "TermFind",
     },
     keys = {
-      -- Terminal Toggling
+      -- Terminal Toggling & Live Switching
       { "<leader>tt", "<cmd>TermToggle<cr>", desc = "Toggle Terminal (Default)" },
+      { "<leader>tl", "<cmd>TermPicker<cr>", desc = "List & Filter Terminals (Switcher)" },
       { "<leader>tf", "<cmd>TermFloat<cr>", desc = "Toggle Floating Terminal" },
       { "<leader>th", "<cmd>TermToggle horizontal<cr>", desc = "Toggle Terminal (Horizontal Split)" },
       { "<leader>tv", "<cmd>TermToggle vertical<cr>", desc = "Toggle Terminal (Vertical Split)" },
@@ -78,12 +87,14 @@ return {
       { "<leader>tS", "<cmd>TermSendJoined<cr>", mode = { "n", "v" }, desc = "Send Lines Joined with \\ or `" },
       
       -- Terminal Management
-      { "<leader>tc", "<cmd>TermSelect<cr>", desc = "Select / Switch Target Terminal" },
+      { "<leader>tc", "<cmd>TermPicker<cr>", desc = "Select / Switch Target Terminal (Live Filter)" },
       { "<leader>tr", "<cmd>TermRename<cr>", desc = "Rename Terminal" },
       { "<leader>tB", "<cmd>TermBuffer<cr>", desc = "Open Terminal as Regular Buffer" },
       
-      -- Process Termination & Cleanup
-      { "<leader>tk", "<cmd>TermKill<cr>", desc = "Kill / Terminate Terminal (Interactive)" },
+      -- Process & Port Management (Bash / PowerShell)
+      { "<leader>tk", "<cmd>TermKill<cr>", desc = "Process & Port Manager (Interactive)" },
+      { "<leader>tp", "<cmd>TermKillPort<cr>", desc = "Kill Process Listening on Port (Bash/PowerShell)" },
+      { "<leader>ti", "<cmd>TermInterrupt<cr>", desc = "Send Interrupt (Ctrl+C) to Terminal" },
       { "<leader>tX", "<cmd>TermClean<cr>", desc = "Clean All Hidden Terminals" },
       
       -- Dedicated Tools
@@ -116,15 +127,18 @@ return {
 | Keybinding | Mode | Action | Description |
 | :--- | :--- | :--- | :--- |
 | **`<leader>tt`** | Normal | **Toggle Default** | Toggles default persistent floating terminal |
+| **`<leader>tl`** | Normal | **Live Filter Switcher** | Opens interactive live-filter fuzzy picker to search and switch terminals |
 | **`<leader>tf`** | Normal | **Toggle Float** | Opens centered floating terminal popup |
 | **`<leader>th`** | Normal | **Horizontal Split** | Opens/hides persistent horizontal bottom split |
 | **`<leader>tv`** | Normal | **Vertical Split** | Opens/hides persistent vertical right split |
 | **`<leader>ts`** | Normal / Visual | **Send Code** | Sends current line or selection with Bracketed Paste (auto-expands multi-line commands) |
 | **`<leader>tS`** | Normal / Visual | **Send Joined** | Joins multiple lines with `\` (Bash) or `` ` `` (PowerShell) |
-| **`<leader>tc`** | Normal | **Select Target** | Interactive prompt to switch default target terminal |
+| **`<leader>tc`** | Normal | **Select Target** | Live fuzzy filter to select default target terminal for code execution |
 | **`<leader>tr`** | Normal | **Rename Terminal** | Prompt to rename active or selected terminal session |
-| **`<leader>tk`** | Normal | **Kill Terminals** | Opens multi-select floating manager to terminate terminals |
-| **`<leader>tX`** | Normal | **Clean Hidden** | Instantly purges all background/hidden terminal buffers |
+| **`<leader>tk`** | Normal | **Process & Port Manager** | Opens multi-select manager to inspect PIDs, listening ports, send SIGTERM/SIGKILL |
+| **`<leader>tp`** | Normal | **Kill Port** | Scans and terminates any process listening on specified port (Bash/PowerShell) |
+| **`<leader>ti`** | Normal | **Interrupt** | Sends `Ctrl+C` (SIGINT) to interrupt running foreground process |
+| **`<leader>tX`** | Normal | **Clean Hidden** | Instantly purges all background/hidden terminals and frees ports/memory |
 | **`<leader>tB`** | Normal | **Buffer Mode** | Opens terminal directly into active window like a normal buffer |
 | **`<leader>tg`** | Normal | **LazyGit** | Dedicated LazyGit floating terminal |
 | **`<leader>top`** | Normal | **htop** | Dedicated htop process monitor |

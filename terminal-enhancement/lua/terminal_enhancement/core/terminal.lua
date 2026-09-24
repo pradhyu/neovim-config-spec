@@ -342,6 +342,54 @@ function M.toggle(id, cmd, direction, title, focus)
   end
 end
 
+---Switch focus directly to a terminal (open it if closed)
+---@param id_or_buf string|integer
+---@param direction? "float"|"horizontal"|"vertical"
+function M.focus(id_or_buf, direction)
+  local target_id = tostring(id_or_buf)
+  local inst = M.instances[target_id]
+  local target_buf = inst and inst.buf or (type(id_or_buf) == "number" and id_or_buf or nil)
+
+  if not inst and target_buf then
+    for id, i in pairs(M.instances) do
+      if i.buf == target_buf then
+        inst = i
+        target_id = id
+        break
+      end
+    end
+  end
+
+  -- If window is already open and valid on screen, focus it directly
+  if inst and inst.win and vim.api.nvim_win_is_valid(inst.win) then
+    pcall(vim.api.nvim_set_current_win, inst.win)
+    if config.options.auto_insert then
+      vim.cmd("startinsert")
+    end
+    return
+  end
+
+  if target_buf then
+    local win_on_screen = vim.fn.bufwinid(target_buf)
+    if win_on_screen ~= -1 and vim.api.nvim_win_is_valid(win_on_screen) then
+      pcall(vim.api.nvim_set_current_win, win_on_screen)
+      if config.options.auto_insert then
+        vim.cmd("startinsert")
+      end
+      return
+    end
+  end
+
+  -- If not visible on screen, toggle/open it and focus
+  M.toggle(target_id, nil, direction or (inst and inst.direction) or "float", nil, true)
+end
+
+---Open interactive Quick-Filter terminal picker to search and switch terminals
+---@param opts? table
+function M.filter_interactive(opts)
+  require("terminal_enhancement.ui.term_picker").open(opts)
+end
+
 ---Open terminal directly into the active editor window like a standard buffer
 ---@param id? string
 function M.open_as_buffer(id)

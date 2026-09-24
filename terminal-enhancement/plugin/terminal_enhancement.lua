@@ -81,9 +81,45 @@ end, {
 })
 
 vim.api.nvim_create_user_command("TermSelect", function()
-  term_enh.select_target()
+  term_enh.filter_interactive()
 end, {
-  desc = "Interactive prompt to select or switch default target terminal",
+  desc = "Interactive quick-filter modal to search and switch target terminal",
+})
+
+vim.api.nvim_create_user_command("TermPicker", function(opts)
+  local arg = opts.args ~= "" and opts.args or nil
+  term_enh.filter_interactive({ use_snacks = (arg == "snacks") })
+end, {
+  nargs = "?",
+  complete = function()
+    return { "native", "snacks" }
+  end,
+  desc = "Open interactive live-filter terminal switcher: :TermPicker [native|snacks]",
+})
+
+vim.api.nvim_create_user_command("TermSwitch", function(opts)
+  local arg = opts.args ~= "" and opts.args or nil
+  if arg then
+    term_enh.focus(arg)
+  else
+    term_enh.filter_interactive()
+  end
+end, {
+  nargs = "?",
+  complete = function()
+    local matches = {}
+    for _, item in ipairs(term_enh.get_active_terminals()) do
+      table.insert(matches, item.id)
+    end
+    return matches
+  end,
+  desc = "Switch to terminal by name or open live filter picker: :TermSwitch [term_id]",
+})
+
+vim.api.nvim_create_user_command("TermFind", function()
+  term_enh.filter_interactive()
+end, {
+  desc = "Live filter and search active terminals",
 })
 
 vim.api.nvim_create_user_command("TermTarget", function(opts)
@@ -91,7 +127,7 @@ vim.api.nvim_create_user_command("TermTarget", function(opts)
   if arg and arg ~= "" then
     require("terminal_enhancement.core.terminal").set_default_target(arg)
   else
-    term_enh.select_target()
+    term_enh.filter_interactive()
   end
 end, {
   nargs = "?",

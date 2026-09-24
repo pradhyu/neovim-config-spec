@@ -91,10 +91,15 @@ function M.setup()
     runner.send_joined()
   end, { desc = "Send lines joined with continuation (\\ or `)" })
 
-  -- Change / Select default target terminal
+  -- Change / Select default target terminal (Live Filter Switcher)
   vim.keymap.set("n", "<leader>tc", function()
-    runner.select_target()
-  end, { desc = "Select / Change target terminal" })
+    require("terminal_enhancement.core.terminal").filter_interactive()
+  end, { desc = "Select / Switch target terminal (Live Filter)" })
+
+  -- List, filter and switch terminals
+  vim.keymap.set("n", "<leader>tl", function()
+    require("terminal_enhancement.core.terminal").filter_interactive()
+  end, { desc = "List & Filter Terminals (Switcher)" })
 
   -- Rename active or chosen terminal
   vim.keymap.set("n", "<leader>tr", function()
