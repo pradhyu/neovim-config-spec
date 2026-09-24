@@ -192,6 +192,23 @@
     * `<leader>BD`: Diff buffer vs system clipboard
     * `<leader>Bo`: Sweep all other buffers
 
+* **`cmd-cockpit.nvim`** (Local repo: `~/git/neovim-config-spec/cmd-cockpit`):
+  * Command frequency tracker, global keybinding matrix inspector, and interactive runtime remapper.
+  * **Key Features:**
+    * **Command Tracker & Frecency Engine:** Tracks executed Ex commands with usage counts, timestamps, and Frecency ranking (`<leader>kf`).
+    * **Global Keymap Matrix:** Inspects and searches all active keymaps across Normal, Visual, Insert, Terminal, and Commandline modes with collision detection (`<leader>km`).
+    * **Runtime Remapper & Overrides:** Interactive remapping dialogue with instant validation and collision warnings (`<leader>kr`).
+    * **Lua Overrides Export:** Cleanly exports all custom overrides to `~/.config/nvim/lua/config/keymap_overrides.lua` (`<leader>ke`).
+    * **Interactive Cockpit HUD:** 3-tab dashboard with 1-9 instant execution keys and mode cycling (`<leader>k`, `<leader>kk`, `<leader>kc`).
+  * **Commands:** `:CmdCockpit`, `:CmdFrequent`, `:CmdKeymaps`, `:CmdRemap`, `:CmdResetOverrides`, `:CmdExportOverrides`, `:CmdStats`
+  * **Keymaps:**
+    * `<leader>k` / `<leader>kk` / `<leader>kc`: Open Command Cockpit Hub
+    * `<leader>kf`: Open Frequent Commands launcher
+    * `<leader>km`: Open Keymap Browser Matrix
+    * `<leader>kr`: Open Interactive Remapper
+    * `<leader>ks`: View Command Usage Analytics
+    * `<leader>ke`: Export Overrides to Lua File
+
 ---
 
 ## 3. Core Keymaps & Custom Logic (`lua/config/keymaps.lua`)
