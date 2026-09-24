@@ -11,24 +11,34 @@ local key_timer = nil
 local function import_recent_history()
   local total = vim.fn.histnr("cmd")
   if total > 0 then
-    local count = math.min(total, 60)
+    local count = math.min(total, 40)
     for i = count, 1, -1 do
       local cmd = vim.fn.histget("cmd", -i)
-      if cmd and cmd ~= "" then
-        stats.record_command(cmd, "cmd")
+      if cmd and cmd ~= "" and not stats.records[cmd] then
+        stats.records[cmd] = {
+          cmd = cmd,
+          count = 1,
+          last_used = os.time() - 7200, -- historical timestamp (2 hours ago)
+          pinned = false,
+          kind = "cmd",
+        }
       end
     end
   end
 end
 
----Build lookup table of all active keymaps
+---Build lookup table of all active keymaps (filtering out single basic motion keys)
 local function get_keymap_lookup()
   local lookup = {}
   local modes = { "n", "v" }
   for _, m in ipairs(modes) do
     local maps = vim.api.nvim_get_keymap(m)
     for _, map in ipairs(maps) do
-      lookup[map.lhs] = map
+      local lhs = map.lhs
+      -- Only track leader mappings (starts with Space) or custom multi-key combinations
+      if lhs:sub(1, 1) == " " or lhs:match("^<[lL]eader>") or lhs:match("^<[cC]%-") or #lhs >= 2 then
+        lookup[lhs] = map
+      end
     end
   end
   return lookup

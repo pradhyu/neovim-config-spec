@@ -28,13 +28,23 @@ end
 ---@return number
 function M.calculate_frecency(record)
   local now = os.time()
-  local delta_hours = math.max(0, (now - record.last_used) / 3600)
+  local delta_seconds = math.max(0, now - (record.last_used or 0))
 
-  -- Recency multiplier: 1.0 (recent), decays to 0.1 over days
-  local recency_weight = 1.0 / (1.0 + (delta_hours / 24))
+  -- Recency boost:
+  -- Used in last 10 minutes: +50 bonus (jumps directly to top)
+  -- Used in last hour: +20 bonus
+  -- Used in last 24h: +5 bonus
+  local recency_boost = 0
+  if delta_seconds < 600 then
+    recency_boost = 50
+  elseif delta_seconds < 3600 then
+    recency_boost = 20
+  elseif delta_seconds < 86400 then
+    recency_boost = 5
+  end
+
   local pin_bonus = record.pinned and 1000 or 0
-
-  return (record.count * recency_weight) + pin_bonus
+  return (record.count * 2) + recency_boost + pin_bonus
 end
 
 ---Record execution of a command or keymap
