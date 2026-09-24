@@ -101,6 +101,10 @@ function M.setup()
     require("terminal_enhancement.core.terminal").filter_interactive()
   end, { desc = "List & Filter Terminals (Switcher)" })
 
+  vim.keymap.set("n", "<leader>t<space>", function()
+    require("terminal_enhancement.core.terminal").filter_interactive()
+  end, { desc = "Terminal Switcher / Fuzzy Finder" })
+
   -- Rename active or chosen terminal
   vim.keymap.set("n", "<leader>tr", function()
     require("terminal_enhancement.core.terminal").rename_interactive()

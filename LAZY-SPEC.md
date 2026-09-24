@@ -241,4 +241,4 @@ When asked to setup Neovim on another machine using this spec:
 4. Write `~/.config/nvim/lua/plugins/colorschemes.lua` with the theme list and `themery.nvim`.
 5. Write `~/.config/nvim/lua/plugins/antigravity.lua` with `sidekick.nvim` and `snacks.nvim` configs.
 6. Write `~/.config/nvim/lua/config/keymaps.lua` containing the smart `gf` resolver and navigation keymaps.
-7. Launch Neovim in headless mode or execute `nvim --headless "+Lazy! sync" +qa` to pull all plugins automatically.
+ . Launch Neovim in headless mode or execute `nvim --headless "+Lazk! sync" +qa` to pull all plugins automatically.

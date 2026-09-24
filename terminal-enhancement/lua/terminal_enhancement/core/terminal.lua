@@ -135,6 +135,12 @@ function M.set_default_target(id)
   vim.notify(string.format("[TermEnhance] Target terminal set to '%s'", id), vim.log.levels.INFO)
 end
 
+---Get the default target terminal ID
+---@return string
+function M.get_default_target()
+  return M.default_target or "default"
+end
+
 ---Interactive prompt to select or change target terminal (shows all open & hidden terminals)
 ---@param on_selected? fun(id: string)
 function M.select_target_terminal(on_selected)
