@@ -96,14 +96,27 @@ function M.setup()
     require("terminal_enhancement.core.terminal").filter_interactive()
   end, { desc = "Select / Switch target terminal (Live Filter)" })
 
-  -- List, filter and switch terminals
+  -- List, filter and switch terminals (Multiple convenient triggers)
   vim.keymap.set("n", "<leader>tl", function()
     require("terminal_enhancement.core.terminal").filter_interactive()
   end, { desc = "List & Filter Terminals (Switcher)" })
 
+  vim.keymap.set("n", "<leader>st", function()
+    require("terminal_enhancement.core.terminal").filter_interactive()
+  end, { desc = "Search / Switch Terminals (Live Filter)" })
+
   vim.keymap.set("n", "<leader>t<space>", function()
     require("terminal_enhancement.core.terminal").filter_interactive()
   end, { desc = "Terminal Switcher / Fuzzy Finder" })
+
+  -- Terminal mode direct switcher (switch without having to exit terminal first)
+  vim.keymap.set("t", "<A-t>", function()
+    require("terminal_enhancement.core.terminal").filter_interactive()
+  end, { desc = "Terminal Switcher (Direct from Terminal)" })
+
+  vim.keymap.set("t", "<C-\\><C-l>", function()
+    require("terminal_enhancement.core.terminal").filter_interactive()
+  end, { desc = "Terminal Switcher (Direct from Terminal)" })
 
   -- Rename active or chosen terminal
   vim.keymap.set("n", "<leader>tr", function()

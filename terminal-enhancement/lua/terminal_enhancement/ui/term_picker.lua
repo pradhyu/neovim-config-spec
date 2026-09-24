@@ -22,7 +22,8 @@ end
 function M.open_native()
   local all_terminals = terminal.get_active_terminals()
   if #all_terminals == 0 then
-    vim.notify("[TermEnhance] No active terminals found. Use <leader>tt or :TermToggle to open one.", vim.log.levels.INFO)
+    vim.notify("[TermEnhance] 🚀 No active terminals found. Opening a new terminal...", vim.log.levels.INFO)
+    terminal.toggle("default")
     return
   end
 
@@ -295,6 +296,16 @@ function M.open_native()
   map_both("<C-x>", kill_selected)
   map_both("<C-q>", close_all)
   map_both("<Esc>", close_all)
+
+  -- Alt + 1..9 to jump directly to terminal index
+  for i = 1, 9 do
+    map_both(string.format("<M-%d>", i), function()
+      if #filtered >= i then
+        selected_idx = i
+        switch_to_selected()
+      end
+    end)
+  end
 
   -- Initial render and start insert
   filter_terminals("")
