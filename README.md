@@ -20,8 +20,9 @@ Instead of maintaining a complex, machine-specific `~/.config/nvim` repository w
 ## 📂 Repository Contents
 
 * **[`LAZY-SPEC.md`](file:///Users/pkshrestha/git/neovim-config/LAZY-SPEC.md)**: The core declarative specification of all plugins, options, keymaps, and AI agent integration.
-* **[`perf-lens/SPEC.md`](file:///Users/pkshrestha/git/neovim-config/perf-lens/SPEC.md)**: Architecture and functional specification for `perf-lens`, the performance profiler, jitter lens, and optimization advisor.
-* **[`terminal-enhancement/PLAN.md`](file:///Users/pkshrestha/git/neovim-config/terminal-enhancement/PLAN.md)**: Architecture plan and implementation for multi-direction terminals, dedicated tool runners, and smart link navigation.
+* **[`perf-lens/SPEC.md`](file:///home/pkshrestha/git/neovim-config-spec/perf-lens/SPEC.md)**: Architecture and functional specification for `perf-lens`, the performance profiler, jitter lens, and optimization advisor.
+* **[`terminal-enhancement/PLAN.md`](file:///home/pkshrestha/git/neovim-config-spec/terminal-enhancement/PLAN.md)**: Architecture plan and implementation for multi-direction terminals, dedicated tool runners, and smart link navigation.
+* **[`smart-highlighter/SPEC.md`](file:///home/pkshrestha/git/neovim-config-spec/smart-highlighter/SPEC.md)**: High-performance 16-slot multi-keyword, pattern, regex, and Treesitter scope-aware visual highlighter.
 
 ---
 

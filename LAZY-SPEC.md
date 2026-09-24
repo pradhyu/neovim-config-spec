@@ -143,6 +143,29 @@
     * `<leader>tg`: Open LazyGit Popup Terminal
     * `<leader>top`: Open htop Process Monitor Terminal
 
+* **`smart-highlighter.nvim`** (Local repo: `~/git/neovim-config-spec/smart-highlighter`):
+  * Ultra-fast, 16-slot multi-keyword, pattern, regex, and Treesitter scope-aware visual highlighter with floating HUD and match navigation.
+  * **Key Features:**
+    * **16-Slot Dynamic Palette:** Theme-adaptive light/dark color slots with high contrast and luminescence.
+    * **Treesitter Scope Bounded Highlighting:** Confines highlight matches strictly to enclosing function/method/block AST scope (`<leader>hs`).
+    * **Presets Suite:** Instant activation for Log Analysis (`ERROR`, `WARN`, `INFO`, UUIDs, IPs), HTTP/REST APIs, SQL queries, JSON, and DevOps statuses (`<leader>hp`).
+    * **Floating HUD Dashboard:** Visual manager with live occurrence counters, toggle switches, regex additions, and slot purges (`<leader>hm`).
+    * **Bidirectional Match Navigation:** Jump between matches for current slot (`]h`/`[h`) or across all active slots (`]H`/`[H`).
+    * **Quickfix & Telescope Export:** Push all matches with file locations to Quickfix or live search via Telescope (`<leader>hq`, `<leader>hf`).
+    * **Persistence:** Auto-saves and restores active patterns across sessions per workspace directory.
+  * **Commands:** `:SmartHighlightToggle`, `:SmartHighlightRegex`, `:SmartHighlightClear`, `:SmartHighlightHUD`, `:SmartHighlightPreset`, `:SmartHighlightScope`, `:SmartHighlightQuickfix`, `:SmartHighlightSearch`, `:SmartHighlightSave`, `:SmartHighlightLoad`
+  * **Keymaps:**
+    * `<leader>hh`: Toggle highlight on word under cursor or visual selection
+    * `<leader>hH`: Prompt for custom regex pattern to highlight
+    * `<leader>hm`: Open interactive Floating HUD Manager
+    * `<leader>hs`: Toggle Treesitter scope-bounded highlight
+    * `<leader>hp`: Select & load preset (Logs, HTTP, SQL, JSON, DevOps)
+    * `<leader>hq`: Export all active matches to Quickfix list
+    * `<leader>hf`: Fuzzy search matches via Telescope
+    * `<leader>hc`: Clear all highlights
+    * `]h` / `[h`: Jump to next / previous match of current slot
+    * `]H` / `[H`: Jump to next / previous match across ALL active slots
+
 ---
 
 ## 3. Core Keymaps & Custom Logic (`lua/config/keymaps.lua`)
