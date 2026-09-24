@@ -44,7 +44,7 @@
 
 ### B. Color Schemes & Theme Switcher
 * **`zaldih/themery.nvim`**: Interactive theme switcher with instant live preview.
-  * Keymaps: `<leader>th` and `<leader>uC` $\rightarrow$ `:Themery`
+  * Keymaps: `<leader>uC` or `<leader>uT` $\rightarrow$ `:Themery`
   * Preloaded theme list: `tokyonight-night`, `tokyonight-storm`, `tokyonight-moon`, `catppuccin-mocha`, `catppuccin-macchiato`, `catppuccin-frappe`, `catppuccin-latte`, `kanagawa-wave`, `kanagawa-dragon`, `kanagawa-lotus`, `rose-pine-main`, `rose-pine-moon`, `rose-pine-dawn`, `cyberdream`, `gruvbox`, `everforest`, `solarized-osaka`, `onedark`, `nightfox`, `duskfox`, `nordfox`, `carbonfox`, `terafox`.
 * **Themes Installed:**
   1. `catppuccin/nvim` (`mocha`, `macchiato`, `frappe`, `latte`)
