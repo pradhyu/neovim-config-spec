@@ -7,6 +7,8 @@ local M = {}
 ---@field count integer
 ---@field last_used integer
 ---@field pinned boolean
+---@field kind? "cmd"|"keymap"
+---@field keys? string
 
 ---@type table<string, CmdRecord>
 M.records = {}
@@ -35,9 +37,11 @@ function M.calculate_frecency(record)
   return (record.count * recency_weight) + pin_bonus
 end
 
----Record execution of a command
+---Record execution of a command or keymap
 ---@param cmd string
-function M.record_command(cmd)
+---@param kind? "cmd"|"keymap"
+---@param raw_keys? string
+function M.record_command(cmd, kind, raw_keys)
   local trimmed = vim.trim(cmd)
   if trimmed == "" then
     return
@@ -54,12 +58,16 @@ function M.record_command(cmd)
   if rec then
     rec.count = rec.count + 1
     rec.last_used = os.time()
+    rec.kind = kind or rec.kind or "cmd"
+    rec.keys = raw_keys or rec.keys
   else
     M.records[trimmed] = {
       cmd = trimmed,
       count = 1,
       last_used = os.time(),
       pinned = false,
+      kind = kind or "cmd",
+      keys = raw_keys,
     }
   end
 

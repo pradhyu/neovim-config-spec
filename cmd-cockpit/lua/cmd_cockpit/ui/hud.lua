@@ -160,25 +160,40 @@ function M.open(initial_tab)
     end
   end
 
+  local function execute_record(target)
+    if not target then return end
+    close()
+    if target.kind == "keymap" or target.cmd:match("^<[lL]eader>") or target.cmd:match("^ ") then
+      local raw = target.keys or target.cmd:match("^(<[^>]+>[^%s%(]+)") or target.cmd
+      -- Replace <leader> with actual space or leader char
+      local leader_char = vim.g.mapleader or " "
+      local expanded = raw:gsub("<[lL]eader>", leader_char)
+      vim.notify("[CmdCockpit] ⚡ Firing Shortcut: " .. raw, vim.log.levels.INFO)
+      vim.schedule(function()
+        local termcodes = vim.api.nvim_replace_termcodes(expanded, true, true, true)
+        vim.api.nvim_feedkeys(termcodes, "m", false)
+      end)
+    else
+      vim.notify("[CmdCockpit] ⚡ Executing: :" .. target.cmd, vim.log.levels.INFO)
+      vim.schedule(function()
+        pcall(vim.cmd, target.cmd)
+      end)
+    end
+  end
+
   local function execute_current()
     if active_tab == 1 then
       local cursor = vim.api.nvim_win_get_cursor(win)
       local idx = cursor[1] - 3
       if idx >= 1 and idx <= #current_items then
-        local target = current_items[idx]
-        close()
-        vim.notify("[CmdCockpit] ⚡ Executing: :" .. target.cmd, vim.log.levels.INFO)
-        vim.cmd(target.cmd)
+        execute_record(current_items[idx])
       end
     end
   end
 
   local function run_number(n)
     if active_tab == 1 and current_items[n] then
-      local target = current_items[n]
-      close()
-      vim.notify("[CmdCockpit] ⚡ Executing: :" .. target.cmd, vim.log.levels.INFO)
-      vim.cmd(target.cmd)
+      execute_record(current_items[n])
     end
   end
 

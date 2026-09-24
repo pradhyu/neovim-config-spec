@@ -3,6 +3,7 @@ local M = {}
 ---@class CmdCockpitOptions
 ---@field default_keymaps boolean
 ---@field track_history boolean
+---@field track_keymaps boolean
 ---@field max_history_entries integer
 ---@field ignore_patterns string[]
 ---@field storage_dir string
@@ -13,11 +14,9 @@ local M = {}
 M.defaults = {
   default_keymaps = true,
   track_history = true,
-  max_history_entries = 200,
-  ignore_patterns = {
-    "^w$", "^q$", "^wq$", "^x$", "^qa$", "^wqa$",
-    "^noh$", "^nohlsearch$", "^lua$", "^lua %s*$",
-  },
+  track_keymaps = true,
+  max_history_entries = 300,
+  ignore_patterns = {},
   storage_dir = vim.fn.stdpath("state") .. "/cmd-cockpit",
   overrides_file = vim.fn.stdpath("config") .. "/lua/config/keymap_overrides.lua",
   auto_apply_overrides = true,
