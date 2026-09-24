@@ -67,7 +67,7 @@ function M.open(initial_tab)
 
         for idx, rec in ipairs(top_cmds) do
           local pin_icon = rec.pinned and "📌" or "  "
-          local num_badge = (idx <= 9) and string.format("[%d]", idx) or "   "
+          local num_badge = string.format("#%-2d", idx)
           local cmd_str = rec.cmd
           if #cmd_str > 40 then
             cmd_str = cmd_str:sub(1, 37) .. "..."
@@ -82,7 +82,7 @@ function M.open(initial_tab)
       end
 
       table.insert(lines, " " .. string.rep("─", width - 4))
-      table.insert(lines, "  1-9 Run Fast | <CR> Run | p Pin | d Delete | Tab Switch View | q Close")
+      table.insert(lines, "  <CR>/<Space> Run | p Pin | d Delete | 1/2/3/<Tab> Switch Tab | q Close")
 
     elseif active_tab == 2 then
       -- TAB 2: Keymap Explorer
@@ -196,20 +196,20 @@ function M.open(initial_tab)
 
   local k_opts = { buffer = buf, silent = true, noremap = true }
 
-  -- Tab switching
+  -- Tab switching (1, 2, 3, <Tab>, <S-Tab>, h, l)
+  vim.keymap.set("n", "1", function() active_tab = 1; render() end, k_opts)
+  vim.keymap.set("n", "2", function() active_tab = 2; render() end, k_opts)
+  vim.keymap.set("n", "3", function() active_tab = 3; render() end, k_opts)
   vim.keymap.set("n", "<Tab>", function() active_tab = (active_tab % 3) + 1; render() end, k_opts)
-  vim.keymap.set("n", "1", function() if active_tab == 1 then run_number(1) else active_tab = 1; render() end end, k_opts)
-  vim.keymap.set("n", "2", function() if active_tab == 1 then run_number(2) else active_tab = 2; render() end end, k_opts)
-  vim.keymap.set("n", "3", function() if active_tab == 1 then run_number(3) else active_tab = 3; render() end end, k_opts)
-  vim.keymap.set("n", "4", function() run_number(4) end, k_opts)
-  vim.keymap.set("n", "5", function() run_number(5) end, k_opts)
-  vim.keymap.set("n", "6", function() run_number(6) end, k_opts)
-  vim.keymap.set("n", "7", function() run_number(7) end, k_opts)
-  vim.keymap.set("n", "8", function() run_number(8) end, k_opts)
-  vim.keymap.set("n", "9", function() run_number(9) end, k_opts)
+  vim.keymap.set("n", "<S-Tab>", function() active_tab = (active_tab == 1) and 3 or (active_tab - 1); render() end, k_opts)
+  vim.keymap.set("n", "[", function() active_tab = (active_tab == 1) and 3 or (active_tab - 1); render() end, k_opts)
+  vim.keymap.set("n", "]", function() active_tab = (active_tab % 3) + 1; render() end, k_opts)
+  vim.keymap.set("n", "h", function() active_tab = (active_tab == 1) and 3 or (active_tab - 1); render() end, k_opts)
+  vim.keymap.set("n", "l", function() active_tab = (active_tab % 3) + 1; render() end, k_opts)
 
-  -- Actions
+  -- Execution / Actions
   vim.keymap.set("n", "<CR>", execute_current, k_opts)
+  vim.keymap.set("n", "<Space>", execute_current, k_opts)
   vim.keymap.set("n", "r", remap_action, k_opts)
   vim.keymap.set("n", "p", function()
     if active_tab == 1 then
