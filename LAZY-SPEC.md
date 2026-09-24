@@ -176,21 +176,21 @@
     * **Live Diff Utilities:** Compare unsaved buffer changes against the saved file on disk, or diff against the system clipboard (`<leader>bd`, `<leader>bD`).
     * **Multi-Language Scratchpads:** Floating or split scratchpads in Markdown, Lua, SQL, JSON, Python, or Bash (`<leader>bs`).
     * **Buffer Inspector HUD:** Live dashboard displaying lines, words, LLM token estimations, encoding, fileformat, and one-touch action triggers (`<leader>bb`).
-  * **Commands:** `:BufferBuddy`, `:BufferPin`, `:BufferUnpin`, `:BufferTogglePin`, `:BufferSweep`, `:BufferDiffDisk`, `:BufferDiffClipboard`, `:BufferScratch`, `:BufferSnapshot`, `:BufferRestore`, `:BufferTransform`
+  * **Commands:** `:BufferBuddy`, `:BufferPin`, `:BufferUnpin`, `:BufferTogglePin`, `:BufferSweep`, `:BufferDiffDisk`, `:BufferDiffClipboard`, `:BufferScratch`, `:BufferSnapshot`, `:BufferRestore`, `:BufferTransform`, `:BufferJSON`
   * **Keymaps:**
+    * `<leader>bj` / `<leader>Bj`: Format / Prettify JSON buffer or selection
+    * `<leader>bt` / `<leader>Bt`: Trim trailing whitespace
+    * `<leader>bs` / `<leader>Bs`: Open interactive Scratchpad selector
+    * `<leader>bS` / `<leader>BS`: Create named in-memory Snapshot checkpoint
+    * `<leader>bR` / `<leader>BR`: Revert buffer to a Snapshot checkpoint
+    * `<leader>bc` / `<leader>Bc`: Close current buffer safely (preserving window layout)
+    * `<leader>bC` / `<leader>BC`: Sweep all unmodified buffers
+    * `<leader>bh` / `<leader>Bh`: Sweep all hidden buffers
     * `<leader>B` / `<leader>BB`: Open interactive Buffer Buddy Dashboard & Inspector
     * `<leader>Bp`: Toggle Pin on current buffer
     * `<leader>Bd`: Diff buffer vs saved disk file
     * `<leader>BD`: Diff buffer vs system clipboard
-    * `<leader>Bs`: Open interactive Scratchpad selector
-    * `<leader>BS`: Create named in-memory Snapshot checkpoint
-    * `<leader>BR`: Revert buffer to a Snapshot checkpoint
-    * `<leader>Bc`: Close current buffer safely (preserving window layout)
-    * `<leader>BC`: Sweep all unmodified buffers
     * `<leader>Bo`: Sweep all other buffers
-    * `<leader>Bh`: Sweep all hidden buffers
-    * `<leader>Bt`: Trim trailing whitespace
-    * `<leader>Bj`: Format / Prettify JSON
 
 ---
 
