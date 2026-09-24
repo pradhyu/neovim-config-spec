@@ -1,6 +1,5 @@
 local stats = require("cmd_cockpit.core.stats")
 local config = require("cmd_cockpit.config")
-local keymaps = require("cmd_cockpit.core.keymaps")
 
 local M = {}
 
@@ -22,17 +21,14 @@ local function import_recent_history()
   end
 end
 
----Build lookup table of leader keymaps
-local function get_leader_keymaps()
-  local maps = keymaps.get_keymaps("n")
+---Build lookup table of all active keymaps
+local function get_keymap_lookup()
   local lookup = {}
-  for _, m in ipairs(maps) do
-    local lhs = m.lhs
-    if lhs:match("^%s*<[Ll]eader>") or lhs:match("^ ") then
-      -- Normalize space to <leader>
-      local norm = lhs:gsub("^ ", "<leader>")
-      lookup[norm] = m
-      lookup[lhs] = m
+  local modes = { "n", "v" }
+  for _, m in ipairs(modes) do
+    local maps = vim.api.nvim_get_keymap(m)
+    for _, map in ipairs(maps) do
+      lookup[map.lhs] = map
     end
   end
   return lookup
@@ -75,15 +71,15 @@ function M.setup()
     end,
   })
 
-  -- 3. Track <leader> keybinding shortcuts via vim.on_key
+  -- 3. Track keybinding shortcuts via vim.on_key
   if config.options.track_keymaps then
-    local leader_maps = get_leader_keymaps()
+    local map_lookup = get_keymap_lookup()
 
-    -- Refresh leader lookup periodically on keymap change
+    -- Refresh lookup on buffer switch
     vim.api.nvim_create_autocmd({ "BufEnter", "FocusGained" }, {
       group = group,
       callback = function()
-        leader_maps = get_leader_keymaps()
+        map_lookup = get_keymap_lookup()
       end,
     })
 
@@ -93,42 +89,45 @@ function M.setup()
       end
 
       local mode = vim.fn.mode()
-      -- Only track in Normal / Visual mode
       if mode ~= "n" and mode ~= "v" and mode ~= "V" then
         key_buffer = ""
         return
       end
 
-      -- If buffer is empty and typed key is Space (standard leader) or leader char
-      if key_buffer == "" then
-        if typed == " " or typed == "\\" then
-          key_buffer = "<leader>"
-          if key_timer then key_timer:stop(); key_timer:close() end
-          key_timer = vim.loop.new_timer()
-          key_timer:start(1500, 0, vim.schedule_wrap(function()
-            key_buffer = ""
-          end))
+      -- Reset timer
+      if key_timer then
+        key_timer:stop()
+        key_timer:close()
+        key_timer = nil
+      end
+
+      key_timer = vim.loop.new_timer()
+      key_timer:start(1500, 0, vim.schedule_wrap(function()
+        key_buffer = ""
+      end))
+
+      -- Check for match in lookup (handles both full sequence in typed and accumulated key_buffer)
+      local match = map_lookup[typed] or map_lookup[key_buffer .. typed] or map_lookup[key_buffer]
+      if match then
+        local display_lhs = match.lhs
+        if display_lhs:sub(1, 1) == " " then
+          display_lhs = "<leader>" .. display_lhs:sub(2)
         end
+
+        local label = display_lhs
+        if match.desc and match.desc ~= "" then
+          label = string.format("%s (%s)", display_lhs, match.desc)
+        elseif match.rhs and match.rhs ~= "" and match.rhs ~= "[Lua Function]" then
+          local clean_rhs = match.rhs:gsub("<[cC][mM][dD]>", ""):gsub("<[cC][rR]>", ""):gsub("^:", "")
+          label = string.format("%s (%s)", display_lhs, clean_rhs)
+        end
+
+        local raw_k = display_lhs
+        key_buffer = ""
+        stats.record_command(label, "keymap", raw_k)
       else
-        -- Append typed key
         key_buffer = key_buffer .. typed
-
-        -- Check if current buffer matches a known leader keymap
-        local match = leader_maps[key_buffer]
-        if match then
-          local label = key_buffer
-          if match.desc and match.desc ~= "" then
-            label = string.format("%s (%s)", key_buffer, match.desc)
-          elseif match.rhs and match.rhs ~= "" and match.rhs ~= "[Lua Function]" then
-            label = string.format("%s (%s)", key_buffer, match.rhs:gsub("<[cC][mM][dD]>", ""):gsub("<[cC][rR]>", ""))
-          end
-
-          local raw_k = key_buffer
-          key_buffer = ""
-          vim.schedule(function()
-            stats.record_command(label, "keymap", raw_k)
-          end)
-        elseif #key_buffer > 8 then
+        if #key_buffer > 8 then
           key_buffer = ""
         end
       end
