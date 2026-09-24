@@ -320,6 +320,82 @@ function M.get_foreground_process(inst_or_buf)
   return tree[#tree]
 end
 
+---Get the current working directory of a terminal process
+---@param inst_or_buf? table|integer
+---@return string?
+function M.get_terminal_cwd(inst_or_buf)
+  local pid = M.get_terminal_pid(inst_or_buf)
+  if not pid or pid <= 0 then
+    return nil
+  end
+  local ok, cwd = pcall(uv.fs_readlink, string.format("/proc/%d/cwd", pid))
+  if ok and cwd and cwd ~= "" then
+    return cwd
+  end
+  return nil
+end
+
+---Get the last command executed or currently running in a terminal
+---@param inst_or_buf? table|integer
+---@return string? command, string? type ("running"|"history"|"sent")
+function M.get_last_command(inst_or_buf)
+  -- 1. If a foreground child process is actively executing (e.g. node, python, cargo, htop)
+  local fg = M.get_foreground_process(inst_or_buf)
+  if fg and fg.cmdline and fg.cmdline ~= "" then
+    return fg.cmdline, "running"
+  end
+
+  -- 2. If instance has explicitly recorded last_command
+  if type(inst_or_buf) == "table" and inst_or_buf.last_command and inst_or_buf.last_command ~= "" then
+    return inst_or_buf.last_command, "sent"
+  end
+
+  -- 3. Parse terminal buffer lines backwards to find the last prompt command
+  local buf = type(inst_or_buf) == "number" and inst_or_buf or (inst_or_buf and inst_or_buf.buf)
+  if not buf or not vim.api.nvim_buf_is_valid(buf) then
+    return nil, nil
+  end
+
+  local line_count = vim.api.nvim_buf_line_count(buf)
+  if line_count <= 0 then
+    return nil, nil
+  end
+
+  local max_scan = math.min(line_count, 100)
+  local lines = vim.api.nvim_buf_get_lines(buf, math.max(0, line_count - max_scan), line_count, false)
+
+  for i = #lines, 1, -1 do
+    local raw = lines[i] or ""
+    -- Strip ANSI escape codes
+    local line = raw:gsub("\27%[[0-9;]*[a-zA-Z]", ""):gsub("^%s+", ""):gsub("%s+$", "")
+    if line ~= "" then
+      -- Starship / Custom prompt arrows
+      if line:find("❯") then
+        local cmd = line:match("❯%s*(.+)$")
+        if cmd and cmd ~= "" then return cmd, "history" end
+      end
+      if line:find("➜") then
+        local cmd = line:match("➜%s*(.+)$")
+        if cmd and cmd ~= "" then return cmd, "history" end
+      end
+
+      -- PowerShell prompt: PS ...> command
+      local pwsh = line:match("^PS%s+[^>]*>%s*(.+)$")
+      if pwsh and pwsh ~= "" then
+        return pwsh, "history"
+      end
+
+      -- Unix prompt: ending with $, %, #, or >
+      local unix = line:match("[%$%%#>]%s+([^%$%%#>].*)$")
+      if unix and unix ~= "" then
+        return unix, "history"
+      end
+    end
+  end
+
+  return nil, nil
+end
+
 ---Parse system listening ports and return list of { port: integer, proto: string, pid: integer?, comm: string? }
 ---@param filter_pids? table<integer, boolean> optional PID lookup set
 ---@return table[]

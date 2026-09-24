@@ -51,6 +51,8 @@ function M.get_active_terminals()
       local pid = process.get_terminal_pid(inst)
       local fg_proc = process.get_foreground_process(inst)
       local ports = process.get_terminal_ports(inst)
+      local last_cmd, cmd_type = process.get_last_command(inst)
+      local cwd = process.get_terminal_cwd(inst)
 
       table.insert(list, {
         id = id,
@@ -64,6 +66,9 @@ function M.get_active_terminals()
         pid = pid,
         fg_proc = fg_proc,
         ports = ports,
+        last_cmd = last_cmd,
+        cmd_type = cmd_type,
+        cwd = cwd,
       })
       seen_bufs[inst.buf] = true
     end
@@ -97,6 +102,8 @@ function M.get_active_terminals()
       local pid = process.get_terminal_pid(buf)
       local fg_proc = process.get_foreground_process(buf)
       local ports = process.get_terminal_ports(buf)
+      local last_cmd, cmd_type = process.get_last_command(buf)
+      local cwd = process.get_terminal_cwd(buf)
 
       table.insert(list, {
         id = id_str,
@@ -110,6 +117,9 @@ function M.get_active_terminals()
         pid = pid,
         fg_proc = fg_proc,
         ports = ports,
+        last_cmd = last_cmd,
+        cmd_type = cmd_type,
+        cwd = cwd,
       })
     end
   end
@@ -474,6 +484,8 @@ function M.send(id, text)
       vim.fn.chansend(chan, payload)
     end
   end
+
+  inst.last_command = text:gsub("\r", ""):gsub("\n$", "")
 end
 
 ---Kill and purge a terminal by ID or buffer number
