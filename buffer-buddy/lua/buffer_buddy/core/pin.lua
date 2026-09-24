@@ -9,6 +9,8 @@ function M.is_pinned(buf)
     return false
   end
   return vim.b[target_buf].buffer_buddy_pinned == true
+      or vim.b[target_buf].bufferline_pinned == true
+      or vim.b[target_buf].pinned == true
 end
 
 ---Pin a buffer to protect it from automated closing

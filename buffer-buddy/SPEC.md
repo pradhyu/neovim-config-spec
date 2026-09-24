@@ -71,22 +71,23 @@ buffer-buddy/
 ---
 
 ## ⌨️ Default Keybindings
+Buffer Buddy uses `<leader>B` as prefix to preserve all standard LazyVim / BufferLine `<leader>b*` mappings intact.
 
 | Keybinding | Action | Description |
 |---|---|---|
-| `<leader>bb` | `open_hud()` | Open interactive Buffer Buddy Dashboard |
-| `<leader>bp` | `toggle_pin()` | Pin / unpin current buffer (protects from sweeps) |
-| `<leader>bd` | `diff_disk()` | Diff current buffer against saved disk version |
-| `<leader>bD` | `diff_clipboard()`| Diff current buffer against system clipboard |
-| `<leader>bs` | `open_scratch()` | Open scratchpad (Markdown, Lua, SQL, JSON, Bash) |
-| `<leader>bS` | `create_snapshot()`| Create named snapshot checkpoint |
-| `<leader>bR` | `restore_snapshot()`| Revert buffer to snapshot checkpoint |
-| `<leader>bc` | `close_current()` | Close current buffer safely |
-| `<leader>bC` | `close_unmodified()`| Sweep all unmodified buffers |
-| `<leader>bo` | `close_others()` | Close all other non-pinned buffers |
-| `<leader>bh` | `close_hidden()` | Close all hidden (unopened in win) buffers |
-| `<leader>bt` | `trim_whitespace()`| Trim trailing whitespace from buffer |
-| `<leader>bj` | `json_format()` | Format / Prettify JSON |
+| `<leader>B` / `<leader>BB` | `open_hud()` | Open interactive Buffer Buddy Dashboard |
+| `<leader>Bp` | `toggle_pin()` | Pin / unpin current buffer (protects from sweeps) |
+| `<leader>Bd` | `diff_disk()` | Diff current buffer against saved disk version |
+| `<leader>BD` | `diff_clipboard()`| Diff current buffer against system clipboard |
+| `<leader>Bs` | `open_scratch()` | Open scratchpad (Markdown, Lua, SQL, JSON, Bash) |
+| `<leader>BS` | `create_snapshot()`| Create named snapshot checkpoint |
+| `<leader>BR` | `restore_snapshot()`| Revert buffer to snapshot checkpoint |
+| `<leader>Bc` | `close_current()` | Close current buffer safely |
+| `<leader>BC` | `close_unmodified()`| Sweep all unmodified buffers |
+| `<leader>Bo` | `close_others()` | Close all other non-pinned buffers |
+| `<leader>Bh` | `close_hidden()` | Close all hidden (unopened in win) buffers |
+| `<leader>Bt` | `trim_whitespace()`| Trim trailing whitespace from buffer |
+| `<leader>Bj` | `json_format()` | Format / Prettify JSON |
 
 ---
 

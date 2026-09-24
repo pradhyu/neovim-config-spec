@@ -38,21 +38,23 @@ Using **`lazy.nvim`**:
 
 ## ⌨️ Default Keybindings
 
+Buffer Buddy uses the `<leader>B` prefix so all standard LazyVim / BufferLine `<leader>b*` mappings (`<leader>bb`, `<leader>bd`, `<leader>bD`, `<leader>bo`, `<leader>bp`, `<leader>be`, `<leader>bi`) remain 100% intact.
+
 | Keybinding | Action |
 |---|---|
-| `<leader>bb` | Open interactive Buffer Buddy Dashboard & Inspector |
-| `<leader>bp` | Toggle Pin on current buffer |
-| `<leader>bd` | Diff buffer vs saved disk file |
-| `<leader>bD` | Diff buffer vs system clipboard |
-| `<leader>bs` | Open interactive Scratchpad selector |
-| `<leader>bS` | Create named in-memory Snapshot checkpoint |
-| `<leader>bR` | Revert buffer to a Snapshot checkpoint |
-| `<leader>bc` | Close current buffer safely (preserving window layout) |
-| `<leader>bC` | Sweep all unmodified buffers |
-| `<leader>bo` | Sweep all other buffers |
-| `<leader>bh` | Sweep all hidden buffers |
-| `<leader>bt` | Trim trailing whitespace |
-| `<leader>bj` | Format / Prettify JSON |
+| `<leader>B` / `<leader>BB` | Open interactive Buffer Buddy Dashboard & Inspector |
+| `<leader>Bp` | Toggle Pin on current buffer (protects from sweeps) |
+| `<leader>Bd` | Diff buffer vs saved disk file |
+| `<leader>BD` | Diff buffer vs system clipboard |
+| `<leader>Bs` | Open interactive Scratchpad selector |
+| `<leader>BS` | Create named in-memory Snapshot checkpoint |
+| `<leader>BR` | Revert buffer to a Snapshot checkpoint |
+| `<leader>Bc` | Close current buffer safely (preserving window layout) |
+| `<leader>BC` | Sweep all unmodified buffers |
+| `<leader>Bo` | Sweep all other buffers |
+| `<leader>Bh` | Sweep all hidden buffers |
+| `<leader>Bt` | Trim trailing whitespace |
+| `<leader>Bj` | Format / Prettify JSON |
 
 ---
 

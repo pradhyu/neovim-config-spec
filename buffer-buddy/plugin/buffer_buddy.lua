@@ -125,26 +125,27 @@ end, {
   desc = "Run buffer transformation: :BufferTransform <transform_name>",
 })
 
--- Default Keymaps
+-- Default Keymaps (<leader>B prefix preserves all default LazyVim <leader>b* mappings)
 local config = require("buffer_buddy.config")
 if config.options.default_keymaps then
   local map = vim.keymap.set
 
-  map("n", "<leader>bb", function() bb.open_hud() end, { desc = "BufferBuddy: Open Dashboard" })
-  map("n", "<leader>bp", function() bb.toggle_pin() end, { desc = "BufferBuddy: Toggle Pin" })
-  map("n", "<leader>bd", function() bb.diff_disk() end, { desc = "BufferBuddy: Diff vs Disk" })
-  map("n", "<leader>bD", function() bb.diff_clipboard() end, { desc = "BufferBuddy: Diff vs Clipboard" })
-  map("n", "<leader>bs", function() bb.select_scratchpad() end, { desc = "BufferBuddy: Open Scratchpad" })
-  map("n", "<leader>bS", function()
+  map("n", "<leader>B", function() bb.open_hud() end, { desc = "BufferBuddy: Open Dashboard" })
+  map("n", "<leader>BB", function() bb.open_hud() end, { desc = "BufferBuddy: Open Dashboard" })
+  map("n", "<leader>Bp", function() bb.toggle_pin() end, { desc = "BufferBuddy: Toggle Pin" })
+  map("n", "<leader>Bd", function() bb.diff_disk() end, { desc = "BufferBuddy: Diff vs Disk" })
+  map("n", "<leader>BD", function() bb.diff_clipboard() end, { desc = "BufferBuddy: Diff vs Clipboard" })
+  map("n", "<leader>Bs", function() bb.select_scratchpad() end, { desc = "BufferBuddy: Open Scratchpad" })
+  map("n", "<leader>BS", function()
     vim.ui.input({ prompt = "Snapshot Name: " }, function(input)
       bb.create_snapshot(input ~= "" and input or nil)
     end)
   end, { desc = "BufferBuddy: Create Snapshot" })
-  map("n", "<leader>bR", function() bb.select_snapshot() end, { desc = "BufferBuddy: Restore Snapshot" })
-  map("n", "<leader>bc", function() bb.close_current() end, { desc = "BufferBuddy: Close Current Safely" })
-  map("n", "<leader>bC", function() bb.close_unmodified() end, { desc = "BufferBuddy: Close Unmodified" })
-  map("n", "<leader>bo", function() bb.close_others() end, { desc = "BufferBuddy: Close Others" })
-  map("n", "<leader>bh", function() bb.close_hidden() end, { desc = "BufferBuddy: Close Hidden" })
-  map("n", "<leader>bt", function() bb.trim_whitespace() end, { desc = "BufferBuddy: Trim Whitespace" })
-  map("n", "<leader>bj", function() bb.json_format() end, { desc = "BufferBuddy: Format JSON" })
+  map("n", "<leader>BR", function() bb.select_snapshot() end, { desc = "BufferBuddy: Restore Snapshot" })
+  map("n", "<leader>Bc", function() bb.close_current() end, { desc = "BufferBuddy: Close Current Safely" })
+  map("n", "<leader>BC", function() bb.close_unmodified() end, { desc = "BufferBuddy: Close Unmodified" })
+  map("n", "<leader>Bo", function() bb.close_others() end, { desc = "BufferBuddy: Close Others" })
+  map("n", "<leader>Bh", function() bb.close_hidden() end, { desc = "BufferBuddy: Close Hidden" })
+  map("n", "<leader>Bt", function() bb.trim_whitespace() end, { desc = "BufferBuddy: Trim Whitespace" })
+  map("n", "<leader>Bj", function() bb.json_format() end, { desc = "BufferBuddy: Format JSON" })
 end

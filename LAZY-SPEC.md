@@ -178,19 +178,19 @@
     * **Buffer Inspector HUD:** Live dashboard displaying lines, words, LLM token estimations, encoding, fileformat, and one-touch action triggers (`<leader>bb`).
   * **Commands:** `:BufferBuddy`, `:BufferPin`, `:BufferUnpin`, `:BufferTogglePin`, `:BufferSweep`, `:BufferDiffDisk`, `:BufferDiffClipboard`, `:BufferScratch`, `:BufferSnapshot`, `:BufferRestore`, `:BufferTransform`
   * **Keymaps:**
-    * `<leader>bb`: Open interactive Buffer Buddy Dashboard & Inspector
-    * `<leader>bp`: Toggle Pin on current buffer
-    * `<leader>bd`: Diff buffer vs saved disk file
-    * `<leader>bD`: Diff buffer vs system clipboard
-    * `<leader>bs`: Open interactive Scratchpad selector
-    * `<leader>bS`: Create named in-memory Snapshot checkpoint
-    * `<leader>bR`: Revert buffer to a Snapshot checkpoint
-    * `<leader>bc`: Close current buffer safely (preserving window layout)
-    * `<leader>bC`: Sweep all unmodified buffers
-    * `<leader>bo`: Sweep all other buffers
-    * `<leader>bh`: Sweep all hidden buffers
-    * `<leader>bt`: Trim trailing whitespace
-    * `<leader>bj`: Format / Prettify JSON
+    * `<leader>B` / `<leader>BB`: Open interactive Buffer Buddy Dashboard & Inspector
+    * `<leader>Bp`: Toggle Pin on current buffer
+    * `<leader>Bd`: Diff buffer vs saved disk file
+    * `<leader>BD`: Diff buffer vs system clipboard
+    * `<leader>Bs`: Open interactive Scratchpad selector
+    * `<leader>BS`: Create named in-memory Snapshot checkpoint
+    * `<leader>BR`: Revert buffer to a Snapshot checkpoint
+    * `<leader>Bc`: Close current buffer safely (preserving window layout)
+    * `<leader>BC`: Sweep all unmodified buffers
+    * `<leader>Bo`: Sweep all other buffers
+    * `<leader>Bh`: Sweep all hidden buffers
+    * `<leader>Bt`: Trim trailing whitespace
+    * `<leader>Bj`: Format / Prettify JSON
 
 ---
 
