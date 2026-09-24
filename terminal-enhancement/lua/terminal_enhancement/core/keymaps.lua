@@ -75,31 +75,18 @@ function M.setup()
     end, { desc = "Smart Click Link / File Resolver" })
   end
 
-  -- Send to terminal keymaps:
-  -- Normal mode sends current line
-  vim.keymap.set("n", "<leader>ts", function()
-    runner.send_current_line()
-  end, { desc = "Send current line to target terminal" })
-
-  -- Visual mode sends highlighted lines with atomic bracketed paste & dedent
-  vim.keymap.set("v", "<leader>ts", function()
-    runner.send_selection()
-  end, { desc = "Send visual selection to target terminal" })
-
-  -- Send visual selection joined with line continuation (\ for Bash, ` for PowerShell)
-  vim.keymap.set({ "n", "v" }, "<leader>tS", function()
-    runner.send_joined()
-  end, { desc = "Send lines joined with continuation (\\ or `)" })
-
-  -- Change / Select default target terminal (Live Filter Switcher)
-  vim.keymap.set("n", "<leader>tc", function()
-    require("terminal_enhancement.core.terminal").filter_interactive()
-  end, { desc = "Select / Switch target terminal (Live Filter)" })
-
-  -- List, filter and switch terminals (Multiple convenient triggers)
+  -- List, switch, and filter terminals (Supports <leader>tl, <leader>ts, <leader>tc, <leader>st, <leader>t<Space>)
   vim.keymap.set("n", "<leader>tl", function()
     require("terminal_enhancement.core.terminal").filter_interactive()
-  end, { desc = "List & Filter Terminals (Switcher)" })
+  end, { desc = "List & Switch Terminals (Switcher)" })
+
+  vim.keymap.set("n", "<leader>ts", function()
+    require("terminal_enhancement.core.terminal").filter_interactive()
+  end, { desc = "Switch & List Terminals (Switcher)" })
+
+  vim.keymap.set("n", "<leader>tc", function()
+    require("terminal_enhancement.core.terminal").filter_interactive()
+  end, { desc = "Choose / Switch Terminal (Switcher)" })
 
   vim.keymap.set("n", "<leader>st", function()
     require("terminal_enhancement.core.terminal").filter_interactive()
@@ -109,8 +96,16 @@ function M.setup()
     require("terminal_enhancement.core.terminal").filter_interactive()
   end, { desc = "Terminal Switcher / Fuzzy Finder" })
 
-  -- Terminal mode direct switcher (switch without having to exit terminal first)
+  -- Direct switcher shortcuts
+  vim.keymap.set("n", "<A-t>", function()
+    require("terminal_enhancement.core.terminal").filter_interactive()
+  end, { desc = "Terminal Switcher" })
+
   vim.keymap.set("t", "<A-t>", function()
+    require("terminal_enhancement.core.terminal").filter_interactive()
+  end, { desc = "Terminal Switcher (Direct from Terminal)" })
+
+  vim.keymap.set("t", "<C-\\><C-l>", function()
     require("terminal_enhancement.core.terminal").filter_interactive()
   end, { desc = "Terminal Switcher (Direct from Terminal)" })
 

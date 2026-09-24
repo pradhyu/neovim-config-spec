@@ -157,20 +157,9 @@ end, {
 })
 
 vim.api.nvim_create_user_command("TermList", function()
-  local list = term_enh.get_active_terminals()
-  if #list == 0 then
-    vim.notify("[TermEnhance] No active terminals currently running.", vim.log.levels.INFO)
-    return
-  end
-  local lines = { "Active Terminals (Available in :buffers / :b term://<name>):" }
-  for _, item in ipairs(list) do
-    local def = item.is_default and " [ACTIVE TARGET]" or ""
-    local state = item.is_open and "Visible" or "Hidden"
-    table.insert(lines, string.format(" • %s (%s)%s  [Buf #%d]", item.title, state, def, item.buf))
-  end
-  vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO)
+  term_enh.filter_interactive()
 end, {
-  desc = "List all active terminal instances",
+  desc = "List and switch active terminal instances (Interactive Switcher)",
 })
 
 vim.api.nvim_create_user_command("TermKill", function(opts)
