@@ -166,6 +166,32 @@
     * `]h` / `[h`: Jump to next / previous match of current slot
     * `]H` / `[H`: Jump to next / previous match across ALL active slots
 
+* **`buffer-buddy.nvim`** (Local repo: `~/git/neovim-config-spec/buffer-buddy`):
+  * Comprehensive buffer companion: Intelligent hygiene sweeper, text transformation toolkit, buffer pinning, floating scratchpads, in-memory snapshots, disk diffing, and buffer inspection.
+  * **Key Features:**
+    * **Intelligent Hygiene Sweepers:** Closes unmodified, hidden, dead, or other buffers while strictly protecting pinned buffers (`<leader>bC`, `<leader>bh`, `<leader>bo`).
+    * **Buffer Pinning:** Lock crucial files so automated cleaners and mass closures never close them (`<leader>bp`).
+    * **Transformation Toolkit:** Format/minify JSON, Base64 encode/decode, URL encode/decode, deduplicate lines, sort lines, strip trailing whitespace, and align Markdown tables (`<leader>bj`, `<leader>bt`).
+    * **In-Memory Undo Snapshots:** Create named checkpoints for any buffer before risky refactoring and revert instantly (`<leader>bS`, `<leader>bR`).
+    * **Live Diff Utilities:** Compare unsaved buffer changes against the saved file on disk, or diff against the system clipboard (`<leader>bd`, `<leader>bD`).
+    * **Multi-Language Scratchpads:** Floating or split scratchpads in Markdown, Lua, SQL, JSON, Python, or Bash (`<leader>bs`).
+    * **Buffer Inspector HUD:** Live dashboard displaying lines, words, LLM token estimations, encoding, fileformat, and one-touch action triggers (`<leader>bb`).
+  * **Commands:** `:BufferBuddy`, `:BufferPin`, `:BufferUnpin`, `:BufferTogglePin`, `:BufferSweep`, `:BufferDiffDisk`, `:BufferDiffClipboard`, `:BufferScratch`, `:BufferSnapshot`, `:BufferRestore`, `:BufferTransform`
+  * **Keymaps:**
+    * `<leader>bb`: Open interactive Buffer Buddy Dashboard & Inspector
+    * `<leader>bp`: Toggle Pin on current buffer
+    * `<leader>bd`: Diff buffer vs saved disk file
+    * `<leader>bD`: Diff buffer vs system clipboard
+    * `<leader>bs`: Open interactive Scratchpad selector
+    * `<leader>bS`: Create named in-memory Snapshot checkpoint
+    * `<leader>bR`: Revert buffer to a Snapshot checkpoint
+    * `<leader>bc`: Close current buffer safely (preserving window layout)
+    * `<leader>bC`: Sweep all unmodified buffers
+    * `<leader>bo`: Sweep all other buffers
+    * `<leader>bh`: Sweep all hidden buffers
+    * `<leader>bt`: Trim trailing whitespace
+    * `<leader>bj`: Format / Prettify JSON
+
 ---
 
 ## 3. Core Keymaps & Custom Logic (`lua/config/keymaps.lua`)

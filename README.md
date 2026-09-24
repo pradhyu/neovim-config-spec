@@ -23,6 +23,7 @@ Instead of maintaining a complex, machine-specific `~/.config/nvim` repository w
 * **[`perf-lens/SPEC.md`](file:///home/pkshrestha/git/neovim-config-spec/perf-lens/SPEC.md)**: Architecture and functional specification for `perf-lens`, the performance profiler, jitter lens, and optimization advisor.
 * **[`terminal-enhancement/PLAN.md`](file:///home/pkshrestha/git/neovim-config-spec/terminal-enhancement/PLAN.md)**: Architecture plan and implementation for multi-direction terminals, dedicated tool runners, and smart link navigation.
 * **[`smart-highlighter/SPEC.md`](file:///home/pkshrestha/git/neovim-config-spec/smart-highlighter/SPEC.md)**: High-performance 16-slot multi-keyword, pattern, regex, and Treesitter scope-aware visual highlighter.
+* **[`buffer-buddy/SPEC.md`](file:///home/pkshrestha/git/neovim-config-spec/buffer-buddy/SPEC.md)**: Comprehensive buffer companion for hygiene sweeps, text transformations, pinning, scratchpads, and snapshots.
 
 ---
 
