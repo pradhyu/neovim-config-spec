@@ -67,12 +67,11 @@ end, {
   desc = "Display command execution frequency analytics",
 })
 
--- Default Keymaps (<leader>k... prefix preserves all LazyVim code/LSP keymaps)
+-- Default Keymaps (<leader>k... / <leader>C)
 local config = require("cmd_cockpit.config")
 if config.options.default_keymaps then
   local map = vim.keymap.set
 
-  map("n", "<leader>k", function() cp.open_cockpit() end, { desc = "CmdCockpit: Open Hub" })
   map("n", "<leader>kk", function() cp.open_cockpit() end, { desc = "CmdCockpit: Open Hub" })
   map("n", "<leader>kc", function() cp.open_cockpit() end, { desc = "CmdCockpit: Open Hub" })
   map("n", "<leader>kf", function() cp.picker_frequent() end, { desc = "CmdCockpit: Frequent Commands" })
@@ -84,6 +83,6 @@ if config.options.default_keymaps then
     vim.notify("[CmdCockpit] " .. msg, ok and vim.log.levels.INFO or vim.log.levels.WARN)
   end, { desc = "CmdCockpit: Export Overrides Lua" })
 
-  -- Also alias on <leader>C for quick access
+  -- Direct shortcut on <leader>C
   map("n", "<leader>C", function() cp.open_cockpit() end, { desc = "CmdCockpit: Open Hub" })
 end

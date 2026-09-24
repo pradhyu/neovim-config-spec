@@ -3,9 +3,11 @@ local config = require("cmd_cockpit.config")
 
 local M = {}
 
-local active_cmd_buffer = ""
+local tracker_ns = vim.api.nvim_create_namespace("cmd_cockpit_tracker")
 local key_buffer = ""
-local key_timer = nil
+local pending_match = nil
+local pending_timer = nil
+local idle_timer = nil
 
 ---Import recent command history from Neovim history table
 local function import_recent_history()
@@ -15,33 +17,108 @@ local function import_recent_history()
     for i = count, 1, -1 do
       local cmd = vim.fn.histget("cmd", -i)
       if cmd and cmd ~= "" and not stats.records[cmd] then
-        stats.records[cmd] = {
-          cmd = cmd,
-          count = 1,
-          last_used = os.time() - 7200, -- historical timestamp (2 hours ago)
-          pinned = false,
-          kind = "cmd",
-        }
+        -- filter out noise
+        if not cmd:match("^lua%s+require%('cmd_cockpit'") and not cmd:match("^CmdCockpit") then
+          stats.records[cmd] = {
+            id = cmd:gsub("^:", ""),
+            cmd = cmd:gsub("^:", ""),
+            count = 1,
+            last_used = os.time() - 7200, -- historical timestamp
+            pinned = false,
+            kind = "cmd",
+            keys = cmd:gsub("^:", ""),
+          }
+        end
       end
     end
   end
 end
 
----Build lookup table of all active keymaps (filtering out single basic motion keys)
-local function get_keymap_lookup()
-  local lookup = {}
-  local modes = { "n", "v" }
-  for _, m in ipairs(modes) do
-    local maps = vim.api.nvim_get_keymap(m)
-    for _, map in ipairs(maps) do
-      local lhs = map.lhs
-      -- Only track leader mappings (starts with Space) or custom multi-key combinations
-      if lhs:sub(1, 1) == " " or lhs:match("^<[lL]eader>") or lhs:match("^<[cC]%-") or #lhs >= 2 then
-        lookup[lhs] = map
-      end
+---Get all active keymaps (both global and buffer-local)
+---@param mode string
+---@return table<string, table>, string[]
+local function get_active_mappings(mode)
+  local map_lookup = {}
+  local all_lhs = {}
+
+  local function add_map(map)
+    local lhs = map.lhs
+    if not lhs or lhs == "" then return end
+    
+    map_lookup[lhs] = map
+    table.insert(all_lhs, lhs)
+
+    -- Also store leader-normalized version
+    local leader = vim.g.mapleader or " "
+    if leader ~= "" and lhs:sub(1, #leader) == leader then
+      local norm = "<leader>" .. lhs:sub(#leader + 1)
+      map_lookup[norm] = map
+      table.insert(all_lhs, norm)
     end
   end
-  return lookup
+
+  -- 1. Global mappings
+  local global_maps = vim.api.nvim_get_keymap(mode)
+  for _, map in ipairs(global_maps) do
+    add_map(map)
+  end
+
+  -- 2. Buffer-local mappings
+  local cur_buf = vim.api.nvim_get_current_buf()
+  if cur_buf and cur_buf > 0 and vim.api.nvim_buf_is_valid(cur_buf) then
+    local buf_maps = vim.api.nvim_buf_get_keymap(cur_buf, mode)
+    for _, map in ipairs(buf_maps) do
+      add_map(map)
+    end
+  end
+
+  return map_lookup, all_lhs
+end
+
+---Format display label for a keymap
+---@param map table
+---@return string, string
+local function format_keymap_label(map)
+  local leader = vim.g.mapleader or " "
+  local display_lhs = map.lhs
+  if leader ~= "" and display_lhs:sub(1, #leader) == leader then
+    display_lhs = "<leader>" .. display_lhs:sub(#leader + 1)
+  end
+
+  local label = display_lhs
+  if map.desc and map.desc ~= "" then
+    label = string.format("%s (%s)", display_lhs, map.desc)
+  elseif map.rhs and map.rhs ~= "" and map.rhs ~= "[Lua Function]" then
+    local clean_rhs = map.rhs:gsub("<[cC][mM][dD]>", ""):gsub("<[cC][rR]>", ""):gsub("^:", "")
+    label = string.format("%s (%s)", display_lhs, clean_rhs)
+  end
+
+  return label, display_lhs
+end
+
+local function fire_match(match)
+  if not match then return end
+  local label, raw_lhs = format_keymap_label(match)
+  stats.record_command(label, "keymap", raw_lhs)
+  pending_match = nil
+  key_buffer = ""
+end
+
+local function cancel_timers()
+  if pending_timer then
+    pcall(function()
+      pending_timer:stop()
+      pending_timer:close()
+    end)
+    pending_timer = nil
+  end
+  if idle_timer then
+    pcall(function()
+      idle_timer:stop()
+      idle_timer:close()
+    end)
+    idle_timer = nil
+  end
 end
 
 ---Initialize command and keymap tracking
@@ -55,93 +132,111 @@ function M.setup()
 
   local group = vim.api.nvim_create_augroup("CmdCockpitTracker", { clear = true })
 
-  -- 1. Track live typing in Command Line
-  vim.api.nvim_create_autocmd("CmdlineChanged", {
-    group = group,
-    callback = function()
-      local line = vim.fn.getcmdline()
-      if line and line ~= "" then
-        active_cmd_buffer = line
-      end
-    end,
-  })
-
-  -- 2. Capture Ex command on submit
+  -- 1. Capture Ex command on submit via CmdlineLeave
   vim.api.nvim_create_autocmd("CmdlineLeave", {
     group = group,
     callback = function()
       local ev = vim.v.event
-      if not ev.abort then
-        local cmd = active_cmd_buffer ~= "" and active_cmd_buffer or vim.fn.histget("cmd", -1)
+      if not ev.abort and (ev.cmdtype == ":" or ev.cmdtype == nil) then
+        local cmd = vim.fn.getcmdline()
+        if not cmd or cmd == "" then
+          cmd = vim.fn.histget("cmd", -1)
+        end
         if cmd and cmd ~= "" then
-          stats.record_command(cmd, "cmd")
+          -- Filter out internal plugin evaluation / picker commands
+          if not cmd:match("^lua%s+require%('cmd_cockpit'") and not cmd:match("^CmdCockpit") then
+            stats.record_command(cmd, "cmd")
+          end
         end
       end
-      active_cmd_buffer = ""
     end,
   })
 
-  -- 3. Track keybinding shortcuts via vim.on_key
+  -- 2. Track keybinding shortcuts via vim.on_key with dedicated namespace
   if config.options.track_keymaps then
-    local map_lookup = get_keymap_lookup()
-
-    -- Refresh lookup on buffer switch
-    vim.api.nvim_create_autocmd({ "BufEnter", "FocusGained" }, {
-      group = group,
-      callback = function()
-        map_lookup = get_keymap_lookup()
-      end,
-    })
-
     vim.on_key(function(key, typed)
       if not typed or typed == "" then
         return
       end
 
-      local mode = vim.fn.mode()
-      if mode ~= "n" and mode ~= "v" and mode ~= "V" then
+      -- Check for escape / cancel sequences
+      if typed == "\27" or typed == "\3" or typed == "\7" then
+        cancel_timers()
+        if pending_match then
+          fire_match(pending_match)
+        end
         key_buffer = ""
         return
       end
 
-      -- Reset timer
-      if key_timer then
-        key_timer:stop()
-        key_timer:close()
-        key_timer = nil
+      local mode = vim.fn.mode()
+      -- Only track in Normal or Visual mode
+      if not mode:match("^[nvV\22]") and not mode:match("^no") then
+        cancel_timers()
+        key_buffer = ""
+        return
       end
 
-      key_timer = vim.loop.new_timer()
-      key_timer:start(1500, 0, vim.schedule_wrap(function()
-        key_buffer = ""
-      end))
+      local base_mode = mode:sub(1, 1)
+      if base_mode ~= "n" and base_mode ~= "v" and base_mode ~= "V" then
+        base_mode = "n"
+      end
 
-      -- Check for match in lookup (handles both full sequence in typed and accumulated key_buffer)
-      local match = map_lookup[typed] or map_lookup[key_buffer .. typed] or map_lookup[key_buffer]
-      if match then
-        local display_lhs = match.lhs
-        if display_lhs:sub(1, 1) == " " then
-          display_lhs = "<leader>" .. display_lhs:sub(2)
+      local map_lookup, all_lhs = get_active_mappings(base_mode)
+
+      -- Check if 'typed' by itself is already a full composite key sequence (e.g. from feedkeys/macro)
+      if #typed > 1 and map_lookup[typed] then
+        cancel_timers()
+        fire_match(map_lookup[typed])
+        return
+      end
+
+      local candidate = key_buffer .. typed
+
+      -- Check if any mappings start with candidate (prefix check)
+      local exact_match = map_lookup[candidate]
+      local has_longer_prefix = false
+
+      for _, lhs in ipairs(all_lhs) do
+        if lhs:sub(1, #candidate) == candidate and #lhs > #candidate then
+          has_longer_prefix = true
+          break
         end
+      end
 
-        local label = display_lhs
-        if match.desc and match.desc ~= "" then
-          label = string.format("%s (%s)", display_lhs, match.desc)
-        elseif match.rhs and match.rhs ~= "" and match.rhs ~= "[Lua Function]" then
-          local clean_rhs = match.rhs:gsub("<[cC][mM][dD]>", ""):gsub("<[cC][rR]>", ""):gsub("^:", "")
-          label = string.format("%s (%s)", display_lhs, clean_rhs)
-        end
+      cancel_timers()
 
-        local raw_k = display_lhs
-        key_buffer = ""
-        stats.record_command(label, "keymap", raw_k)
-      else
-        key_buffer = key_buffer .. typed
-        if #key_buffer > 8 then
+      if exact_match and not has_longer_prefix then
+        -- 1. Exact leaf match: execute immediately!
+        fire_match(exact_match)
+      elseif exact_match and has_longer_prefix then
+        -- 2. Exact match with potential longer variations (e.g. <leader>b vs <leader>bd)
+        pending_match = exact_match
+        key_buffer = candidate
+
+        local timeout = (vim.o.timeoutlen > 0) and vim.o.timeoutlen or 500
+        pending_timer = vim.loop.new_timer()
+        pending_timer:start(timeout + 50, 0, vim.schedule_wrap(function()
+          if pending_match then
+            fire_match(pending_match)
+          end
+        end))
+      elseif has_longer_prefix then
+        -- 3. In the middle of typing a multi-key sequence
+        key_buffer = candidate
+        idle_timer = vim.loop.new_timer()
+        idle_timer:start(3500, 0, vim.schedule_wrap(function()
           key_buffer = ""
+          pending_match = nil
+        end))
+      else
+        -- 4. No prefix and no match: if we had a pending match, fire it; otherwise reset
+        if pending_match then
+          fire_match(pending_match)
         end
+        key_buffer = ""
       end
-    end)
+    end, tracker_ns)
   end
 
   -- Save history on exit

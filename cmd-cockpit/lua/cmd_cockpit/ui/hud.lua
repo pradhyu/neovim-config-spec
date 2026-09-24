@@ -59,7 +59,7 @@ function M.open(initial_tab)
 
       if #top_cmds == 0 then
         table.insert(lines, "")
-        table.insert(lines, "   [ No commands tracked yet. Execute ':' commands in Neovim to populate ]")
+        table.insert(lines, "   [ No commands tracked yet. Execute ':' commands or leader shortcuts in Neovim ]")
         table.insert(lines, "")
       else
         table.insert(lines, "   KEY  PIN  USES  COMMAND                                  LAST RUN")
@@ -164,19 +164,19 @@ function M.open(initial_tab)
     if not target then return end
     close()
     if target.kind == "keymap" or target.cmd:match("^<[lL]eader>") or target.cmd:match("^ ") then
-      local raw = target.keys or target.cmd:match("^(<[^>]+>[^%s%(]+)") or target.cmd
-      -- Replace <leader> with actual space or leader char
+      local raw = target.keys or target.cmd:match("^(<[^>]+>[^%s%(]+)") or target.cmd:match("^([^%s%(]+)") or target.cmd
       local leader_char = vim.g.mapleader or " "
-      local expanded = raw:gsub("<[lL]eader>", leader_char)
+      local expanded = raw:gsub("<[lL]eader>", leader_char):gsub("<leader>", leader_char)
       vim.notify("[CmdCockpit] ⚡ Firing Shortcut: " .. raw, vim.log.levels.INFO)
       vim.schedule(function()
         local termcodes = vim.api.nvim_replace_termcodes(expanded, true, true, true)
         vim.api.nvim_feedkeys(termcodes, "m", false)
       end)
     else
-      vim.notify("[CmdCockpit] ⚡ Executing: :" .. target.cmd, vim.log.levels.INFO)
+      local cmd_to_run = target.cmd:gsub("^:", "")
+      vim.notify("[CmdCockpit] ⚡ Executing: :" .. cmd_to_run, vim.log.levels.INFO)
       vim.schedule(function()
-        pcall(vim.cmd, target.cmd)
+        pcall(vim.cmd, cmd_to_run)
       end)
     end
   end
@@ -237,7 +237,7 @@ function M.open(initial_tab)
       local cursor = vim.api.nvim_win_get_cursor(win)
       local idx = cursor[1] - 3
       if current_items[idx] then
-        stats.toggle_pin(current_items[idx].cmd)
+        stats.toggle_pin(current_items[idx].id or current_items[idx].cmd)
         render()
       end
     end
@@ -278,8 +278,7 @@ function M.open(initial_tab)
     local cursor = vim.api.nvim_win_get_cursor(win)
     local idx = cursor[1] - 3
     if active_tab == 1 and current_items[idx] then
-      stats.records[current_items[idx].cmd] = nil
-      stats.save()
+      stats.delete_record(current_items[idx].id or current_items[idx].cmd)
       render()
     elseif active_tab == 3 and current_items[idx] then
       overrides.remove_override(current_items[idx].mode, current_items[idx].new_lhs)

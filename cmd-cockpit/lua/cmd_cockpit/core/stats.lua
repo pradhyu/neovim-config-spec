@@ -3,6 +3,7 @@ local config = require("cmd_cockpit.config")
 local M = {}
 
 ---@class CmdRecord
+---@field id string
 ---@field cmd string
 ---@field count integer
 ---@field last_used integer
@@ -23,7 +24,7 @@ local function get_history_file()
   return dir .. "/history.json"
 end
 
----Calculate Frecency score (Frequency + Recency)
+---Calculate Frecency score (Frequency + Recency + Pin)
 ---@param record CmdRecord
 ---@return number
 function M.calculate_frecency(record)
@@ -31,7 +32,7 @@ function M.calculate_frecency(record)
   local delta_seconds = math.max(0, now - (record.last_used or 0))
 
   -- Recency boost:
-  -- Used in last 10 minutes: +50 bonus (jumps directly to top)
+  -- Used in last 10 minutes: +50 bonus (jumps straight to top)
   -- Used in last hour: +20 bonus
   -- Used in last 24h: +5 bonus
   local recency_boost = 0
@@ -64,20 +65,32 @@ function M.record_command(cmd, kind, raw_keys)
     end
   end
 
-  local rec = M.records[trimmed]
+  local k_type = kind or "cmd"
+  local id = trimmed
+
+  if k_type == "keymap" then
+    id = raw_keys or trimmed:match("^(<[^>]+>[^%s%(]+)") or trimmed:match("^([^%s%(]+)") or trimmed
+  else
+    -- Strip leading colon for Ex commands
+    id = trimmed:gsub("^:", "")
+  end
+
+  local rec = M.records[id]
   if rec then
     rec.count = rec.count + 1
     rec.last_used = os.time()
-    rec.kind = kind or rec.kind or "cmd"
-    rec.keys = raw_keys or rec.keys
+    rec.kind = k_type
+    rec.cmd = trimmed
+    rec.keys = raw_keys or rec.keys or id
   else
-    M.records[trimmed] = {
+    M.records[id] = {
+      id = id,
       cmd = trimmed,
       count = 1,
       last_used = os.time(),
       pinned = false,
-      kind = kind or "cmd",
-      keys = raw_keys,
+      kind = k_type,
+      keys = raw_keys or id,
     }
   end
 
@@ -85,16 +98,42 @@ function M.record_command(cmd, kind, raw_keys)
 end
 
 ---Toggle pin status for a command
----@param cmd string
+---@param id_or_cmd string
 ---@return boolean
-function M.toggle_pin(cmd)
-  local rec = M.records[cmd]
+function M.toggle_pin(id_or_cmd)
+  local rec = M.records[id_or_cmd]
+  if not rec then
+    for _, r in pairs(M.records) do
+      if r.cmd == id_or_cmd or r.keys == id_or_cmd then
+        rec = r
+        break
+      end
+    end
+  end
+
   if rec then
     rec.pinned = not rec.pinned
     M.save()
     return rec.pinned
   end
   return false
+end
+
+---Delete a command record
+---@param id_or_cmd string
+function M.delete_record(id_or_cmd)
+  if M.records[id_or_cmd] then
+    M.records[id_or_cmd] = nil
+    M.save()
+    return
+  end
+  for k, r in pairs(M.records) do
+    if r.cmd == id_or_cmd or r.keys == id_or_cmd then
+      M.records[k] = nil
+      M.save()
+      return
+    end
+  end
 end
 
 ---Get top ranked commands sorted by frecency
@@ -147,7 +186,21 @@ function M.load()
   if content and content ~= "" then
     local ok, data = pcall(vim.fn.json_decode, content)
     if ok and type(data) == "table" then
-      M.records = data
+      M.records = {}
+      for k, v in pairs(data) do
+        if type(v) == "table" and (v.cmd or v.keys) then
+          local id = v.id or k
+          M.records[id] = {
+            id = id,
+            cmd = v.cmd or id,
+            count = v.count or 1,
+            last_used = v.last_used or os.time(),
+            pinned = v.pinned or false,
+            kind = v.kind or "cmd",
+            keys = v.keys or id,
+          }
+        end
+      end
     end
   end
 end
