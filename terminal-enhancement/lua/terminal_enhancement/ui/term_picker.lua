@@ -6,34 +6,60 @@ local M = {}
 ---Open the interactive Live-Filter Terminal Switcher
 ---@param opts? { use_snacks?: boolean }
 function M.open(opts)
-  -- 1. If snacks.nvim is requested and available, use Snacks.picker
-  if (opts and opts.use_snacks) or (opts == nil and _G.Snacks and Snacks.picker) then
+  if opts and opts.use_snacks and _G.Snacks and Snacks.picker then
     local ok = pcall(M.open_snacks)
     if ok then
       return
     end
   end
 
-  -- 2. Native zero-dependency dual-float Live-Filter Modal
+  -- Native zero-dependency dual-float Live-Filter Modal
   M.open_native()
 end
 
 ---Open native interactive floating search and filter terminal switcher
 function M.open_native()
-  local all_terminals = terminal.get_active_terminals()
-  if #all_terminals == 0 then
-    vim.notify("[TermEnhance] 🚀 No active terminals found. Opening a new terminal...", vim.log.levels.INFO)
-    terminal.toggle("default")
-    return
+  local active_list = terminal.get_active_terminals()
+  local all_items = {}
+
+  -- 1. Add all active terminals
+  for _, t in ipairs(active_list) do
+    table.insert(all_items, t)
   end
+
+  -- 2. Add quick spawn actions
+  table.insert(all_items, {
+    id = "__new_float__",
+    title = "➕ [New] Create Floating Terminal (Default)",
+    shell_type = "bash",
+    is_action = true,
+  })
+  table.insert(all_items, {
+    id = "__new_split_h__",
+    title = "➕ [New] Create Horizontal Split Terminal",
+    shell_type = "bash",
+    is_action = true,
+  })
+  table.insert(all_items, {
+    id = "__new_split_v__",
+    title = "➕ [New] Create Vertical Split Terminal",
+    shell_type = "bash",
+    is_action = true,
+  })
+  table.insert(all_items, {
+    id = "__new_pwsh__",
+    title = "➕ [New] Create PowerShell Terminal (pwsh)",
+    shell_type = "pwsh",
+    is_action = true,
+  })
 
   local total_w = vim.o.columns
   local total_h = vim.o.lines
 
   local width = math.min(math.max(math.floor(total_w * 0.75), 75), total_w - 4)
   local max_results = 10
-  local results_h = math.min(math.max(#all_terminals, 3), max_results) + 2
-  local total_height = results_h + 4 -- input (1) + border/margin + results
+  local results_h = math.min(math.max(#all_items, 4), max_results) + 2
+  local total_height = results_h + 4
 
   local row = math.floor((total_h - total_height) / 2)
   local col = math.floor((total_w - width) / 2)
@@ -69,7 +95,7 @@ function M.open_native()
     col = col,
     style = "minimal",
     border = "rounded",
-    title = " 💻 Active Terminals ",
+    title = " 💻 Terminals & Actions ",
     title_pos = "left",
   })
 
@@ -100,38 +126,48 @@ function M.open_native()
 
     local lines = {}
     if #filtered == 0 then
-      table.insert(lines, "  ❌ No terminals match search query")
+      table.insert(lines, "  ❌ No terminals or actions match search query")
     else
       for idx, item in ipairs(filtered) do
-        local state_icon = item.is_open and "🟢" or "⚪"
-        local shell_badge = string.format("[%s]", item.shell_type or "bash")
-        local pid_str = item.pid and string.format("(PID %d)", item.pid) or ""
-
-        local proc_str = ""
-        if item.fg_proc and item.fg_proc.comm and item.fg_proc.pid ~= item.pid then
-          proc_str = string.format(" ➔ %s (PID %d)", item.fg_proc.comm, item.fg_proc.pid)
-        end
-
-        local port_str = ""
-        if item.ports and #item.ports > 0 then
-          local p_list = {}
-          for _, p in ipairs(item.ports) do
-            table.insert(p_list, ":" .. p.port)
-          end
-          port_str = string.format(" 🎧 %s", table.concat(p_list, ","))
-        end
-
-        local def_badge = item.is_default and " ⭐ TARGET" or ""
         local pointer = (idx == selected_idx) and "➤" or " "
+        local line = ""
 
-        local line = string.format(" %s %s %s %s %s%s%s (Buf #%d)%s",
-          pointer, state_icon, shell_badge, item.title, pid_str, proc_str, port_str, item.buf, def_badge)
+        if item.is_action then
+          local num_badge = (idx <= 9) and string.format("[%d] ", idx) or "    "
+          line = string.format(" %s %s%s", pointer, num_badge, item.title)
+        else
+          local num_badge = (idx <= 9) and string.format("[%d] ", idx) or "    "
+          local state_icon = item.is_open and "🟢" or "⚪"
+          local shell_badge = string.format("[%s]", item.shell_type or "bash")
+          local pid_str = item.pid and string.format("(PID %d)", item.pid) or ""
+
+          local proc_str = ""
+          if item.fg_proc and item.fg_proc.comm and item.fg_proc.pid ~= item.pid then
+            proc_str = string.format(" ➔ %s (PID %d)", item.fg_proc.comm, item.fg_proc.pid)
+          end
+
+          local port_str = ""
+          if item.ports and #item.ports > 0 then
+            local p_list = {}
+            for _, p in ipairs(item.ports) do
+              table.insert(p_list, ":" .. p.port)
+            end
+            port_str = string.format(" 🎧 %s", table.concat(p_list, ","))
+          end
+
+          local def_badge = item.is_default and " ⭐ TARGET" or ""
+          local buf_str = item.buf and string.format(" (Buf #%d)", item.buf) or ""
+
+          line = string.format(" %s %s%s %s %s %s%s%s%s%s",
+            pointer, num_badge, state_icon, shell_badge, item.title, pid_str, proc_str, port_str, buf_str, def_badge)
+        end
+
         table.insert(lines, line)
       end
     end
 
     table.insert(lines, string.rep("─", width - 2))
-    table.insert(lines, "  <CR>: Switch | <C-s>: Set Target | <C-k>: Kill | <C-p>: Kill Port | <Esc>: Exit")
+    table.insert(lines, "  <CR>/<Alt-1..9>: Switch | <C-s>: Target | <C-d>: Kill | <C-p>: Port | <Esc>: Exit")
 
     vim.api.nvim_set_option_value("modifiable", true, { buf = results_buf })
     vim.api.nvim_buf_set_lines(results_buf, 0, -1, false, lines)
@@ -149,6 +185,9 @@ function M.open_native()
       if item.is_default then
         vim.api.nvim_buf_add_highlight(results_buf, ns_id, "DiagnosticWarn", idx - 1, 0, -1)
       end
+      if item.is_action then
+        vim.api.nvim_buf_add_highlight(results_buf, ns_id, "Function", idx - 1, 0, -1)
+      end
     end
 
     if vim.api.nvim_win_is_valid(results_win) and #filtered > 0 then
@@ -160,7 +199,7 @@ function M.open_native()
     query = (query or ""):lower():gsub("%s+", "")
     filtered = {}
 
-    for _, item in ipairs(all_terminals) do
+    for _, item in ipairs(all_items) do
       if query == "" then
         table.insert(filtered, item)
       else
@@ -207,7 +246,19 @@ function M.open_native()
   local function switch_to_selected()
     local target = filtered[selected_idx]
     close_all()
-    if target then
+    if not target then
+      return
+    end
+
+    if target.id == "__new_float__" then
+      terminal.toggle("float")
+    elseif target.id == "__new_split_h__" then
+      terminal.toggle("horizontal", nil, "horizontal")
+    elseif target.id == "__new_split_v__" then
+      terminal.toggle("vertical", nil, "vertical")
+    elseif target.id == "__new_pwsh__" then
+      terminal.toggle("pwsh", "pwsh", "float")
+    else
       terminal.focus(target.id)
     end
   end
