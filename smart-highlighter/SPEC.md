@@ -107,7 +107,10 @@ smart-highlighter/
 - `:SmartHighlightScope` - Toggle treesitter enclosing scope highlight
 - `:SmartHighlightQuickfix` - Export all matches to quickfix list
 - `:SmartHighlightSearch` - Fuzzy search matches via Telescope / Snacks
-- `:SmartHighlightSave` / `:SmartHighlightLoad` - Manage session persistence
+- `:SmartHighlightSave [filepath]` / `:SmartHighlightLoad [filepath]` - Save or restore repo-local `.smart-highlighter.json`
+- `:SmartHighlightExport [filepath]` / `:SmartHighlightImport [filepath]` - Explicit JSON import and export
+- `:SmartBookmarkExport [filepath]` / `:SmartBookmarkImport [filepath]` - Export / import bookmarks to/from JSON
+- `:SmartHighlightAutoPersist [on|off|toggle]` - Toggle automatic background persistence to repo root
 - `:SmartBookmarkToggle [note]` - Toggle bookmark on current line with optional note
 - `:SmartBookmarkQuick` - Quick toggle bookmark without note prompt
 - `:SmartBookmarkNext [tag]` / `:SmartBookmarkPrev [tag]` - Jump to next / previous bookmark (optionally by tag)

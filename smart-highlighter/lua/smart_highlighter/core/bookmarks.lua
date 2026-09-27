@@ -276,6 +276,10 @@ function M.set_bookmark(file, line, col, text, note, explicit_tag)
     existing.tag = detected_tag
     existing.col = col
     M.render_all_buffers()
+    local session = package.loaded["smart_highlighter.core.session"]
+    if session then
+      session.request_auto_save()
+    end
     return existing
   end
 
@@ -293,6 +297,10 @@ function M.set_bookmark(file, line, col, text, note, explicit_tag)
 
   table.insert(M.bookmarks, bm)
   M.render_all_buffers()
+  local session = package.loaded["smart_highlighter.core.session"]
+  if session then
+    session.request_auto_save()
+  end
   return bm
 end
 
@@ -301,11 +309,15 @@ end
 ---@param line? integer
 ---@return boolean
 function M.remove_bookmark(id_or_file, line)
+  local session = package.loaded["smart_highlighter.core.session"]
   if type(id_or_file) == "number" and not line then
     local idx = M.find_by_id(id_or_file)
     if idx then
       table.remove(M.bookmarks, idx)
       M.render_all_buffers()
+      if session then
+        session.request_auto_save()
+      end
       return true
     end
     return false
@@ -315,6 +327,9 @@ function M.remove_bookmark(id_or_file, line)
   if idx then
     table.remove(M.bookmarks, idx)
     M.render_all_buffers()
+    if session then
+      session.request_auto_save()
+    end
     return true
   end
   return false
@@ -327,6 +342,10 @@ function M.clear_all()
     if vim.api.nvim_buf_is_valid(buf) then
       pcall(vim.api.nvim_buf_clear_namespace, buf, M.ns_id, 0, -1)
     end
+  end
+  local session = package.loaded["smart_highlighter.core.session"]
+  if session then
+    session.request_auto_save()
   end
 end
 

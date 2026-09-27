@@ -124,6 +124,10 @@ function M.add_slot(pattern, opts)
 
   M.slots[id] = slot
   M.render_all_buffers()
+  local session = package.loaded["smart_highlighter.core.session"]
+  if session then
+    session.request_auto_save()
+  end
   return id
 end
 
@@ -134,6 +138,10 @@ function M.remove_slot(id)
   if M.slots[id] then
     M.slots[id] = nil
     M.render_all_buffers()
+    local session = package.loaded["smart_highlighter.core.session"]
+    if session then
+      session.request_auto_save()
+    end
     return true
   end
   return false
@@ -146,6 +154,10 @@ function M.toggle_slot(id)
   if M.slots[id] then
     M.slots[id].enabled = not M.slots[id].enabled
     M.render_all_buffers()
+    local session = package.loaded["smart_highlighter.core.session"]
+    if session then
+      session.request_auto_save()
+    end
     return M.slots[id].enabled
   end
   return nil
@@ -159,6 +171,10 @@ function M.clear_all()
     if vim.api.nvim_buf_is_valid(buf) then
       pcall(vim.api.nvim_buf_clear_namespace, buf, M.ns_id, 0, -1)
     end
+  end
+  local session = package.loaded["smart_highlighter.core.session"]
+  if session then
+    session.request_auto_save()
   end
 end
 

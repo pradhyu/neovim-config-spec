@@ -12,6 +12,14 @@ local M = {}
 ---@field line_highlight boolean
 ---@field default_scope "all"|"current"
 
+---@class SmartPersistenceConfig
+---@field enabled boolean
+---@field mode "project"|"state"|"both" "project" (writes to project root .smart-highlighter.json) or "state" (stdpath state cache)
+---@field file string Filename for project-local storage (default: ".smart-highlighter.json")
+---@field auto_persist boolean Automatically save highlights & bookmarks on changes and buffer write/leave
+---@field auto_load boolean Automatically discover and load project-local or cached session on startup / dir change
+---@field relative_paths boolean Store relative paths in project session file so bookmarks work across clones/machines
+
 ---@class SmartHighlightOptions
 ---@field max_slots integer
 ---@field whole_word boolean
@@ -19,7 +27,7 @@ local M = {}
 ---@field treesitter_scope boolean
 ---@field buffer_scope "all"|"current" Default scope: "all" for all open buffers, "current" for active buffer only
 ---@field current_buffer_search "bottom_pane"|"picker" How to display current buffer search: "bottom_pane" (bottom window) or "picker" (telescope)
----@field persistence boolean
+---@field persistence SmartPersistenceConfig|boolean
 ---@field default_keymaps boolean
 ---@field debounce_ms integer
 ---@field palette string "modern"|"neon"|"pastel"|"solarized"
@@ -34,7 +42,14 @@ M.defaults = {
   treesitter_scope = false,
   buffer_scope = "all", -- "all" (highlight all open buffers) or "current" (highlight only active buffer)
   current_buffer_search = "bottom_pane", -- "bottom_pane" (bottom window) or "picker" (telescope)
-  persistence = true,
+  persistence = {
+    enabled = true,
+    mode = "project", -- "project" writes .smart-highlighter.json in repo root
+    file = ".smart-highlighter.json",
+    auto_persist = true, -- Auto-persist bookmarks and highlights on changes
+    auto_load = true,    -- Auto-load on enter/dir change
+    relative_paths = true,
+  },
   default_keymaps = true,
   debounce_ms = 80,
   palette = "modern",
@@ -67,7 +82,15 @@ M.options = vim.deepcopy(M.defaults)
 ---Merge user options with defaults
 ---@param user_opts? table
 function M.setup(user_opts)
-  M.options = vim.tbl_deep_extend("force", M.defaults, user_opts or {})
+  local opts = user_opts or {}
+  if type(opts.persistence) == "boolean" then
+    opts.persistence = { enabled = opts.persistence }
+  end
+  M.options = vim.tbl_deep_extend("force", vim.deepcopy(M.defaults), opts)
+  if type(M.options.persistence) == "boolean" then
+    M.options.persistence = vim.tbl_deep_extend("force", vim.deepcopy(M.defaults.persistence), { enabled = M.options.persistence })
+  end
+  return M.options
 end
 
 return M

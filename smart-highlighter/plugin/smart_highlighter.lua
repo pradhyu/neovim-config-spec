@@ -142,18 +142,69 @@ end, {
   desc = "Search highlighted matches (Telescope for all buffers, bottom pane for current): :SmartHighlightSearch [all|current]",
 })
 
-vim.api.nvim_create_user_command("SmartHighlightSave", function()
-  local ok, msg = sh.save_session()
-  vim.notify("[SmartHighlight] " .. msg, ok and vim.log.levels.INFO or vim.log.levels.WARN)
+vim.api.nvim_create_user_command("SmartHighlightSave", function(opts)
+  local file = opts.args ~= "" and opts.args or nil
+  sh.save_session(file)
 end, {
-  desc = "Save active highlights and bookmarks to session storage",
+  nargs = "?",
+  complete = "file",
+  desc = "Save active highlights and bookmarks to repo file or state cache: :SmartHighlightSave [filepath]",
 })
 
-vim.api.nvim_create_user_command("SmartHighlightLoad", function()
-  local ok, msg = sh.load_session()
-  vim.notify("[SmartHighlight] " .. msg, ok and vim.log.levels.INFO or vim.log.levels.WARN)
+vim.api.nvim_create_user_command("SmartHighlightLoad", function(opts)
+  local file = opts.args ~= "" and opts.args or nil
+  sh.load_session(file)
 end, {
-  desc = "Restore highlights and bookmarks from session storage",
+  nargs = "?",
+  complete = "file",
+  desc = "Restore highlights and bookmarks from repo file or state cache: :SmartHighlightLoad [filepath]",
+})
+
+vim.api.nvim_create_user_command("SmartHighlightExport", function(opts)
+  local file = opts.args ~= "" and opts.args or nil
+  sh.save_session(file)
+end, {
+  nargs = "?",
+  complete = "file",
+  desc = "Export highlights and bookmarks to JSON file: :SmartHighlightExport [filepath]",
+})
+
+vim.api.nvim_create_user_command("SmartHighlightImport", function(opts)
+  local file = opts.args ~= "" and opts.args or nil
+  sh.load_session(file)
+end, {
+  nargs = "?",
+  complete = "file",
+  desc = "Import highlights and bookmarks from JSON file: :SmartHighlightImport [filepath]",
+})
+
+vim.api.nvim_create_user_command("SmartBookmarkExport", function(opts)
+  local file = opts.args ~= "" and opts.args or nil
+  sh.save_session(file)
+end, {
+  nargs = "?",
+  complete = "file",
+  desc = "Export bookmarks to repo-local .smart-highlighter.json or custom path: :SmartBookmarkExport [filepath]",
+})
+
+vim.api.nvim_create_user_command("SmartBookmarkImport", function(opts)
+  local file = opts.args ~= "" and opts.args or nil
+  sh.load_session(file)
+end, {
+  nargs = "?",
+  complete = "file",
+  desc = "Import bookmarks from repo-local .smart-highlighter.json or custom path: :SmartBookmarkImport [filepath]",
+})
+
+vim.api.nvim_create_user_command("SmartHighlightAutoPersist", function(opts)
+  local arg = opts.args ~= "" and opts.args:lower() or "toggle"
+  sh.toggle_auto_persist(arg)
+end, {
+  nargs = "?",
+  complete = function()
+    return { "on", "off", "toggle" }
+  end,
+  desc = "Toggle or configure auto-persist mode: :SmartHighlightAutoPersist [on|off|toggle]",
 })
 
 -- Bookmark User Commands

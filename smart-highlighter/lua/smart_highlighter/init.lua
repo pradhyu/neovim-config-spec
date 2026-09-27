@@ -56,20 +56,41 @@ function M.setup(user_opts)
     end,
   })
 
-  -- Auto-restore session on startup if enabled
-  if config.options.persistence then
-    vim.api.nvim_create_autocmd("VimEnter", {
-      group = render_group,
-      once = true,
+  -- Auto-restore and auto-persist session
+  local p_opts = config.options.persistence
+  local p_enabled = (type(p_opts) == "table" and p_opts.enabled ~= false) or (p_opts == true)
+
+  if p_enabled then
+    local sess_group = vim.api.nvim_create_augroup("SmartHighlighterPersistence", { clear = true })
+
+    -- Load session on startup
+    if type(p_opts) ~= "table" or p_opts.auto_load ~= false then
+      vim.api.nvim_create_autocmd("VimEnter", {
+        group = sess_group,
+        once = true,
+        callback = function()
+          session.load_session(nil, true)
+        end,
+      })
+      -- If Neovim has already started (e.g. hot reload or lazy load), load immediately
+      if vim.v.vim_did_enter == 1 then
+        session.load_session(nil, true)
+      end
+    end
+
+    -- Multi-repo / project switching on DirChanged
+    vim.api.nvim_create_autocmd("DirChanged", {
+      group = sess_group,
       callback = function()
-        session.load_session()
+        session.check_and_switch_project()
       end,
     })
 
-    vim.api.nvim_create_autocmd("VimLeavePre", {
-      group = render_group,
+    -- Flush auto-save on buffer write, focus lost, or exit
+    vim.api.nvim_create_autocmd({ "BufWritePost", "FocusLost", "VimLeavePre" }, {
+      group = sess_group,
       callback = function()
-        session.save_session()
+        session.flush_save()
       end,
     })
   end
@@ -96,6 +117,10 @@ M.select_preset = presets.select_preset_interactive
 -- Forward Persistence APIs
 M.save_session = session.save_session
 M.load_session = session.load_session
+M.export_session = session.save_session
+M.import_session = session.load_session
+M.toggle_auto_persist = session.toggle_auto_persist
+M.find_project_root = session.find_project_root
 
 -- Forward UI APIs
 M.open_hud = hud.open

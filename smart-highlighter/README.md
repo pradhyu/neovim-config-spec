@@ -131,8 +131,6 @@ Inside the HUD window (`<leader>hm`):
 - `:SmartHighlightScope` - Toggle Treesitter scope highlight
 - `:SmartHighlightQuickfix [all|current]` - Export matches to Quickfix (default: all open buffers)
 - `:SmartHighlightSearch [all|current]` - Search matches via Telescope / Snacks (default: all open buffers, `<C-b>` toggles scope)
-- `:SmartHighlightSave` / `:SmartHighlightLoad` - Save or restore session highlights
-
 ### Bookmarks & Tags
 - `:SmartBookmarkToggle [note]` - Toggle bookmark on current line with note prompt
 - `:SmartBookmarkQuick` - Quick toggle bookmark without prompt
@@ -142,3 +140,14 @@ Inside the HUD window (`<leader>hm`):
 - `:SmartBookmarkFilter [tag]` - Filter bookmarks by tag with interactive count selector
 - `:SmartBookmarkClear` - Clear all bookmarks
 - `:SmartBookmarkHUD` - Open HUD directly on Bookmarks tab
+
+### 💾 Repo-Local Persistence, Import/Export & Auto-Persist
+Highlights and bookmarks are automatically saved to `.smart-highlighter.json` in the root of your git repository using **relative paths**, ensuring they work across clones, machines, worktrees, and multiple workspaces.
+
+- `:SmartHighlightSave [filepath]` - Save active highlights and bookmarks to repo `.smart-highlighter.json` (or custom path)
+- `:SmartHighlightLoad [filepath]` - Load highlights and bookmarks from repo `.smart-highlighter.json` (or custom path)
+- `:SmartHighlightExport [filepath]` - Export highlights & bookmarks to a JSON file
+- `:SmartHighlightImport [filepath]` - Import highlights & bookmarks from a JSON file
+- `:SmartBookmarkExport [filepath]` - Export bookmarks to `.smart-highlighter.json`
+- `:SmartBookmarkImport [filepath]` - Import bookmarks from `.smart-highlighter.json`
+- `:SmartHighlightAutoPersist [on|off|toggle]` - Toggle automatic background persistence (saves debounced on changes, buffer write, and exit)
