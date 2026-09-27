@@ -1,1 +1,3 @@
 .test-*
+.smart-highlighter.json
+.smart-bookmarks*.json

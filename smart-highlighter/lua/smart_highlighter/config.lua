@@ -14,11 +14,14 @@ local M = {}
 
 ---@class SmartPersistenceConfig
 ---@field enabled boolean
----@field mode "project"|"state"|"both" "project" (writes to project root .smart-highlighter.json) or "state" (stdpath state cache)
----@field file string Filename for project-local storage (default: ".smart-highlighter.json")
+---@field mode "git"|"project"|"state" "git" (writes to .git/smart-highlighter/<branch>.json, 100% private to local clone), "project" (.smart-highlighter.json), or "state" (stdpath state cache)
+---@field branch_scoped boolean Isolate bookmarks per git branch so switching branches loads that branch's bookmarks
+---@field reconcile_lines boolean Fuzzy re-anchor bookmarks if lines shifted between branches
+---@field watch_head boolean Reactively watch .git/HEAD with libuv fs_event for zero-overhead branch switching
+---@field file string Filename for project-local storage (when mode is "project")
 ---@field auto_persist boolean Automatically save highlights & bookmarks on changes and buffer write/leave
----@field auto_load boolean Automatically discover and load project-local or cached session on startup / dir change
----@field relative_paths boolean Store relative paths in project session file so bookmarks work across clones/machines
+---@field auto_load boolean Automatically discover and load session on startup / branch switch / dir change
+---@field relative_paths boolean Store relative paths in session file
 
 ---@class SmartHighlightOptions
 ---@field max_slots integer
@@ -29,6 +32,8 @@ local M = {}
 ---@field current_buffer_search "bottom_pane"|"picker" How to display current buffer search: "bottom_pane" (bottom window) or "picker" (telescope)
 ---@field persistence SmartPersistenceConfig|boolean
 ---@field default_keymaps boolean
+---@field alt_keymaps boolean
+---@field keymaps table<string, string|boolean>
 ---@field debounce_ms integer
 ---@field palette string "modern"|"neon"|"pastel"|"solarized"
 ---@field presets SmartHighlightPresetConfig
@@ -44,7 +49,10 @@ M.defaults = {
   current_buffer_search = "bottom_pane", -- "bottom_pane" (bottom window) or "picker" (telescope)
   persistence = {
     enabled = true,
-    mode = "project", -- "project" writes .smart-highlighter.json in repo root
+    mode = "git", -- "git" writes to .git/smart-highlighter/<branch>.json (100% local, never dirty, zero git checkout conflicts)
+    branch_scoped = true, -- Auto-isolate bookmarks per git branch
+    reconcile_lines = true, -- Content-anchored fuzzy re-anchoring when lines shift
+    watch_head = true, -- Libuv fs_event reactive .git/HEAD watcher (zero CPU polling)
     file = ".smart-highlighter.json",
     auto_persist = true, -- Auto-persist bookmarks and highlights on changes
     auto_load = true,    -- Auto-load on enter/dir change

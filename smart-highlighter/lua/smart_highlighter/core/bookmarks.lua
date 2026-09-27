@@ -16,6 +16,9 @@ local M = {}
 ---@type Bookmark[]
 M.bookmarks = {}
 
+---@type table<string, Bookmark[]>
+M.by_file = {}
+
 ---@type integer
 M.ns_id = vim.api.nvim_create_namespace("smart_highlighter_bookmarks_ns")
 
@@ -54,6 +57,42 @@ M.TAG_ALIASES = {
 ---@return string
 local function normalize_path(path)
   return vim.fs.normalize(path)
+end
+
+---Add bookmark to by_file hash map
+---@param bm Bookmark
+local function add_to_by_file(bm)
+  local norm = normalize_path(bm.file)
+  if not M.by_file[norm] then
+    M.by_file[norm] = {}
+  end
+  table.insert(M.by_file[norm], bm)
+end
+
+---Remove bookmark from by_file hash map
+---@param bm Bookmark
+local function remove_from_by_file(bm)
+  local norm = normalize_path(bm.file)
+  local list = M.by_file[norm]
+  if list then
+    for i, item in ipairs(list) do
+      if item.id == bm.id then
+        table.remove(list, i)
+        break
+      end
+    end
+    if #list == 0 then
+      M.by_file[norm] = nil
+    end
+  end
+end
+
+---Rebuild the entire by_file hash index from M.bookmarks
+function M.rebuild_index()
+  M.by_file = {}
+  for _, bm in ipairs(M.bookmarks) do
+    add_to_by_file(bm)
+  end
 end
 
 ---Detect and normalize tag from note and code text
@@ -158,15 +197,23 @@ local function get_target_text()
   return cword ~= "" and cword or "[Empty Line]", false
 end
 
----Find bookmark index by file and line
+---Find bookmark index by file and line (fast O(k) lookup in by_file)
 ---@param file string
 ---@param line integer
 ---@return integer? idx, Bookmark? bookmark
 function M.find_by_location(file, line)
   local norm_file = normalize_path(file)
-  for idx, bm in ipairs(M.bookmarks) do
-    if normalize_path(bm.file) == norm_file and bm.line == line then
-      return idx, bm
+  local list = M.by_file[norm_file]
+  if list then
+    for _, bm in ipairs(list) do
+      if bm.line == line then
+        for g_idx, g_bm in ipairs(M.bookmarks) do
+          if g_bm.id == bm.id then
+            return g_idx, bm
+          end
+        end
+        return nil, bm
+      end
     end
   end
   return nil, nil
@@ -184,7 +231,7 @@ function M.find_by_id(id)
   return nil, nil
 end
 
----Render bookmark extmarks on a buffer with tag-aware styling
+---Render bookmark extmarks on a buffer with tag-aware styling and fuzzy line reconciliation
 ---@param buf integer
 function M.render_buffer(buf)
   if not vim.api.nvim_buf_is_valid(buf) or not vim.api.nvim_buf_is_loaded(buf) then
@@ -198,15 +245,60 @@ function M.render_buffer(buf)
     return
   end
   local norm_file = normalize_path(buf_file)
-  local line_count = vim.api.nvim_buf_line_count(buf)
+  local file_bms = M.by_file[norm_file]
+  if not file_bms or #file_bms == 0 then
+    return
+  end
 
+  local line_count = vim.api.nvim_buf_line_count(buf)
+  local p_opts = (config.options and config.options.persistence) or {}
+  local do_reconcile = (type(p_opts) == "table" and p_opts.reconcile_lines ~= false)
   local bm_opts = (config.options and config.options.bookmarks) or {}
   local show_virt = (bm_opts.virt_text ~= false)
   local show_line = (bm_opts.line_highlight ~= false)
   local default_sign = bm_opts.sign_text or "🔖"
+  local lines_adjusted = false
 
-  for _, bm in ipairs(M.bookmarks) do
-    if normalize_path(bm.file) == norm_file and bm.line >= 1 and bm.line <= line_count then
+  for _, bm in ipairs(file_bms) do
+    -- Fuzzy line reconciliation: if code shifted between git branches/edits, re-anchor locally
+    if do_reconcile and line_count > 0 and bm.text and bm.text ~= "" and bm.text ~= "[Empty Line]" then
+      local cur_line_text = (bm.line >= 1 and bm.line <= line_count)
+        and vim.api.nvim_buf_get_lines(buf, bm.line - 1, bm.line, false)[1]
+        or nil
+
+      if not cur_line_text or cur_line_text ~= bm.text then
+        local win_start = math.max(1, bm.line - 30)
+        local win_end = math.min(line_count, bm.line + 30)
+        local lines = vim.api.nvim_buf_get_lines(buf, win_start - 1, win_end, false)
+        local found_line = nil
+
+        -- Pass 1: exact string match
+        for offset, lstr in ipairs(lines) do
+          if lstr == bm.text then
+            found_line = win_start + offset - 1
+            break
+          end
+        end
+
+        -- Pass 2: trimmed string match
+        if not found_line then
+          local trimmed = vim.trim(bm.text)
+          for offset, lstr in ipairs(lines) do
+            if vim.trim(lstr) == trimmed then
+              found_line = win_start + offset - 1
+              break
+            end
+          end
+        end
+
+        if found_line and found_line ~= bm.line then
+          bm.line = found_line
+          lines_adjusted = true
+        end
+      end
+    end
+
+    if bm.line >= 1 and bm.line <= line_count then
       local row = bm.line - 1
       local tag = bm.tag or "GENERAL"
       local style = (palette.TAG_STYLES and palette.TAG_STYLES[tag]) or {
@@ -243,6 +335,13 @@ function M.render_buffer(buf)
       end
 
       pcall(vim.api.nvim_buf_set_extmark, buf, M.ns_id, row, 0, extmark_opts)
+    end
+  end
+
+  if lines_adjusted then
+    local session = package.loaded["smart_highlighter.core.session"]
+    if session then
+      session.request_auto_save()
     end
   end
 end
@@ -296,6 +395,7 @@ function M.set_bookmark(file, line, col, text, note, explicit_tag)
   next_id = next_id + 1
 
   table.insert(M.bookmarks, bm)
+  add_to_by_file(bm)
   M.render_all_buffers()
   local session = package.loaded["smart_highlighter.core.session"]
   if session then
@@ -311,9 +411,10 @@ end
 function M.remove_bookmark(id_or_file, line)
   local session = package.loaded["smart_highlighter.core.session"]
   if type(id_or_file) == "number" and not line then
-    local idx = M.find_by_id(id_or_file)
-    if idx then
+    local idx, bm = M.find_by_id(id_or_file)
+    if idx and bm then
       table.remove(M.bookmarks, idx)
+      remove_from_by_file(bm)
       M.render_all_buffers()
       if session then
         session.request_auto_save()
@@ -323,9 +424,10 @@ function M.remove_bookmark(id_or_file, line)
     return false
   end
 
-  local idx = M.find_by_location(tostring(id_or_file), line)
-  if idx then
+  local idx, bm = M.find_by_location(tostring(id_or_file), line)
+  if idx and bm then
     table.remove(M.bookmarks, idx)
+    remove_from_by_file(bm)
     M.render_all_buffers()
     if session then
       session.request_auto_save()
@@ -338,6 +440,7 @@ end
 ---Clear all bookmarks
 function M.clear_all()
   M.bookmarks = {}
+  M.by_file = {}
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     if vim.api.nvim_buf_is_valid(buf) then
       pcall(vim.api.nvim_buf_clear_namespace, buf, M.ns_id, 0, -1)

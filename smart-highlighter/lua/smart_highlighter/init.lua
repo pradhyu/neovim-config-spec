@@ -89,8 +89,11 @@ function M.setup(user_opts)
     -- Flush auto-save on buffer write, focus lost, or exit
     vim.api.nvim_create_autocmd({ "BufWritePost", "FocusLost", "VimLeavePre" }, {
       group = sess_group,
-      callback = function()
+      callback = function(args)
         session.flush_save()
+        if args.event == "VimLeavePre" then
+          session.stop_head_watcher()
+        end
       end,
     })
   end
@@ -121,6 +124,7 @@ M.export_session = session.save_session
 M.import_session = session.load_session
 M.toggle_auto_persist = session.toggle_auto_persist
 M.find_project_root = session.find_project_root
+M.get_git_branch = session.get_git_branch
 
 -- Forward UI APIs
 M.open_hud = hud.open

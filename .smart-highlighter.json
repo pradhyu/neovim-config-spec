@@ -1,1 +1,0 @@
-{"root": "/home/pkshrestha/git/neovim-config-spec", "version": 3, "updated_at": 1790470528, "bookmarks": [], "slots": [{"id": 1, "pattern": "Options", "name": "Options", "scope": "global", "enabled": true, "case_sensitive": false, "whole_word": true, "is_regex": false, "color_idx": 1}]}
