@@ -89,6 +89,7 @@ smart-highlighter/
 | `<leader>hK` | `quick_bookmark()` | Quick toggle bookmark on line without note prompt |
 | `<leader>hl` | `search_bookmarks()` | Search & list all bookmarks via Telescope / Snacks |
 | `<leader>hL` | `bottom_pane_bookmarks()` | Open bookmarks in dedicated bottom list buffer |
+| `<leader>ht` | `filter_bookmarks()` | Filter bookmarks by tag (`TODO`, `FIXME`, `WARN`, `NOTE`, `HACK`) |
 | `]k` / `[k` | `jump_bookmark_next()` / `jump_bookmark_prev()` | Jump to next / previous bookmark |
 
 ---
@@ -109,8 +110,9 @@ smart-highlighter/
 - `:SmartHighlightSave` / `:SmartHighlightLoad` - Manage session persistence
 - `:SmartBookmarkToggle [note]` - Toggle bookmark on current line with optional note
 - `:SmartBookmarkQuick` - Quick toggle bookmark without note prompt
-- `:SmartBookmarkNext` / `:SmartBookmarkPrev` - Jump to next / previous bookmark
-- `:SmartBookmarkSearch` - Fuzzy search bookmarks with live preview
-- `:SmartBookmarkBottom` - Open bookmarks in dedicated bottom list pane
+- `:SmartBookmarkNext [tag]` / `:SmartBookmarkPrev [tag]` - Jump to next / previous bookmark (optionally by tag)
+- `:SmartBookmarkSearch [tag|all|current]` - Fuzzy search bookmarks with live preview (Telescope / Snacks)
+- `:SmartBookmarkBottom [tag|all|current]` - Open bookmarks in dedicated bottom list pane
+- `:SmartBookmarkFilter [tag]` - Filter bookmarks by tag with interactive count selector
 - `:SmartBookmarkClear` - Clear all bookmarks in workspace
 - `:SmartBookmarkHUD` - Open HUD focused directly on Bookmarks tab

@@ -69,14 +69,27 @@ Using **`lazy.nvim`**:
 | `]h` / `[h` | Jump to next / previous match of current slot |
 | `]H` / `[H` | Jump to next / previous match across ALL active slots |
 
-### 🔖 Bookmarks
+### 🔖 Bookmarks & Tag Categorization
 | Keybinding | Action |
 |---|---|
 | `<leader>hk` | Toggle bookmark on line with note prompt (empty note uses highlighted text) |
 | `<leader>hK` | Quick bookmark toggle (no prompt, immediately uses highlighted line/selection) |
 | `<leader>hl` | List & search bookmarks across all files (Telescope / Snacks / Bottom Pane) |
-| `<leader>hL` | Open bottom buffer window listing all bookmarks |
+| `<leader>hL` | Open bottom buffer window listing all bookmarks (`t` to filter by tag) |
+| `<leader>ht` | Filter bookmarks by tag (`TODO`, `FIXME`, `WARN`, `NOTE`, `HACK`) with count picker |
 | `]k` / `[k` | Jump to next / previous bookmark |
+
+#### 🏷️ Tag Prefixes & Custom Highlights
+Bookmarks automatically detect tag prefixes from your note or comment text (case-insensitive, supporting `TODO:`, `[TODO]`, `FIXME:`, `BUG:`, etc.):
+
+| Tag Prefix | Icon | Theme Color | Sign & Line Style |
+|---|---|---|---|
+| `FIXME`, `BUG`, `ISSUE` | 🔥 | Crimson Red | `SmartBookmarkSign_FIXME`, Red tinted line bg, `[FIXME]` badge |
+| `TODO`, `TASK` | 📌 | Sky Blue / Cyan | `SmartBookmarkSign_TODO`, Blue tinted line bg, `[TODO]` badge |
+| `WARN`, `WARNING`, `CAUTION` | ⚠️ | Amber Orange | `SmartBookmarkSign_WARN`, Amber tinted line bg, `[WARN]` badge |
+| `NOTE`, `INFO`, `TIP` | 📝 | Mint Green | `SmartBookmarkSign_NOTE`, Green tinted line bg, `[NOTE]` badge |
+| `HACK`, `PERF`, `OPTIMIZE` | ⚡ | Lavender / Purple | `SmartBookmarkSign_HACK`, Purple tinted line bg, `[HACK]` badge |
+| General (no prefix) | 🔖 | Warm Gold | `SmartBookmarkSign`, Neutral grey tinted line bg |
 
 ---
 
@@ -87,6 +100,8 @@ Inside the HUD window (`<leader>hm`):
 | Key | Action |
 |---|---|
 | `m` / `<Tab>` | Switch between **Highlights** and **Bookmarks** tab |
+| `t` | Filter bookmarks by tag (`TODO`, `FIXME`, etc.) in Bookmarks tab |
+| `A` | Reset filter to show all bookmarks in Bookmarks tab |
 | `<CR>` | Jump to selected bookmark (in Bookmarks tab) |
 | `<Space>` | Toggle enable/disable on selected highlight slot |
 | `b` | Toggle selected slot scope between **All Buffers** and **Current Buffer** |
@@ -118,11 +133,12 @@ Inside the HUD window (`<leader>hm`):
 - `:SmartHighlightSearch [all|current]` - Search matches via Telescope / Snacks (default: all open buffers, `<C-b>` toggles scope)
 - `:SmartHighlightSave` / `:SmartHighlightLoad` - Save or restore session highlights
 
-### Bookmarks
-- `:SmartBookmarkToggle [note]` - Toggle bookmark on line (prompts for note; empty uses highlighted text)
-- `:SmartBookmarkQuick` - Quick bookmark without prompting
-- `:SmartBookmarkNext` / `:SmartBookmarkPrev` - Jump to next / previous bookmark
-- `:SmartBookmarkSearch [all|current]` - Search bookmarks via Telescope / Snacks
-- `:SmartBookmarkBottom [all|current]` - Open bottom buffer window for bookmarks
+### Bookmarks & Tags
+- `:SmartBookmarkToggle [note]` - Toggle bookmark on current line with note prompt
+- `:SmartBookmarkQuick` - Quick toggle bookmark without prompt
+- `:SmartBookmarkNext [tag]` / `:SmartBookmarkPrev [tag]` - Jump to next/prev bookmark (optionally filtered by tag)
+- `:SmartBookmarkSearch [tag|all|current]` - Search bookmarks via Telescope / Snacks (supports `<C-t>` to switch tags)
+- `:SmartBookmarkBottom [tag|all|current]` - Open bottom buffer window for bookmarks (press `t` to filter tags)
+- `:SmartBookmarkFilter [tag]` - Filter bookmarks by tag with interactive count selector
 - `:SmartBookmarkClear` - Clear all bookmarks
 - `:SmartBookmarkHUD` - Open HUD directly on Bookmarks tab

@@ -166,10 +166,12 @@ M.quick_bookmark = bookmarks.quick_toggle
 M.remove_bookmark = bookmarks.remove_bookmark
 M.clear_bookmarks = bookmarks.clear_all
 M.jump_bookmark = bookmarks.jump
-M.jump_bookmark_next = function() bookmarks.jump(true) end
-M.jump_bookmark_prev = function() bookmarks.jump(false) end
+M.jump_bookmark_next = function(tag) bookmarks.jump(true, tag) end
+M.jump_bookmark_prev = function(tag) bookmarks.jump(false, tag) end
 M.search_bookmarks = bookmarks.search_picker
 M.bottom_pane_bookmarks = bookmarks.open_bottom_pane
+M.filter_bookmarks = bookmarks.select_tag_filter
 M.get_bookmarks = function() return bookmarks.bookmarks end
+M.get_bookmark_tag_counts = bookmarks.get_tag_counts
 
 return M

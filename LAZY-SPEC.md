@@ -151,11 +151,11 @@
     * **All Open Buffers vs Current Buffer Scope:** Freely toggle between highlighting all open buffers or isolating matches to the current active buffer (`<leader>hb`, `<leader>hB`, or `b` / `B` in HUD).
     * **Presets Suite:** Instant activation for Log Analysis (`ERROR`, `WARN`, `INFO`, UUIDs, IPs), HTTP/REST APIs, SQL queries, JSON, and DevOps statuses (`<leader>hp`).
     * **Floating HUD Dashboard:** Visual manager with live occurrence counters, toggle switches, buffer scope modifiers, regex additions, and slot purges (`<leader>hm`).
-    * **Code Bookmarks with Notes & Highlights:** Highlight any line or visual selection as a persistent bookmark with custom note prompt (fallback to highlighted text if blank), gutter sign `🔖`, full-line visual background highlight, and virtual text annotation (`<leader>hk`, `<leader>hK`).
-    * **Interactive Bookmarks HUD & Bottom Pane:** Dedicated Bookmarks tab in HUD (`<leader>hm`, switch with `m`/`<Tab>`), fuzzy search with preview (`<leader>hl`), and dedicated bottom quickfix-style list pane (`<leader>hL`).
-    * **Bidirectional Bookmark Jumping:** Jump between code bookmarks across files seamlessly (`]k` / `[k`).
+    * **Code Bookmarks & Tag Categorization:** Highlight lines as bookmarks with automatic tag detection (`TODO:`, `FIXME:`, `WARN:`, `NOTE:`, `HACK:`) providing custom theme colors, gutter icons (`🔥`, `📌`, `⚠️`, `📝`, `⚡`, `🔖`), tinted line backgrounds, and badges (`<leader>hk`, `<leader>hK`).
+    * **Interactive Bookmarks HUD, Bottom Pane & Tag Filtering:** Dedicated Bookmarks tab in HUD (`<leader>hm`, `t` to filter tags, `A` for all), fuzzy search with preview (`<leader>hl`, `<C-t>` to switch tags), bottom quickfix pane (`<leader>hL`, `t` to filter), and interactive tag filter selector (`<leader>ht`).
+    * **Bidirectional Bookmark Jumping:** Jump between bookmarks across files or by specific tag (`]k` / `[k`, `:SmartBookmarkNext [tag]`).
     * **Persistence:** Auto-saves and restores active patterns and bookmarks across sessions per workspace directory.
-  * **Commands:** `:SmartHighlightToggle`, `:SmartHighlightBuffer`, `:SmartHighlightGlobal`, `:SmartHighlightBufferScope`, `:SmartHighlightRegex`, `:SmartHighlightClear`, `:SmartHighlightHUD`, `:SmartHighlightPreset`, `:SmartHighlightScope`, `:SmartHighlightQuickfix`, `:SmartHighlightSearch`, `:SmartHighlightSave`, `:SmartHighlightLoad`, `:SmartBookmarkToggle`, `:SmartBookmarkQuick`, `:SmartBookmarkNext`, `:SmartBookmarkPrev`, `:SmartBookmarkSearch`, `:SmartBookmarkBottom`, `:SmartBookmarkClear`, `:SmartBookmarkHUD`
+  * **Commands:** `:SmartHighlightToggle`, `:SmartHighlightBuffer`, `:SmartHighlightGlobal`, `:SmartHighlightBufferScope`, `:SmartHighlightRegex`, `:SmartHighlightClear`, `:SmartHighlightHUD`, `:SmartHighlightPreset`, `:SmartHighlightScope`, `:SmartHighlightQuickfix`, `:SmartHighlightSearch`, `:SmartHighlightSave`, `:SmartHighlightLoad`, `:SmartBookmarkToggle`, `:SmartBookmarkQuick`, `:SmartBookmarkNext`, `:SmartBookmarkPrev`, `:SmartBookmarkSearch`, `:SmartBookmarkBottom`, `:SmartBookmarkFilter`, `:SmartBookmarkClear`, `:SmartBookmarkHUD`
   * **Keymaps:**
     * `<leader>hh`: Toggle highlight on word under cursor or visual selection (default scope)
     * `<leader>hb`: Toggle highlight strictly for **CURRENT buffer only**
@@ -174,6 +174,7 @@
     * `<leader>hK`: Quick toggle bookmark on line without note prompt
     * `<leader>hl`: Fuzzy search & list all bookmarks via Telescope / Snacks
     * `<leader>hL`: Open bookmarks in dedicated bottom list pane
+    * `<leader>ht`: Filter bookmarks by tag (`TODO`, `FIXME`, `WARN`, etc.)
     * `]k` / `[k`: Jump to next / previous bookmark
 
 * **`buffer-buddy.nvim`** (Local repo: `~/git/neovim-config-spec/buffer-buddy`):

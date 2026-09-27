@@ -49,6 +49,7 @@ function M.save_session()
         col = bm.col,
         text = bm.text,
         note = bm.note,
+        tag = bm.tag,
       })
     end
   end
@@ -118,7 +119,7 @@ function M.load_session()
     bookmarks_mod.clear_all()
     for _, item in ipairs(bm_data) do
       if item.file and item.line then
-        bookmarks_mod.set_bookmark(item.file, item.line, item.col or 0, item.text or "", item.note or item.text)
+        bookmarks_mod.set_bookmark(item.file, item.line, item.col or 0, item.text or "", item.note or item.text, item.tag)
       end
     end
   end

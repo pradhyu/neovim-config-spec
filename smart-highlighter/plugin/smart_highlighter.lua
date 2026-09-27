@@ -171,38 +171,78 @@ end, {
   desc = "Quick bookmark line or selection without prompting",
 })
 
-vim.api.nvim_create_user_command("SmartBookmarkNext", function()
-  sh.jump_bookmark_next()
+vim.api.nvim_create_user_command("SmartBookmarkNext", function(opts)
+  local arg = opts.args ~= "" and opts.args or nil
+  sh.jump_bookmark_next(arg)
 end, {
-  desc = "Jump to next bookmark: :SmartBookmarkNext",
+  nargs = "?",
+  complete = function()
+    return { "TODO", "FIXME", "WARN", "NOTE", "HACK", "GENERAL" }
+  end,
+  desc = "Jump to next bookmark (optionally filter by tag): :SmartBookmarkNext [tag]",
 })
 
-vim.api.nvim_create_user_command("SmartBookmarkPrev", function()
-  sh.jump_bookmark_prev()
+vim.api.nvim_create_user_command("SmartBookmarkPrev", function(opts)
+  local arg = opts.args ~= "" and opts.args or nil
+  sh.jump_bookmark_prev(arg)
 end, {
-  desc = "Jump to previous bookmark: :SmartBookmarkPrev",
+  nargs = "?",
+  complete = function()
+    return { "TODO", "FIXME", "WARN", "NOTE", "HACK", "GENERAL" }
+  end,
+  desc = "Jump to previous bookmark (optionally filter by tag): :SmartBookmarkPrev [tag]",
 })
 
 vim.api.nvim_create_user_command("SmartBookmarkSearch", function(opts)
-  local arg = opts.args ~= "" and opts.args:lower() or "all"
-  sh.search_bookmarks({ scope = arg })
+  local arg = opts.args ~= "" and opts.args or "all"
+  local upper = arg:upper()
+  if upper == "ALL" or upper == "CURRENT" then
+    sh.search_bookmarks({ scope = arg:lower() })
+  else
+    sh.search_bookmarks({ scope = "all", tag = upper })
+  end
 end, {
   nargs = "?",
   complete = function()
-    return { "all", "current" }
+    return { "all", "current", "TODO", "FIXME", "WARN", "NOTE", "HACK", "GENERAL" }
   end,
-  desc = "Search bookmarks via Telescope / Snacks / Bottom Pane: :SmartBookmarkSearch [all|current]",
+  desc = "Search bookmarks via Telescope / Snacks / Bottom Pane: :SmartBookmarkSearch [tag|all|current]",
 })
 
 vim.api.nvim_create_user_command("SmartBookmarkBottom", function(opts)
-  local arg = opts.args ~= "" and opts.args:lower() or "all"
-  sh.bottom_pane_bookmarks(arg)
+  local arg = opts.args ~= "" and opts.args or "all"
+  local upper = arg:upper()
+  if upper == "ALL" or upper == "CURRENT" then
+    sh.bottom_pane_bookmarks(arg:lower())
+  else
+    sh.bottom_pane_bookmarks("all", upper)
+  end
 end, {
   nargs = "?",
   complete = function()
-    return { "all", "current" }
+    return { "all", "current", "TODO", "FIXME", "WARN", "NOTE", "HACK", "GENERAL" }
   end,
-  desc = "Open bottom buffer window for bookmarks: :SmartBookmarkBottom [all|current]",
+  desc = "Open bottom buffer window for bookmarks: :SmartBookmarkBottom [tag|all|current]",
+})
+
+vim.api.nvim_create_user_command("SmartBookmarkFilter", function(opts)
+  if opts.args ~= "" then
+    local tag = opts.args:upper()
+    if tag == "ALL" then
+      tag = nil
+    end
+    sh.search_bookmarks({ scope = "all", tag = tag })
+  else
+    sh.filter_bookmarks(function(chosen_tag)
+      sh.search_bookmarks({ scope = "all", tag = chosen_tag })
+    end)
+  end
+end, {
+  nargs = "?",
+  complete = function()
+    return { "ALL", "TODO", "FIXME", "WARN", "NOTE", "HACK", "GENERAL" }
+  end,
+  desc = "Filter and search bookmarks by tag (TODO, FIXME, WARN, NOTE, HACK): :SmartBookmarkFilter [tag]",
 })
 
 vim.api.nvim_create_user_command("SmartBookmarkClear", function()
@@ -239,8 +279,13 @@ if config.options.default_keymaps then
   -- Bookmark keymaps
   map({ "n", "v" }, "<leader>hk", function() sh.toggle_bookmark() end, { desc = "SmartBookmark: Toggle Bookmark (Prompt Note)" })
   map({ "n", "v" }, "<leader>hK", function() sh.quick_bookmark() end, { desc = "SmartBookmark: Quick Toggle (Use Highlighted Text)" })
-  map("n", "<leader>hl", function() sh.search_bookmarks({ scope = "all" }) end, { desc = "SmartBookmark: List & Search Bookmarks" })
+  map("n", "<leader>hl", function() sh.search_bookmarks({ scope = "all" }) end, { desc = "SmartBookmark: List & Search All Bookmarks" })
   map("n", "<leader>hL", function() sh.bottom_pane_bookmarks("all") end, { desc = "SmartBookmark: Bottom Pane Bookmarks" })
+  map("n", "<leader>ht", function()
+    sh.filter_bookmarks(function(chosen_tag)
+      sh.search_bookmarks({ scope = "all", tag = chosen_tag })
+    end)
+  end, { desc = "SmartBookmark: Filter Bookmarks by Tag (TODO, FIXME, etc.)" })
 
   -- Jump navigation keymaps
   map("n", "]h", function() sh.jump_next() end, { desc = "SmartHighlight: Next Slot Match" })

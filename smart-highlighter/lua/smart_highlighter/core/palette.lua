@@ -73,10 +73,79 @@ function M.setup_highlights()
   vim.api.nvim_set_hl(0, "SmartHighlightCount", { fg = "#98c379", bold = true, default = true })
   vim.api.nvim_set_hl(0, "SmartHighlightDisabled", { fg = "#5c6370", italic = true, default = true })
 
-  -- Bookmark highlight groups
-  vim.api.nvim_set_hl(0, "SmartBookmarkSign", { fg = "#e5c07b", bold = true, default = true })
-  vim.api.nvim_set_hl(0, "SmartBookmarkLine", { bg = is_dark and "#2c313a" or "#eceff4", default = true })
-  vim.api.nvim_set_hl(0, "SmartBookmarkVirtText", { fg = "#e5c07b", italic = true, default = true })
+  -- Tag-specific bookmark styles & highlight groups
+  M.TAG_STYLES = {
+    FIXME = {
+      canonical = "FIXME",
+      label = "FIXME",
+      icon = "🔥",
+      color_dark = "#f38ba8",
+      color_light = "#d73a49",
+      bg_dark = "#3b2227",
+      bg_light = "#ffeef0",
+    },
+    TODO = {
+      canonical = "TODO",
+      label = "TODO",
+      icon = "📌",
+      color_dark = "#89b4fa",
+      color_light = "#0366d6",
+      bg_dark = "#1e293b",
+      bg_light = "#f0f6fc",
+    },
+    WARN = {
+      canonical = "WARN",
+      label = "WARN",
+      icon = "⚠️",
+      color_dark = "#fab387",
+      color_light = "#d99b00",
+      bg_dark = "#3b2d1d",
+      bg_light = "#fff8e1",
+    },
+    NOTE = {
+      canonical = "NOTE",
+      label = "NOTE",
+      icon = "📝",
+      color_dark = "#a6e3a1",
+      color_light = "#28a745",
+      bg_dark = "#1c3326",
+      bg_light = "#f0fff4",
+    },
+    HACK = {
+      canonical = "HACK",
+      label = "HACK",
+      icon = "⚡",
+      color_dark = "#cba6f7",
+      color_light = "#6f42c1",
+      bg_dark = "#2e1e3b",
+      bg_light = "#fbf0ff",
+    },
+    GENERAL = {
+      canonical = "GENERAL",
+      label = "BOOKMARK",
+      icon = "🔖",
+      color_dark = "#e5c07b",
+      color_light = "#b08800",
+      bg_dark = "#2c313a",
+      bg_light = "#eceff4",
+    },
+  }
+
+  for tag, style in pairs(M.TAG_STYLES) do
+    local fg = is_dark and style.color_dark or style.color_light
+    local bg = is_dark and style.bg_dark or style.bg_light
+    local badge_fg = is_dark and "#181825" or "#ffffff"
+
+    vim.api.nvim_set_hl(0, "SmartBookmarkSign_" .. tag, { fg = fg, bold = true, default = true })
+    vim.api.nvim_set_hl(0, "SmartBookmarkLine_" .. tag, { bg = bg, default = true })
+    vim.api.nvim_set_hl(0, "SmartBookmarkVirt_" .. tag, { fg = fg, italic = true, bold = true, default = true })
+    vim.api.nvim_set_hl(0, "SmartBookmarkBadge_" .. tag, { bg = fg, fg = badge_fg, bold = true, default = true })
+  end
+
+  -- Bookmark fallback highlight groups
+  vim.api.nvim_set_hl(0, "SmartBookmarkSign", { link = "SmartBookmarkSign_GENERAL", default = true })
+  vim.api.nvim_set_hl(0, "SmartBookmarkLine", { link = "SmartBookmarkLine_GENERAL", default = true })
+  vim.api.nvim_set_hl(0, "SmartBookmarkVirtText", { link = "SmartBookmarkVirt_GENERAL", default = true })
 end
 
 ---Get color descriptor for a specific slot index

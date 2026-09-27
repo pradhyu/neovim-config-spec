@@ -92,39 +92,56 @@ function M.open(initial_tab)
 
     else
       -- Bookmarks View
-      bm_list = bookmarks.bookmarks
-      table.insert(lines, "  ID   NOTE / ANNOTATION            LOCATION                      SNIPPET")
+      local all_bms = bookmarks.bookmarks
+      local filter_tag = bookmarks.active_filter
+      if filter_tag and (filter_tag:upper() == "ALL" or filter_tag == "") then
+        filter_tag = nil
+      end
+
+      bm_list = {}
+      for _, bm in ipairs(all_bms) do
+        if not filter_tag or bm.tag == filter_tag:upper() then
+          table.insert(bm_list, bm)
+        end
+      end
+
+      local filter_badge = filter_tag and string.format("[Tag: %s (%d)]", filter_tag:upper(), #bm_list) or string.format("[All Tags (%d)]", #bm_list)
+      table.insert(lines, string.format("  ID   TAG     NOTE / ANNOTATION            LOCATION                      SNIPPET  %s", filter_badge))
       table.insert(lines, "  " .. string.rep("─", width - 6))
 
       if #bm_list == 0 then
         table.insert(lines, "")
-        table.insert(lines, "   [ No bookmarks saved. Press 'a' to add bookmark on current line ]")
+        local empty_desc = filter_tag and string.format("[ No bookmarks with tag '%s'. Press 't' to filter or 'A' for all ]", filter_tag) or "[ No bookmarks saved. Press 'a' to add bookmark on current line ]"
+        table.insert(lines, "   " .. empty_desc)
         table.insert(lines, "")
       else
         for _, bm in ipairs(bm_list) do
+          local tag = bm.tag or "GENERAL"
+          local style = (palette.TAG_STYLES and palette.TAG_STYLES[tag]) or {}
+          local icon = style.icon or "🔖"
+
           local note_str = bm.note
-          if #note_str > 26 then
-            note_str = note_str:sub(1, 23) .. "..."
+          if #note_str > 24 then
+            note_str = note_str:sub(1, 21) .. "..."
           end
           local short_file = vim.fn.fnamemodify(bm.file, ":~:.")
           local loc_str = string.format("%s:%d", short_file, bm.line)
-          if #loc_str > 28 then
-            loc_str = "..." .. loc_str:sub(#loc_str - 24)
+          if #loc_str > 26 then
+            loc_str = "..." .. loc_str:sub(#loc_str - 22)
           end
           local snip = bm.text:gsub("%s+", " ")
           if #snip > 16 then
             snip = snip:sub(1, 13) .. "..."
           end
 
-          local line = string.format("  #%-3d %-28s %-29s %s", bm.id, note_str, loc_str, snip)
+          local line = string.format("  #%-3d %s %-6s %-25s %-27s %s", bm.id, icon, tag, note_str, loc_str, snip)
           table.insert(lines, line)
         end
       end
 
       table.insert(lines, "  " .. string.rep("─", width - 6))
-      table.insert(lines, "  <CR> Jump to Bookmark | e Edit Note   | d/x Delete | a Add Bookmark")
-      table.insert(lines, "  m Switch Tab          | c Clear All   | Q Bottom Pane")
-      table.insert(lines, "  q/Esc Close")
+      table.insert(lines, "  <CR> Jump | t Filter Tag | A All Tags | e Edit Note | d/x Delete | a Add")
+      table.insert(lines, "  m Switch Tab | c Clear All | Q Bottom Pane | q/Esc Close")
     end
 
     vim.bo[buf].modifiable = true
@@ -146,9 +163,11 @@ function M.open(initial_tab)
     else
       for idx, bm in ipairs(bm_list) do
         local line_idx = idx + 3
-        vim.api.nvim_buf_add_highlight(buf, -1, "SmartBookmarkSign", line_idx, 2, 6)
-        vim.api.nvim_buf_add_highlight(buf, -1, "SmartBookmarkVirtText", line_idx, 7, 35)
-        vim.api.nvim_buf_add_highlight(buf, -1, "Directory", line_idx, 36, 65)
+        local tag = bm.tag or "GENERAL"
+        vim.api.nvim_buf_add_highlight(buf, -1, "SmartBookmarkVirt_" .. tag, line_idx, 2, 14)
+        vim.api.nvim_buf_add_highlight(buf, -1, "Normal", line_idx, 15, 41)
+        vim.api.nvim_buf_add_highlight(buf, -1, "Directory", line_idx, 42, 69)
+        vim.api.nvim_buf_add_highlight(buf, -1, "SmartHighlightDisabled", line_idx, 70, -1)
       end
     end
   end
@@ -313,6 +332,20 @@ function M.open(initial_tab)
   vim.keymap.set("n", "p", function()
     presets.select_preset_interactive()
     close()
+  end, k_opts)
+  vim.keymap.set("n", "t", function()
+    if current_tab == "bookmarks" then
+      bookmarks.select_tag_filter(function(_)
+        render()
+      end)
+    end
+  end, k_opts)
+  vim.keymap.set("n", "A", function()
+    if current_tab == "bookmarks" then
+      bookmarks.active_filter = nil
+      render()
+      vim.notify("[SmartBookmark] Filter reset: Showing all bookmarks", vim.log.levels.INFO)
+    end
   end, k_opts)
   vim.keymap.set("n", "Q", export_qf_action, k_opts)
   vim.keymap.set("n", "q", close, k_opts)
