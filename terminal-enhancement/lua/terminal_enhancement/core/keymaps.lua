@@ -64,13 +64,27 @@ function M.setup()
 
   if opts.smart_link_resolver then
     -- Smart gf and click handler across all buffers
+    local function is_special_ui_buf()
+      local bt = vim.bo.buftype
+      local ft = vim.bo.filetype
+      return bt == "nofile" or ft == "ministarter" or ft == "snacks_dashboard" or ft == "dashboard" or ft == "alpha"
+    end
+
     vim.keymap.set({ "n", "v" }, "gf", function()
+      if is_special_ui_buf() then
+        pcall(vim.cmd, "normal! gf")
+        return
+      end
+
       if not link_resolver.open() then
-        vim.cmd("normal! gf")
+        pcall(vim.cmd, "normal! gf")
       end
     end, { desc = "Smart Link / File / Line Resolver" })
 
     vim.keymap.set("n", "<C-LeftMouse>", function()
+      if is_special_ui_buf() then
+        return
+      end
       link_resolver.open()
     end, { desc = "Smart Click Link / File Resolver" })
   end

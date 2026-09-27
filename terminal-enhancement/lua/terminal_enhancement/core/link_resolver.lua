@@ -139,11 +139,14 @@ function M.open(target_str)
   end
 
   vim.api.nvim_set_current_win(target_win)
-  vim.cmd(string.format("edit %s", vim.fn.fnameescape(resolved)))
+  local edit_ok, _ = pcall(vim.cmd, string.format("edit %s", vim.fn.fnameescape(resolved)))
+  if not edit_ok then
+    return false
+  end
 
   if line_num then
     pcall(vim.api.nvim_win_set_cursor, target_win, { line_num, (col_num or 1) - 1 })
-    vim.cmd("normal! zz")
+    pcall(vim.cmd, "normal! zz")
   end
 
   return true
