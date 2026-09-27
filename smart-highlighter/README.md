@@ -79,6 +79,23 @@ Using **`lazy.nvim`**:
 | `<leader>ht` | Filter bookmarks by tag (`TODO`, `FIXME`, `WARN`, `NOTE`, `HACK`) with count picker |
 | `]k` / `[k` | Jump to next / previous bookmark |
 
+### 💾 Persistence & Storage Keymaps
+| Keybinding | Action |
+|---|---|
+| `<leader>hP` | Toggle Auto-Persist mode (on/off) |
+| `<leader>he` | Export / save highlights & bookmarks to repo `.smart-highlighter.json` |
+| `<leader>hE` | Import / reload highlights & bookmarks from repo `.smart-highlighter.json` |
+| `<leader>hS` | Quick save session to disk |
+| `<leader>hR` | Quick reload session from disk |
+
+### ⚡ Option / Alt Key Shortcuts (Zero-Leader Fast Access)
+| Option / Alt Key | Action |
+|---|---|
+| `<M-b>` (Alt+b) | Toggle bookmark on current line (prompts for note) |
+| `<M-B>` (Alt+B) | Quick bookmark current line/selection (no prompt) |
+| `<M-h>` (Alt+h) | Toggle highlight on word under cursor |
+| `<M-m>` (Alt+m) | Open Floating HUD Manager |
+
 #### 🏷️ Tag Prefixes & Custom Highlights
 Bookmarks automatically detect tag prefixes from your note or comment text (case-insensitive, supporting `TODO:`, `[TODO]`, `FIXME:`, `BUG:`, etc.):
 
@@ -95,11 +112,14 @@ Bookmarks automatically detect tag prefixes from your note or comment text (case
 
 ## 🕹️ Floating HUD Keybindings
 
-Inside the HUD window (`<leader>hm`):
+Inside the HUD window (`<leader>hm` or `<M-m>`):
 
 | Key | Action |
 |---|---|
 | `m` / `<Tab>` | Switch between **Highlights** and **Bookmarks** tab |
+| `P` | Toggle Auto-Persist mode (AutoSave to `.smart-highlighter.json`) |
+| `S` | Save session to disk now |
+| `R` | Reload session from disk now |
 | `t` | Filter bookmarks by tag (`TODO`, `FIXME`, etc.) in Bookmarks tab |
 | `A` | Reset filter to show all bookmarks in Bookmarks tab |
 | `<CR>` | Jump to selected bookmark (in Bookmarks tab) |

@@ -174,6 +174,12 @@
     * `<leader>hl`: Fuzzy search & list all bookmarks via Telescope / Snacks
     * `<leader>hL`: Open bookmarks in dedicated bottom list pane
     * `<leader>ht`: Filter bookmarks by tag (`TODO`, `FIXME`, `WARN`, etc.)
+    * `<leader>hP`: Toggle auto-persist mode
+    * `<leader>he` / `<leader>hE`: Export / import highlights & bookmarks to/from repo file
+    * `<leader>hS` / `<leader>hR`: Quick save / reload session to/from disk
+    * `<M-b>` / `<M-B>`: Option/Alt key shortcuts to toggle / quick bookmark
+    * `<M-h>`: Option/Alt key shortcut to toggle highlight
+    * `<M-m>`: Option/Alt key shortcut to open HUD manager
     * `]k` / `[k`: Jump to next / previous bookmark
 
 * **`buffer-buddy.nvim`** (Local repo: `~/git/neovim-config-spec/buffer-buddy`):

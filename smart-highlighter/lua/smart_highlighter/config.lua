@@ -51,6 +51,49 @@ M.defaults = {
     relative_paths = true,
   },
   default_keymaps = true,
+  alt_keymaps = true, -- Enable Option/Alt key shortcuts (<M-b>, <M-B>, <M-h>, <M-m>)
+  keymaps = {
+    -- Highlighting
+    toggle = "<leader>hh",
+    toggle_buffer = "<leader>hb",
+    toggle_scope_mode = "<leader>hB",
+    add_regex = "<leader>hH",
+    clear_all = "<leader>hc",
+    open_hud = "<leader>hm",
+    select_preset = "<leader>hp",
+    toggle_treesitter = "<leader>hs",
+    export_quickfix = "<leader>hq",
+    search_matches = "<leader>hf",
+    search_matches_buffer = "<leader>hF",
+
+    -- Bookmarks
+    toggle_bookmark = "<leader>hk",
+    quick_bookmark = "<leader>hK",
+    search_bookmarks = "<leader>hl",
+    bottom_bookmarks = "<leader>hL",
+    filter_bookmarks = "<leader>ht",
+
+    -- Persistence & Options
+    toggle_auto_persist = "<leader>hP",
+    export_session = "<leader>he",
+    import_session = "<leader>hE",
+    save_session = "<leader>hS",
+    load_session = "<leader>hR",
+
+    -- Navigation
+    jump_next = "]h",
+    jump_prev = "[h",
+    jump_any_next = "]H",
+    jump_any_prev = "[H",
+    jump_bookmark_next = "]k",
+    jump_bookmark_prev = "[k",
+
+    -- Option / Alt Key Fast Shortcuts
+    alt_toggle_bookmark = "<M-b>",
+    alt_quick_bookmark = "<M-B>",
+    alt_toggle_highlight = "<M-h>",
+    alt_open_hud = "<M-m>",
+  },
   debounce_ms = 80,
   palette = "modern",
   bookmarks = {

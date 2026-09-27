@@ -313,36 +313,59 @@ end, {
 local config = require("smart_highlighter.config")
 if config.options.default_keymaps then
   local map = vim.keymap.set
+  local km = config.options.keymaps or {}
+
+  -- Helper to safely bind if not explicitly disabled with false
+  local function bind(modes, key, fn, desc)
+    if key and key ~= false and key ~= "" then
+      map(modes, key, fn, { desc = desc })
+    end
+  end
 
   -- Highlighting keymaps
-  map({ "n", "v" }, "<leader>hh", function() sh.toggle() end, { desc = "SmartHighlight: Toggle (Default Scope)" })
-  map({ "n", "v" }, "<leader>hb", function() sh.toggle_current_buffer() end, { desc = "SmartHighlight: Toggle Current Buffer Only" })
-  map("n", "<leader>hB", function() sh.toggle_buffer_scope() end, { desc = "SmartHighlight: Toggle Buffer Scope Mode (All/Current)" })
-  map("n", "<leader>hH", function() sh.add_regex_interactive() end, { desc = "SmartHighlight: Add Regex Pattern" })
-  map("n", "<leader>hc", function() sh.clear_all() end, { desc = "SmartHighlight: Clear All" })
-  map("n", "<leader>hm", function() sh.open_hud() end, { desc = "SmartHighlight: Open HUD Manager" })
-  map("n", "<leader>hp", function() sh.select_preset() end, { desc = "SmartHighlight: Select Preset" })
-  map("n", "<leader>hs", function() sh.toggle_scope() end, { desc = "SmartHighlight: Toggle Treesitter Scope" })
-  map("n", "<leader>hq", function() sh.export_quickfix("all") end, { desc = "SmartHighlight: Export to Quickfix (All Buffers)" })
-  map("n", "<leader>hf", function() sh.search_matches({ scope = "all" }) end, { desc = "SmartHighlight: Search Matches (All Open Buffers)" })
-  map("n", "<leader>hF", function() sh.search_matches({ scope = "current" }) end, { desc = "SmartHighlight: Search Matches (Current Buffer Only)" })
+  bind({ "n", "v" }, km.toggle or "<leader>hh", function() sh.toggle() end, "SmartHighlight: Toggle (Default Scope)")
+  bind({ "n", "v" }, km.toggle_buffer or "<leader>hb", function() sh.toggle_current_buffer() end, "SmartHighlight: Toggle Current Buffer Only")
+  bind("n", km.toggle_scope_mode or "<leader>hB", function() sh.toggle_buffer_scope() end, "SmartHighlight: Toggle Buffer Scope Mode (All/Current)")
+  bind("n", km.add_regex or "<leader>hH", function() sh.add_regex_interactive() end, "SmartHighlight: Add Regex Pattern")
+  bind("n", km.clear_all or "<leader>hc", function() sh.clear_all() end, "SmartHighlight: Clear All")
+  bind("n", km.open_hud or "<leader>hm", function() sh.open_hud() end, "SmartHighlight: Open HUD Manager")
+  bind("n", km.select_preset or "<leader>hp", function() sh.select_preset() end, "SmartHighlight: Select Preset")
+  bind("n", km.toggle_treesitter or "<leader>hs", function() sh.toggle_scope() end, "SmartHighlight: Toggle Treesitter Scope")
+  bind("n", km.export_quickfix or "<leader>hq", function() sh.export_quickfix("all") end, "SmartHighlight: Export to Quickfix (All Buffers)")
+  bind("n", km.search_matches or "<leader>hf", function() sh.search_matches({ scope = "all" }) end, "SmartHighlight: Search Matches (All Open Buffers)")
+  bind("n", km.search_matches_buffer or "<leader>hF", function() sh.search_matches({ scope = "current" }) end, "SmartHighlight: Search Matches (Current Buffer Only)")
 
   -- Bookmark keymaps
-  map({ "n", "v" }, "<leader>hk", function() sh.toggle_bookmark() end, { desc = "SmartBookmark: Toggle Bookmark (Prompt Note)" })
-  map({ "n", "v" }, "<leader>hK", function() sh.quick_bookmark() end, { desc = "SmartBookmark: Quick Toggle (Use Highlighted Text)" })
-  map("n", "<leader>hl", function() sh.search_bookmarks({ scope = "all" }) end, { desc = "SmartBookmark: List & Search All Bookmarks" })
-  map("n", "<leader>hL", function() sh.bottom_pane_bookmarks("all") end, { desc = "SmartBookmark: Bottom Pane Bookmarks" })
-  map("n", "<leader>ht", function()
+  bind({ "n", "v" }, km.toggle_bookmark or "<leader>hk", function() sh.toggle_bookmark() end, "SmartBookmark: Toggle Bookmark (Prompt Note)")
+  bind({ "n", "v" }, km.quick_bookmark or "<leader>hK", function() sh.quick_bookmark() end, "SmartBookmark: Quick Toggle (Use Highlighted Text)")
+  bind("n", km.search_bookmarks or "<leader>hl", function() sh.search_bookmarks({ scope = "all" }) end, "SmartBookmark: List & Search All Bookmarks")
+  bind("n", km.bottom_bookmarks or "<leader>hL", function() sh.bottom_pane_bookmarks("all") end, "SmartBookmark: Bottom Pane Bookmarks")
+  bind("n", km.filter_bookmarks or "<leader>ht", function()
     sh.filter_bookmarks(function(chosen_tag)
       sh.search_bookmarks({ scope = "all", tag = chosen_tag })
     end)
-  end, { desc = "SmartBookmark: Filter Bookmarks by Tag (TODO, FIXME, etc.)" })
+  end, "SmartBookmark: Filter Bookmarks by Tag (TODO, FIXME, etc.)")
+
+  -- Persistence & Option keymaps
+  bind("n", km.toggle_auto_persist or "<leader>hP", function() sh.toggle_auto_persist() end, "SmartHighlight: Toggle Auto-Persist Mode")
+  bind("n", km.export_session or "<leader>he", function() sh.save_session(nil, false) end, "SmartHighlight: Export / Save to Repo File")
+  bind("n", km.import_session or "<leader>hE", function() sh.load_session(nil, false) end, "SmartHighlight: Import / Reload from Repo File")
+  bind("n", km.save_session or "<leader>hS", function() sh.save_session(nil, false) end, "SmartHighlight: Save Session to Disk")
+  bind("n", km.load_session or "<leader>hR", function() sh.load_session(nil, false) end, "SmartHighlight: Reload Session from Disk")
+
+  -- Option (Alt) Key Shortcuts (Zero-leader rapid access)
+  if config.options.alt_keymaps ~= false then
+    bind({ "n", "v" }, km.alt_toggle_bookmark or "<M-b>", function() sh.toggle_bookmark() end, "SmartBookmark: Toggle Bookmark (Alt/Option-b)")
+    bind({ "n", "v" }, km.alt_quick_bookmark or "<M-B>", function() sh.quick_bookmark() end, "SmartBookmark: Quick Toggle (Alt/Option-B)")
+    bind({ "n", "v" }, km.alt_toggle_highlight or "<M-h>", function() sh.toggle() end, "SmartHighlight: Toggle Highlight (Alt/Option-h)")
+    bind("n", km.alt_open_hud or "<M-m>", function() sh.open_hud() end, "SmartHighlight: Open HUD Manager (Alt/Option-m)")
+  end
 
   -- Jump navigation keymaps
-  map("n", "]h", function() sh.jump_next() end, { desc = "SmartHighlight: Next Slot Match" })
-  map("n", "[h", function() sh.jump_prev() end, { desc = "SmartHighlight: Prev Slot Match" })
-  map("n", "]H", function() sh.jump_any_next() end, { desc = "SmartHighlight: Next Match (Any Slot)" })
-  map("n", "[H", function() sh.jump_any_prev() end, { desc = "SmartHighlight: Prev Match (Any Slot)" })
-  map("n", "]k", function() sh.jump_bookmark_next() end, { desc = "SmartBookmark: Next Bookmark" })
-  map("n", "[k", function() sh.jump_bookmark_prev() end, { desc = "SmartBookmark: Prev Bookmark" })
+  bind("n", km.jump_next or "]h", function() sh.jump_next() end, "SmartHighlight: Next Slot Match")
+  bind("n", km.jump_prev or "[h", function() sh.jump_prev() end, "SmartHighlight: Prev Slot Match")
+  bind("n", km.jump_any_next or "]H", function() sh.jump_any_next() end, "SmartHighlight: Next Match (Any Slot)")
+  bind("n", km.jump_any_prev or "[H", function() sh.jump_any_prev() end, "SmartHighlight: Prev Match (Any Slot)")
+  bind("n", km.jump_bookmark_next or "]k", function() sh.jump_bookmark_next() end, "SmartBookmark: Next Bookmark")
+  bind("n", km.jump_bookmark_prev or "[k", function() sh.jump_bookmark_prev() end, "SmartBookmark: Prev Bookmark")
 end

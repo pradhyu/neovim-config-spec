@@ -90,6 +90,12 @@ smart-highlighter/
 | `<leader>hl` | `search_bookmarks()` | Search & list all bookmarks via Telescope / Snacks |
 | `<leader>hL` | `bottom_pane_bookmarks()` | Open bookmarks in dedicated bottom list buffer |
 | `<leader>ht` | `filter_bookmarks()` | Filter bookmarks by tag (`TODO`, `FIXME`, `WARN`, `NOTE`, `HACK`) |
+| `<leader>hP` | `toggle_auto_persist()` | Toggle automatic repo-local background persistence |
+| `<leader>he` / `<leader>hE` | `save_session()` / `load_session()` | Export / import highlights & bookmarks to/from repo file |
+| `<leader>hS` / `<leader>hR` | `save_session()` / `load_session()` | Quick save / reload session to/from disk |
+| `<M-b>` / `<M-B>` | `toggle_bookmark()` / `quick_bookmark()` | Option/Alt key shortcuts to toggle / quick bookmark |
+| `<M-h>` | `toggle()` | Option/Alt key shortcut to toggle highlight |
+| `<M-m>` | `open_hud()` | Option/Alt key shortcut to open HUD manager |
 | `]k` / `[k` | `jump_bookmark_next()` / `jump_bookmark_prev()` | Jump to next / previous bookmark |
 
 ---

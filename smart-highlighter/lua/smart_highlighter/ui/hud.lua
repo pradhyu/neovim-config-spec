@@ -48,10 +48,13 @@ function M.open(initial_tab)
     local lines = {}
 
     -- Tab Bar Header
+    local p_opts = (config.options and config.options.persistence) or {}
+    local auto_p_str = (type(p_opts) == "table" and p_opts.auto_persist ~= false) and "AutoSave:ON" or "AutoSave:OFF"
+
     if current_tab == "highlights" then
-      table.insert(lines, "  [► 1. 🎨 Highlights (Active)]    [2. 🔖 Bookmarks (Press 'm' to switch)]")
+      table.insert(lines, string.format("  [► 1. 🎨 Highlights]    [2. 🔖 Bookmarks (m/Tab)]    [%s (P:toggle)]", auto_p_str))
     else
-      table.insert(lines, "  [1. 🎨 Highlights (Press 'm')]   [► 2. 🔖 Bookmarks (Active)]")
+      table.insert(lines, string.format("  [1. 🎨 Highlights (m)]   [► 2. 🔖 Bookmarks]           [%s (P:toggle)]", auto_p_str))
     end
     table.insert(lines, "  " .. string.rep("─", width - 6))
 
@@ -86,9 +89,9 @@ function M.open(initial_tab)
       end
 
       table.insert(lines, "  " .. string.rep("─", width - 6))
-      table.insert(lines, "  <Space> Toggle | b Slot Scope | B Global Scope | m Switch Tab")
-      table.insert(lines, "  d/x Delete     | a Add Pattern| p Presets      | Q Export Quickfix")
-      table.insert(lines, "  q/Esc Close    | c Clear All")
+      table.insert(lines, "  <Space> Toggle | b Slot Scope | B Global Scope | m Switch Tab | P AutoSave")
+      table.insert(lines, "  d/x Delete     | a Add Pattern| p Presets      | S Save Now   | R Reload")
+      table.insert(lines, "  q/Esc Close    | c Clear All  | Q Export Quickfix")
 
     else
       -- Bookmarks View
@@ -141,7 +144,7 @@ function M.open(initial_tab)
 
       table.insert(lines, "  " .. string.rep("─", width - 6))
       table.insert(lines, "  <CR> Jump | t Filter Tag | A All Tags | e Edit Note | d/x Delete | a Add")
-      table.insert(lines, "  m Switch Tab | c Clear All | Q Bottom Pane | q/Esc Close")
+      table.insert(lines, "  m Switch Tab | P AutoSave | S Save Now | R Reload | Q Bottom Pane | q Close")
     end
 
     vim.bo[buf].modifiable = true
@@ -346,6 +349,21 @@ function M.open(initial_tab)
       render()
       vim.notify("[SmartBookmark] Filter reset: Showing all bookmarks", vim.log.levels.INFO)
     end
+  end, k_opts)
+  vim.keymap.set("n", "P", function()
+    local session = require("smart_highlighter.core.session")
+    session.toggle_auto_persist()
+    render()
+  end, k_opts)
+  vim.keymap.set("n", "S", function()
+    local session = require("smart_highlighter.core.session")
+    session.save_session(nil, false)
+    render()
+  end, k_opts)
+  vim.keymap.set("n", "R", function()
+    local session = require("smart_highlighter.core.session")
+    session.load_session(nil, false)
+    render()
   end, k_opts)
   vim.keymap.set("n", "Q", export_qf_action, k_opts)
   vim.keymap.set("n", "q", close, k_opts)
