@@ -30,6 +30,7 @@ Using **`lazy.nvim`**:
     max_slots = 16,
     whole_word = true,
     case_sensitive = false,
+    buffer_scope = "all", -- "all" (highlight all open buffers) or "current" (highlight only active buffer)
     persistence = true,
     presets = {
       enabled = true,
@@ -45,13 +46,16 @@ Using **`lazy.nvim`**:
 
 | Keybinding | Action |
 |---|---|
-| `<leader>hh` | Toggle highlight on word under cursor or visual selection |
+| `<leader>hh` | Toggle highlight on word under cursor (respects default `buffer_scope`) |
+| `<leader>hb` | Toggle highlight strictly for **CURRENT buffer only** |
+| `<leader>hB` | Toggle default buffer scope mode (**All Open Buffers** ⟷ **Current Buffer Only**) |
 | `<leader>hH` | Add custom regex pattern |
 | `<leader>hm` | Open interactive Floating HUD Manager |
 | `<leader>hs` | Toggle Treesitter function scope-bounded highlight |
 | `<leader>hp` | Select and load preset (`logs`, `http`, `sql`, etc.) |
-| `<leader>hq` | Export all active matches to Quickfix list |
-| `<leader>hf` | Search all matches via Telescope |
+| `<leader>hq` | Export all active matches to Quickfix list (All Buffers) |
+| `<leader>hf` | Search all matches across **All Open Buffers** via Telescope / Snacks (`<C-b>` to toggle) |
+| `<leader>hF` | Search matches in **Current Buffer Only** via Telescope / Snacks |
 | `<leader>hc` | Clear all active highlights |
 | `]h` / `[h` | Jump to next / previous match of current slot |
 | `]H` / `[H` | Jump to next / previous match across ALL active slots |
@@ -65,6 +69,8 @@ Inside the HUD window (`<leader>hm`):
 | Key | Action |
 |---|---|
 | `<Space>` / `<Tab>` | Toggle enable/disable on selected slot |
+| `b` | Toggle selected slot scope between **All Buffers** and **Current Buffer** |
+| `B` | Toggle global default scope (**All Buffers** ⟷ **Current Buffer**) |
 | `d` / `x` | Delete selected slot |
 | `a` / `+` | Add new word or regex pattern |
 | `p` | Open presets selector |
@@ -76,12 +82,15 @@ Inside the HUD window (`<leader>hm`):
 
 ## ⚡ User Commands
 
-- `:SmartHighlightToggle`
-- `:SmartHighlightRegex <pattern>`
-- `:SmartHighlightClear [slot_id]`
-- `:SmartHighlightHUD`
-- `:SmartHighlightPreset <logs|http|sql|json|devops>`
-- `:SmartHighlightScope`
-- `:SmartHighlightQuickfix`
-- `:SmartHighlightSearch`
-- `:SmartHighlightSave` / `:SmartHighlightLoad`
+- `:SmartHighlightToggle [all|current]` - Toggle highlight (optionally forcing all or current buffer)
+- `:SmartHighlightBuffer [word]` - Highlight word in current buffer only
+- `:SmartHighlightGlobal [word]` - Highlight word across all open buffers
+- `:SmartHighlightBufferScope [all|current|toggle]` - Switch or toggle default buffer scope mode
+- `:SmartHighlightRegex <pattern>` - Add custom regex pattern
+- `:SmartHighlightClear [slot_id]` - Clear highlights
+- `:SmartHighlightHUD` - Open Floating HUD Manager
+- `:SmartHighlightPreset <logs|http|sql|json|devops>` - Load preset
+- `:SmartHighlightScope` - Toggle Treesitter scope highlight
+- `:SmartHighlightQuickfix [all|current]` - Export matches to Quickfix (default: all open buffers)
+- `:SmartHighlightSearch [all|current]` - Search matches via Telescope / Snacks (default: all open buffers, `<C-b>` toggles scope)
+- `:SmartHighlightSave` / `:SmartHighlightLoad` - Save or restore session highlights

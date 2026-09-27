@@ -1,6 +1,7 @@
 local engine = require("smart_highlighter.core.engine")
 local palette = require("smart_highlighter.core.palette")
 local presets = require("smart_highlighter.core.presets")
+local config = require("smart_highlighter.config")
 
 local M = {}
 
@@ -17,8 +18,8 @@ function M.open()
   vim.bo[buf].filetype = "smarthighlight_hud"
 
   -- Calculate floating window dimensions
-  local width = 72
-  local height = math.max(12, math.min(#summaries + 8, 22))
+  local width = 76
+  local height = math.max(13, math.min(#summaries + 9, 23))
   local ui = vim.api.nvim_list_uis()[1]
   local win_width = ui and ui.width or 80
   local win_height = ui and ui.height or 24
@@ -41,8 +42,9 @@ function M.open()
     if not vim.api.nvim_buf_is_valid(buf) then return end
     summaries = engine.get_slot_summaries(cur_buf)
 
+    local def_scope_label = (config.options.buffer_scope == "current" or config.options.buffer_scope == "buffer") and "CurBuf" or "AllBufs"
     local lines = {}
-    table.insert(lines, "  SLOT  STATE  PATTERN / NAME               MATCHES   SCOPE      COLOR")
+    table.insert(lines, string.format("  SLOT  STATE  PATTERN / NAME               MATCHES   SCOPE (%s)  COLOR", def_scope_label))
     table.insert(lines, "  " .. string.rep("─", width - 6))
 
     if #summaries == 0 then
@@ -57,16 +59,22 @@ function M.open()
           pat_str = pat_str:sub(1, 21) .. "..."
         end
         local match_str = string.format("%d matches", item.count)
-        local scope_str = item.scope:sub(1, 1):upper() .. item.scope:sub(2)
+        local scope_str = "All"
+        if item.scope == "buffer" or item.scope == "current" then
+          scope_str = "CurBuf"
+        elseif item.scope == "treesitter" then
+          scope_str = "TreeSit"
+        end
 
-        local line = string.format("  #%-4d %s   %-26s %-9s %-10s %s", item.id, state_icon, pat_str, match_str, scope_str, item.color.name)
+        local line = string.format("  #%-4d %s   %-26s %-9s %-12s %s", item.id, state_icon, pat_str, match_str, scope_str, item.color.name)
         table.insert(lines, line)
       end
     end
 
     table.insert(lines, "  " .. string.rep("─", width - 6))
-    table.insert(lines, "  <Space>/<Tab> Toggle  |  d/x Delete  |  a Add Pattern  |  p Presets")
-    table.insert(lines, "  q/Esc Close           |  c Clear All |  Q Export Quickfix")
+    table.insert(lines, "  <Space>/<Tab> Toggle  |  b Slot Scope (All/Cur)  |  B Default Scope")
+    table.insert(lines, "  d/x Delete            |  a Add Pattern           |  p Presets")
+    table.insert(lines, "  q/Esc Close           |  c Clear All             |  Q Export Quickfix")
 
     vim.bo[buf].modifiable = true
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
@@ -99,6 +107,23 @@ function M.open()
       engine.toggle_slot(item.id)
       render()
     end
+  end
+
+  local function toggle_slot_scope_action()
+    local item = get_selected_item()
+    if item then
+      local new_scope = engine.toggle_slot_scope(item.id)
+      render()
+      local desc = new_scope == "global" and "All Open Buffers" or "Current Buffer Only"
+      vim.notify(string.format("[SmartHighlight] Slot #%d scope set to: %s", item.id, desc), vim.log.levels.INFO)
+    end
+  end
+
+  local function toggle_default_scope_action()
+    local new_scope = engine.set_default_scope()
+    render()
+    local desc = new_scope == "all" and "All Open Buffers" or "Current Buffer Only"
+    vim.notify(string.format("[SmartHighlight] Default highlighting scope set to: %s", desc), vim.log.levels.INFO)
   end
 
   local function delete_selected()
@@ -144,6 +169,8 @@ function M.open()
   local k_opts = { buffer = buf, silent = true, noremap = true }
   vim.keymap.set("n", "<Space>", toggle_selected, k_opts)
   vim.keymap.set("n", "<Tab>", toggle_selected, k_opts)
+  vim.keymap.set("n", "b", toggle_slot_scope_action, k_opts)
+  vim.keymap.set("n", "B", toggle_default_scope_action, k_opts)
   vim.keymap.set("n", "d", delete_selected, k_opts)
   vim.keymap.set("n", "x", delete_selected, k_opts)
   vim.keymap.set("n", "c", clear_all_action, k_opts)

@@ -93,8 +93,17 @@ function M.add_slot(pattern, opts)
   local is_regex = opts.is_regex or false
   local whole_word = (opts.whole_word ~= nil) and opts.whole_word or config.options.whole_word
   local case_sensitive = (opts.case_sensitive ~= nil) and opts.case_sensitive or config.options.case_sensitive
-  local scope = opts.scope or (config.options.treesitter_scope and "treesitter" or "global")
+
+  local default_scope = "global"
+  if config.options.treesitter_scope then
+    default_scope = "treesitter"
+  elseif config.options.buffer_scope == "current" or config.options.buffer_scope == "buffer" then
+    default_scope = "buffer"
+  end
+
+  local scope = opts.scope or default_scope
   local name = opts.name or pattern
+  local target_buf = opts.target_buf or vim.api.nvim_get_current_buf()
 
   local compiled = compile_regex(pattern, is_regex, whole_word, case_sensitive)
 
@@ -107,7 +116,7 @@ function M.add_slot(pattern, opts)
     enabled = true,
     scope = scope,
     scope_range = opts.scope_range,
-    target_buf = opts.target_buf,
+    target_buf = target_buf,
     name = name,
     color_idx = id,
     vim_regex = compiled,
@@ -155,9 +164,10 @@ end
 
 ---Toggle highlight for word under cursor or visual selection
 ---@param custom_text? string
----@param use_scope? boolean
+---@param use_scope? boolean|string -- boolean (true for treesitter) or "all"|"current"|"treesitter"|"global"|"buffer"
+---@param buffer_scope? "all"|"current"|"global"|"buffer"
 ---@return integer? slot_id, string? action ("added"|"removed")
-function M.toggle_word(custom_text, use_scope)
+function M.toggle_word(custom_text, use_scope, buffer_scope)
   local text = custom_text
   if not text or text == "" then
     -- Get word under cursor or visual selection
@@ -187,13 +197,29 @@ function M.toggle_word(custom_text, use_scope)
     return existing_id, "removed"
   end
 
+  local cur_buf = vim.api.nvim_get_current_buf()
   local scope_range = nil
   local scope_type = "global"
-  if use_scope or config.options.treesitter_scope then
+
+  local is_ts = (use_scope == true) or (use_scope == "treesitter") or config.options.treesitter_scope
+  local b_scope = buffer_scope
+  if type(use_scope) == "string" and (use_scope == "current" or use_scope == "buffer" or use_scope == "all" or use_scope == "global") then
+    b_scope = use_scope
+  end
+
+  if is_ts then
     scope_range = treesitter.get_enclosing_scope_range()
     if scope_range then
       scope_type = "treesitter"
     end
+  elseif b_scope == "current" or b_scope == "buffer" then
+    scope_type = "buffer"
+  elseif b_scope == "all" or b_scope == "global" then
+    scope_type = "global"
+  elseif config.options.buffer_scope == "current" or config.options.buffer_scope == "buffer" then
+    scope_type = "buffer"
+  else
+    scope_type = "global"
   end
 
   local id = M.add_slot(text, {
@@ -201,7 +227,7 @@ function M.toggle_word(custom_text, use_scope)
     is_regex = false,
     scope = scope_type,
     scope_range = scope_range,
-    target_buf = vim.api.nvim_get_current_buf(),
+    target_buf = cur_buf,
   })
 
   return id, "added"
@@ -230,10 +256,13 @@ function M.render_buffer(buf)
       local start_line = 0
       local end_line = line_count - 1
 
-      if slot.scope == "treesitter" and slot.scope_range and slot.target_buf == buf then
+      if slot.scope == "treesitter" and slot.scope_range then
+        if slot.target_buf and slot.target_buf ~= buf then
+          goto continue_slot
+        end
         start_line = math.max(0, slot.scope_range.start_row)
         end_line = math.min(line_count - 1, slot.scope_range.end_row)
-      elseif slot.scope == "buffer" and slot.target_buf ~= buf then
+      elseif (slot.scope == "buffer" or slot.scope == "current") and slot.target_buf and slot.target_buf ~= buf then
         -- Skip other buffers
         goto continue_slot
       end
@@ -296,10 +325,13 @@ function M.get_matches(slot_id, buf)
   local start_line = 0
   local end_line = line_count - 1
 
-  if slot.scope == "treesitter" and slot.scope_range and slot.target_buf == target_buf then
+  if slot.scope == "treesitter" and slot.scope_range then
+    if slot.target_buf and slot.target_buf ~= target_buf then
+      return {}
+    end
     start_line = math.max(0, slot.scope_range.start_row)
     end_line = math.min(line_count - 1, slot.scope_range.end_row)
-  elseif slot.scope == "buffer" and slot.target_buf ~= target_buf then
+  elseif (slot.scope == "buffer" or slot.scope == "current") and slot.target_buf and slot.target_buf ~= target_buf then
     return {}
   end
 
@@ -333,6 +365,54 @@ function M.get_matches(slot_id, buf)
   return matches
 end
 
+---Toggle scope for a slot between "global" (all buffers) and "buffer" (current buffer)
+---@param id integer
+---@param target_scope? "global"|"buffer"|"all"|"current"
+---@return string? new_scope
+function M.toggle_slot_scope(id, target_scope)
+  local slot = M.slots[id]
+  if not slot then
+    return nil
+  end
+
+  if target_scope then
+    if target_scope == "all" or target_scope == "global" then
+      slot.scope = "global"
+    else
+      slot.scope = "buffer"
+      slot.target_buf = vim.api.nvim_get_current_buf()
+    end
+  else
+    if slot.scope == "global" then
+      slot.scope = "buffer"
+      slot.target_buf = vim.api.nvim_get_current_buf()
+    else
+      slot.scope = "global"
+    end
+  end
+
+  M.render_all_buffers()
+  return slot.scope
+end
+
+---Toggle or set default buffer scope across all new highlights
+---@param scope? "all"|"current"|"toggle"
+---@return string new_scope ("all"|"current")
+function M.set_default_scope(scope)
+  if scope == "all" or scope == "global" then
+    config.options.buffer_scope = "all"
+  elseif scope == "current" or scope == "buffer" then
+    config.options.buffer_scope = "current"
+  else
+    if config.options.buffer_scope == "current" then
+      config.options.buffer_scope = "all"
+    else
+      config.options.buffer_scope = "current"
+    end
+  end
+  return config.options.buffer_scope
+end
+
 ---Get occurrence count for a slot
 ---@param slot_id integer
 ---@param buf? integer
@@ -359,6 +439,7 @@ function M.get_slot_summaries(buf)
         name = slot.name,
         enabled = slot.enabled,
         scope = slot.scope,
+        target_buf = slot.target_buf,
         is_regex = slot.is_regex,
         count = count,
         color = color,

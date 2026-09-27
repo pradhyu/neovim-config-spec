@@ -148,20 +148,24 @@
   * **Key Features:**
     * **16-Slot Dynamic Palette:** Theme-adaptive light/dark color slots with high contrast and luminescence.
     * **Treesitter Scope Bounded Highlighting:** Confines highlight matches strictly to enclosing function/method/block AST scope (`<leader>hs`).
+    * **All Open Buffers vs Current Buffer Scope:** Freely toggle between highlighting all open buffers or isolating matches to the current active buffer (`<leader>hb`, `<leader>hB`, or `b` / `B` in HUD).
     * **Presets Suite:** Instant activation for Log Analysis (`ERROR`, `WARN`, `INFO`, UUIDs, IPs), HTTP/REST APIs, SQL queries, JSON, and DevOps statuses (`<leader>hp`).
-    * **Floating HUD Dashboard:** Visual manager with live occurrence counters, toggle switches, regex additions, and slot purges (`<leader>hm`).
+    * **Floating HUD Dashboard:** Visual manager with live occurrence counters, toggle switches, buffer scope modifiers, regex additions, and slot purges (`<leader>hm`).
     * **Bidirectional Match Navigation:** Jump between matches for current slot (`]h`/`[h`) or across all active slots (`]H`/`[H`).
     * **Quickfix & Telescope Export:** Push all matches with file locations to Quickfix or live search via Telescope (`<leader>hq`, `<leader>hf`).
     * **Persistence:** Auto-saves and restores active patterns across sessions per workspace directory.
-  * **Commands:** `:SmartHighlightToggle`, `:SmartHighlightRegex`, `:SmartHighlightClear`, `:SmartHighlightHUD`, `:SmartHighlightPreset`, `:SmartHighlightScope`, `:SmartHighlightQuickfix`, `:SmartHighlightSearch`, `:SmartHighlightSave`, `:SmartHighlightLoad`
+  * **Commands:** `:SmartHighlightToggle`, `:SmartHighlightBuffer`, `:SmartHighlightGlobal`, `:SmartHighlightBufferScope`, `:SmartHighlightRegex`, `:SmartHighlightClear`, `:SmartHighlightHUD`, `:SmartHighlightPreset`, `:SmartHighlightScope`, `:SmartHighlightQuickfix`, `:SmartHighlightSearch`, `:SmartHighlightSave`, `:SmartHighlightLoad`
   * **Keymaps:**
-    * `<leader>hh`: Toggle highlight on word under cursor or visual selection
+    * `<leader>hh`: Toggle highlight on word under cursor or visual selection (default scope)
+    * `<leader>hb`: Toggle highlight strictly for **CURRENT buffer only**
+    * `<leader>hB`: Toggle default buffer scope mode (**All Buffers** ⟷ **Current Buffer Only**)
     * `<leader>hH`: Prompt for custom regex pattern to highlight
     * `<leader>hm`: Open interactive Floating HUD Manager
     * `<leader>hs`: Toggle Treesitter scope-bounded highlight
     * `<leader>hp`: Select & load preset (Logs, HTTP, SQL, JSON, DevOps)
-    * `<leader>hq`: Export all active matches to Quickfix list
-    * `<leader>hf`: Fuzzy search matches via Telescope
+    * `<leader>hq`: Export all active matches to Quickfix list (All Buffers)
+    * `<leader>hf`: Fuzzy search matches across **All Open Buffers** via Telescope / Snacks (`<C-b>` to toggle)
+    * `<leader>hF`: Search matches in **Current Buffer Only** via Telescope / Snacks
     * `<leader>hc`: Clear all highlights
     * `]h` / `[h`: Jump to next / previous match of current slot
     * `]H` / `[H`: Jump to next / previous match across ALL active slots

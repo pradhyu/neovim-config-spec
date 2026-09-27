@@ -6,10 +6,48 @@ vim.g.loaded_smart_highlighter = 1
 local sh = require("smart_highlighter")
 
 -- Commands
-vim.api.nvim_create_user_command("SmartHighlightToggle", function()
-  sh.toggle()
+vim.api.nvim_create_user_command("SmartHighlightToggle", function(opts)
+  local arg = opts.args ~= "" and opts.args:lower() or nil
+  if arg == "current" or arg == "buffer" then
+    sh.toggle_current_buffer()
+  elseif arg == "all" or arg == "global" then
+    sh.toggle_all_buffers()
+  else
+    sh.toggle()
+  end
 end, {
-  desc = "Toggle highlight on word under cursor or visual selection",
+  nargs = "?",
+  complete = function()
+    return { "all", "current", "global", "buffer" }
+  end,
+  desc = "Toggle highlight on word under cursor: :SmartHighlightToggle [all|current]",
+})
+
+vim.api.nvim_create_user_command("SmartHighlightBuffer", function(opts)
+  local text = opts.args ~= "" and opts.args or nil
+  sh.toggle_current_buffer(text)
+end, {
+  nargs = "?",
+  desc = "Toggle highlight for CURRENT buffer only: :SmartHighlightBuffer [word]",
+})
+
+vim.api.nvim_create_user_command("SmartHighlightGlobal", function(opts)
+  local text = opts.args ~= "" and opts.args or nil
+  sh.toggle_all_buffers(text)
+end, {
+  nargs = "?",
+  desc = "Toggle highlight across ALL open buffers: :SmartHighlightGlobal [word]",
+})
+
+vim.api.nvim_create_user_command("SmartHighlightBufferScope", function(opts)
+  local arg = opts.args ~= "" and opts.args:lower() or nil
+  sh.toggle_buffer_scope(arg)
+end, {
+  nargs = "?",
+  complete = function()
+    return { "all", "current", "toggle" }
+  end,
+  desc = "Switch or toggle default highlight scope: :SmartHighlightBufferScope [all|current|toggle]",
 })
 
 vim.api.nvim_create_user_command("SmartHighlightRegex", function(opts)
@@ -71,16 +109,37 @@ end, {
   desc = "Toggle Treesitter scope-bounded highlight",
 })
 
-vim.api.nvim_create_user_command("SmartHighlightQuickfix", function()
-  sh.export_quickfix()
+vim.api.nvim_create_user_command("SmartHighlightQuickfix", function(opts)
+  local arg = opts.args ~= "" and opts.args:lower() or "all"
+  sh.export_quickfix(arg)
 end, {
-  desc = "Export all highlighted matches to Quickfix list",
+  nargs = "?",
+  complete = function()
+    return { "all", "current" }
+  end,
+  desc = "Export highlighted matches to Quickfix list: :SmartHighlightQuickfix [all|current]",
 })
 
-vim.api.nvim_create_user_command("SmartHighlightSearch", function()
-  sh.search_matches()
+vim.api.nvim_create_user_command("SmartHighlightBottom", function(opts)
+  local arg = opts.args ~= "" and opts.args:lower() or "current"
+  sh.open_bottom_pane(arg)
 end, {
-  desc = "Fuzzy search through highlighted matches via Telescope / Quickfix",
+  nargs = "?",
+  complete = function()
+    return { "current", "all" }
+  end,
+  desc = "Open bottom buffer window for matches: :SmartHighlightBottom [current|all]",
+})
+
+vim.api.nvim_create_user_command("SmartHighlightSearch", function(opts)
+  local arg = opts.args ~= "" and opts.args:lower() or "all"
+  sh.search_matches({ scope = arg })
+end, {
+  nargs = "?",
+  complete = function()
+    return { "all", "current" }
+  end,
+  desc = "Search highlighted matches (Telescope for all buffers, bottom pane for current): :SmartHighlightSearch [all|current]",
 })
 
 vim.api.nvim_create_user_command("SmartHighlightSave", function()
@@ -101,16 +160,18 @@ end, {
 local config = require("smart_highlighter.config")
 if config.options.default_keymaps then
   local map = vim.keymap.set
-  local opts = { silent = true, desc = "" }
 
-  map({ "n", "v" }, "<leader>hh", function() sh.toggle() end, { desc = "SmartHighlight: Toggle Word/Selection" })
+  map({ "n", "v" }, "<leader>hh", function() sh.toggle() end, { desc = "SmartHighlight: Toggle (Default Scope)" })
+  map({ "n", "v" }, "<leader>hb", function() sh.toggle_current_buffer() end, { desc = "SmartHighlight: Toggle Current Buffer Only" })
+  map("n", "<leader>hB", function() sh.toggle_buffer_scope() end, { desc = "SmartHighlight: Toggle Buffer Scope Mode (All/Current)" })
   map("n", "<leader>hH", function() sh.add_regex_interactive() end, { desc = "SmartHighlight: Add Regex Pattern" })
   map("n", "<leader>hc", function() sh.clear_all() end, { desc = "SmartHighlight: Clear All" })
   map("n", "<leader>hm", function() sh.open_hud() end, { desc = "SmartHighlight: Open HUD Manager" })
   map("n", "<leader>hp", function() sh.select_preset() end, { desc = "SmartHighlight: Select Preset" })
   map("n", "<leader>hs", function() sh.toggle_scope() end, { desc = "SmartHighlight: Toggle Treesitter Scope" })
-  map("n", "<leader>hq", function() sh.export_quickfix() end, { desc = "SmartHighlight: Export to Quickfix" })
-  map("n", "<leader>hf", function() sh.search_matches() end, { desc = "SmartHighlight: Search Matches (Telescope)" })
+  map("n", "<leader>hq", function() sh.export_quickfix("all") end, { desc = "SmartHighlight: Export to Quickfix (All Buffers)" })
+  map("n", "<leader>hf", function() sh.search_matches({ scope = "all" }) end, { desc = "SmartHighlight: Search Matches (All Open Buffers)" })
+  map("n", "<leader>hF", function() sh.search_matches({ scope = "current" }) end, { desc = "SmartHighlight: Search Matches (Current Buffer Only)" })
 
   -- Jump navigation keymaps
   map("n", "]h", function() sh.jump_next() end, { desc = "SmartHighlight: Next Slot Match" })

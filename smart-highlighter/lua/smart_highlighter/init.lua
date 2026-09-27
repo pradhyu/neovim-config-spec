@@ -98,6 +98,7 @@ M.load_session = session.load_session
 -- Forward UI APIs
 M.open_hud = hud.open
 M.export_quickfix = picker.export_to_quickfix
+M.open_bottom_pane = picker.open_bottom_pane
 M.search_matches = picker.telescope_picker
 M.statusline = statusline.get
 
@@ -118,6 +119,42 @@ function M.toggle_scope()
     vim.notify(string.format("[SmartHighlight] Highlighted symbol within Treesitter scope (Slot #%d)", id), vim.log.levels.INFO)
   elseif id and action == "removed" then
     vim.notify(string.format("[SmartHighlight] Removed scope highlight (Slot #%d)", id), vim.log.levels.INFO)
+  end
+end
+
+-- Forward Buffer Scope APIs
+M.toggle_slot_scope = engine.toggle_slot_scope
+M.set_default_scope = engine.set_default_scope
+
+---Toggle default highlighting buffer scope (All Buffers ⟷ Current Buffer Only)
+---@param scope? "all"|"current"|"toggle"
+---@return string
+function M.toggle_buffer_scope(scope)
+  local new_scope = engine.set_default_scope(scope)
+  local desc = new_scope == "all" and "All Open Buffers" or "Current Buffer Only"
+  vim.notify(string.format("[SmartHighlight] Highlight scope: %s", desc), vim.log.levels.INFO)
+  return new_scope
+end
+
+---Toggle highlight strictly for the CURRENT buffer
+---@param custom_text? string
+function M.toggle_current_buffer(custom_text)
+  local id, action = engine.toggle_word(custom_text, false, "current")
+  if id and action == "added" then
+    vim.notify(string.format("[SmartHighlight] Highlighted in CURRENT buffer only (Slot #%d)", id), vim.log.levels.INFO)
+  elseif id and action == "removed" then
+    vim.notify(string.format("[SmartHighlight] Removed highlight (Slot #%d)", id), vim.log.levels.INFO)
+  end
+end
+
+---Toggle highlight across ALL open buffers
+---@param custom_text? string
+function M.toggle_all_buffers(custom_text)
+  local id, action = engine.toggle_word(custom_text, false, "all")
+  if id and action == "added" then
+    vim.notify(string.format("[SmartHighlight] Highlighted across ALL open buffers (Slot #%d)", id), vim.log.levels.INFO)
+  elseif id and action == "removed" then
+    vim.notify(string.format("[SmartHighlight] Removed highlight (Slot #%d)", id), vim.log.levels.INFO)
   end
 end
 

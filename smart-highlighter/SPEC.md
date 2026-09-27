@@ -16,12 +16,13 @@ High-performance, multi-keyword, pattern, and scope-aware visual highlighter for
 
 3. **Multi-Mode Highlighting**:
    - **Word & Selection Highlighting**: Instant toggle for word under cursor or visual block.
+   - **All Open Buffers vs Current Buffer Scope**: Freely highlight across all open buffers or isolate highlights strictly to the current active buffer.
    - **Regex Patterns**: Highlight complex patterns like UUIDs, IP addresses, ISO-8601 timestamps, Hex codes, and JSON paths.
    - **Treesitter Scope Awareness**: Confine highlight matches strictly to the enclosing function, method, or lexical scope.
    - **Curated Presets**: One-touch presets for Log Analysis, HTTP / REST, SQL queries, and Git commits.
 
 4. **Interactive HUD & Navigation**:
-   - Floating HUD Manager for live monitoring of active highlight slots, occurrence counters, toggles, and pattern editing.
+   - Floating HUD Manager for live monitoring of active highlight slots, occurrence counters, buffer scope toggles (`b` per slot, `B` global), and pattern editing.
    - Bidirectional match jumping (`]h`/`[h` per slot, `]H`/`[H` global).
    - Export all occurrences to Quickfix list or Telescope.
 
@@ -61,7 +62,9 @@ smart-highlighter/
 
 | Keybinding | Action | Description |
 |---|---|---|
-| `<leader>hh` | `toggle()` | Toggle highlight on word under cursor or visual selection |
+| `<leader>hh` | `toggle()` | Toggle highlight on word under cursor (respects `buffer_scope`) |
+| `<leader>hb` | `toggle_current_buffer()` | Toggle highlight strictly for **CURRENT buffer only** |
+| `<leader>hB` | `toggle_buffer_scope()` | Toggle default buffer scope mode (**All Buffers** ⟷ **Current Buffer Only**) |
 | `<leader>hH` | `add_regex()` | Prompt for custom regex pattern to highlight |
 | `<leader>hc` | `clear_all()` | Clear all active highlight slots |
 | `<leader>hC` | `clear_slot()` | Clear highlight slot under cursor |
@@ -69,6 +72,7 @@ smart-highlighter/
 | `<leader>hp` | `select_preset()` | Open preset picker (Logs, HTTP, SQL, etc.) |
 | `<leader>hs` | `toggle_scope()` | Toggle Treesitter scope-bounded highlight |
 | `<leader>hq` | `export_quickfix()` | Send all active matches to Quickfix list |
+| `<leader>hf` | `search_matches()` | Search matches via Telescope |
 | `]h` / `[h` | `jump_next()` / `jump_prev()` | Jump to next / previous match of current slot |
 | `]H` / `[H` | `jump_any_next()` / `jump_any_prev()` | Jump to next / previous match across all slots |
 
@@ -76,11 +80,15 @@ smart-highlighter/
 
 ## ⚡ User Commands
 
-- `:SmartHighlightToggle` - Toggle highlight on current word or selection
+- `:SmartHighlightToggle [all|current]` - Toggle highlight on current word or selection
+- `:SmartHighlightBuffer [word]` - Highlight word in current buffer only
+- `:SmartHighlightGlobal [word]` - Highlight word across all open buffers
+- `:SmartHighlightBufferScope [all|current|toggle]` - Switch or toggle default buffer scope mode
 - `:SmartHighlightRegex <pattern>` - Add custom regex pattern highlight
 - `:SmartHighlightClear [slot_id]` - Clear all highlights or specific slot
 - `:SmartHighlightHUD` - Open the floating HUD manager
-- `:SmartHighlightPreset <preset_name>` - Load preset (`logs`, `http`, `sql`, `json`)
+- `:SmartHighlightPreset <preset_name>` - Load preset (`logs`, `http`, `sql`, `json`, `devops`)
 - `:SmartHighlightScope` - Toggle treesitter enclosing scope highlight
 - `:SmartHighlightQuickfix` - Export all matches to quickfix list
+- `:SmartHighlightSearch` - Fuzzy search matches via Telescope
 - `:SmartHighlightSave` / `:SmartHighlightLoad` - Manage session persistence
