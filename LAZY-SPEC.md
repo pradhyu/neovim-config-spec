@@ -151,10 +151,11 @@
     * **All Open Buffers vs Current Buffer Scope:** Freely toggle between highlighting all open buffers or isolating matches to the current active buffer (`<leader>hb`, `<leader>hB`, or `b` / `B` in HUD).
     * **Presets Suite:** Instant activation for Log Analysis (`ERROR`, `WARN`, `INFO`, UUIDs, IPs), HTTP/REST APIs, SQL queries, JSON, and DevOps statuses (`<leader>hp`).
     * **Floating HUD Dashboard:** Visual manager with live occurrence counters, toggle switches, buffer scope modifiers, regex additions, and slot purges (`<leader>hm`).
-    * **Bidirectional Match Navigation:** Jump between matches for current slot (`]h`/`[h`) or across all active slots (`]H`/`[H`).
-    * **Quickfix & Telescope Export:** Push all matches with file locations to Quickfix or live search via Telescope (`<leader>hq`, `<leader>hf`).
-    * **Persistence:** Auto-saves and restores active patterns across sessions per workspace directory.
-  * **Commands:** `:SmartHighlightToggle`, `:SmartHighlightBuffer`, `:SmartHighlightGlobal`, `:SmartHighlightBufferScope`, `:SmartHighlightRegex`, `:SmartHighlightClear`, `:SmartHighlightHUD`, `:SmartHighlightPreset`, `:SmartHighlightScope`, `:SmartHighlightQuickfix`, `:SmartHighlightSearch`, `:SmartHighlightSave`, `:SmartHighlightLoad`
+    * **Code Bookmarks with Notes & Highlights:** Highlight any line or visual selection as a persistent bookmark with custom note prompt (fallback to highlighted text if blank), gutter sign `🔖`, full-line visual background highlight, and virtual text annotation (`<leader>hk`, `<leader>hK`).
+    * **Interactive Bookmarks HUD & Bottom Pane:** Dedicated Bookmarks tab in HUD (`<leader>hm`, switch with `m`/`<Tab>`), fuzzy search with preview (`<leader>hl`), and dedicated bottom quickfix-style list pane (`<leader>hL`).
+    * **Bidirectional Bookmark Jumping:** Jump between code bookmarks across files seamlessly (`]k` / `[k`).
+    * **Persistence:** Auto-saves and restores active patterns and bookmarks across sessions per workspace directory.
+  * **Commands:** `:SmartHighlightToggle`, `:SmartHighlightBuffer`, `:SmartHighlightGlobal`, `:SmartHighlightBufferScope`, `:SmartHighlightRegex`, `:SmartHighlightClear`, `:SmartHighlightHUD`, `:SmartHighlightPreset`, `:SmartHighlightScope`, `:SmartHighlightQuickfix`, `:SmartHighlightSearch`, `:SmartHighlightSave`, `:SmartHighlightLoad`, `:SmartBookmarkToggle`, `:SmartBookmarkQuick`, `:SmartBookmarkNext`, `:SmartBookmarkPrev`, `:SmartBookmarkSearch`, `:SmartBookmarkBottom`, `:SmartBookmarkClear`, `:SmartBookmarkHUD`
   * **Keymaps:**
     * `<leader>hh`: Toggle highlight on word under cursor or visual selection (default scope)
     * `<leader>hb`: Toggle highlight strictly for **CURRENT buffer only**
@@ -169,6 +170,11 @@
     * `<leader>hc`: Clear all highlights
     * `]h` / `[h`: Jump to next / previous match of current slot
     * `]H` / `[H`: Jump to next / previous match across ALL active slots
+    * `<leader>hk`: Toggle bookmark on line (prompts for note, fallback to highlight)
+    * `<leader>hK`: Quick toggle bookmark on line without note prompt
+    * `<leader>hl`: Fuzzy search & list all bookmarks via Telescope / Snacks
+    * `<leader>hL`: Open bookmarks in dedicated bottom list pane
+    * `]k` / `[k`: Jump to next / previous bookmark
 
 * **`buffer-buddy.nvim`** (Local repo: `~/git/neovim-config-spec/buffer-buddy`):
   * Comprehensive buffer companion: Intelligent hygiene sweeper, text transformation toolkit, buffer pinning, floating scratchpads, in-memory snapshots, disk diffing, and buffer inspection.

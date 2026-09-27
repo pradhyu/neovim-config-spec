@@ -1,5 +1,6 @@
 local config = require("smart_highlighter.config")
 local engine = require("smart_highlighter.core.engine")
+local bookmarks = require("smart_highlighter.core.bookmarks")
 local navigation = require("smart_highlighter.core.navigation")
 local presets = require("smart_highlighter.core.presets")
 local session = require("smart_highlighter.core.session")
@@ -43,6 +44,7 @@ function M.setup(user_opts)
     timer:start(config.options.debounce_ms or 80, 0, vim.schedule_wrap(function()
       if vim.api.nvim_buf_is_valid(buf) then
         engine.render_buffer(buf)
+        bookmarks.render_buffer(buf)
       end
     end))
   end
@@ -157,5 +159,17 @@ function M.toggle_all_buffers(custom_text)
     vim.notify(string.format("[SmartHighlight] Removed highlight (Slot #%d)", id), vim.log.levels.INFO)
   end
 end
+
+-- Forward Bookmark APIs
+M.toggle_bookmark = bookmarks.toggle_interactive
+M.quick_bookmark = bookmarks.quick_toggle
+M.remove_bookmark = bookmarks.remove_bookmark
+M.clear_bookmarks = bookmarks.clear_all
+M.jump_bookmark = bookmarks.jump
+M.jump_bookmark_next = function() bookmarks.jump(true) end
+M.jump_bookmark_prev = function() bookmarks.jump(false) end
+M.search_bookmarks = bookmarks.search_picker
+M.bottom_pane_bookmarks = bookmarks.open_bottom_pane
+M.get_bookmarks = function() return bookmarks.bookmarks end
 
 return M

@@ -72,6 +72,11 @@ function M.setup_highlights()
   vim.api.nvim_set_hl(0, "SmartHighlightHUDHeader", { fg = "#61afef", bold = true, default = true })
   vim.api.nvim_set_hl(0, "SmartHighlightCount", { fg = "#98c379", bold = true, default = true })
   vim.api.nvim_set_hl(0, "SmartHighlightDisabled", { fg = "#5c6370", italic = true, default = true })
+
+  -- Bookmark highlight groups
+  vim.api.nvim_set_hl(0, "SmartBookmarkSign", { fg = "#e5c07b", bold = true, default = true })
+  vim.api.nvim_set_hl(0, "SmartBookmarkLine", { bg = is_dark and "#2c313a" or "#eceff4", default = true })
+  vim.api.nvim_set_hl(0, "SmartBookmarkVirtText", { fg = "#e5c07b", italic = true, default = true })
 end
 
 ---Get color descriptor for a specific slot index

@@ -146,14 +146,76 @@ vim.api.nvim_create_user_command("SmartHighlightSave", function()
   local ok, msg = sh.save_session()
   vim.notify("[SmartHighlight] " .. msg, ok and vim.log.levels.INFO or vim.log.levels.WARN)
 end, {
-  desc = "Save active highlights to session storage",
+  desc = "Save active highlights and bookmarks to session storage",
 })
 
 vim.api.nvim_create_user_command("SmartHighlightLoad", function()
   local ok, msg = sh.load_session()
   vim.notify("[SmartHighlight] " .. msg, ok and vim.log.levels.INFO or vim.log.levels.WARN)
 end, {
-  desc = "Restore highlights from session storage",
+  desc = "Restore highlights and bookmarks from session storage",
+})
+
+-- Bookmark User Commands
+vim.api.nvim_create_user_command("SmartBookmarkToggle", function(opts)
+  local arg = opts.args ~= "" and opts.args or nil
+  sh.toggle_bookmark(arg)
+end, {
+  nargs = "?",
+  desc = "Toggle bookmark on line (prompt note; empty uses highlighted text): :SmartBookmarkToggle [note]",
+})
+
+vim.api.nvim_create_user_command("SmartBookmarkQuick", function()
+  sh.quick_bookmark()
+end, {
+  desc = "Quick bookmark line or selection without prompting",
+})
+
+vim.api.nvim_create_user_command("SmartBookmarkNext", function()
+  sh.jump_bookmark_next()
+end, {
+  desc = "Jump to next bookmark: :SmartBookmarkNext",
+})
+
+vim.api.nvim_create_user_command("SmartBookmarkPrev", function()
+  sh.jump_bookmark_prev()
+end, {
+  desc = "Jump to previous bookmark: :SmartBookmarkPrev",
+})
+
+vim.api.nvim_create_user_command("SmartBookmarkSearch", function(opts)
+  local arg = opts.args ~= "" and opts.args:lower() or "all"
+  sh.search_bookmarks({ scope = arg })
+end, {
+  nargs = "?",
+  complete = function()
+    return { "all", "current" }
+  end,
+  desc = "Search bookmarks via Telescope / Snacks / Bottom Pane: :SmartBookmarkSearch [all|current]",
+})
+
+vim.api.nvim_create_user_command("SmartBookmarkBottom", function(opts)
+  local arg = opts.args ~= "" and opts.args:lower() or "all"
+  sh.bottom_pane_bookmarks(arg)
+end, {
+  nargs = "?",
+  complete = function()
+    return { "all", "current" }
+  end,
+  desc = "Open bottom buffer window for bookmarks: :SmartBookmarkBottom [all|current]",
+})
+
+vim.api.nvim_create_user_command("SmartBookmarkClear", function()
+  sh.clear_bookmarks()
+  vim.notify("[SmartBookmark] Cleared all bookmarks", vim.log.levels.INFO)
+end, {
+  desc = "Clear all project bookmarks: :SmartBookmarkClear",
+})
+
+vim.api.nvim_create_user_command("SmartBookmarkHUD", function()
+  sh.open_hud("bookmarks")
+end, {
+  desc = "Open Floating HUD directly on Bookmarks tab",
 })
 
 -- Default Keymaps
@@ -161,6 +223,7 @@ local config = require("smart_highlighter.config")
 if config.options.default_keymaps then
   local map = vim.keymap.set
 
+  -- Highlighting keymaps
   map({ "n", "v" }, "<leader>hh", function() sh.toggle() end, { desc = "SmartHighlight: Toggle (Default Scope)" })
   map({ "n", "v" }, "<leader>hb", function() sh.toggle_current_buffer() end, { desc = "SmartHighlight: Toggle Current Buffer Only" })
   map("n", "<leader>hB", function() sh.toggle_buffer_scope() end, { desc = "SmartHighlight: Toggle Buffer Scope Mode (All/Current)" })
@@ -173,9 +236,17 @@ if config.options.default_keymaps then
   map("n", "<leader>hf", function() sh.search_matches({ scope = "all" }) end, { desc = "SmartHighlight: Search Matches (All Open Buffers)" })
   map("n", "<leader>hF", function() sh.search_matches({ scope = "current" }) end, { desc = "SmartHighlight: Search Matches (Current Buffer Only)" })
 
+  -- Bookmark keymaps
+  map({ "n", "v" }, "<leader>hk", function() sh.toggle_bookmark() end, { desc = "SmartBookmark: Toggle Bookmark (Prompt Note)" })
+  map({ "n", "v" }, "<leader>hK", function() sh.quick_bookmark() end, { desc = "SmartBookmark: Quick Toggle (Use Highlighted Text)" })
+  map("n", "<leader>hl", function() sh.search_bookmarks({ scope = "all" }) end, { desc = "SmartBookmark: List & Search Bookmarks" })
+  map("n", "<leader>hL", function() sh.bottom_pane_bookmarks("all") end, { desc = "SmartBookmark: Bottom Pane Bookmarks" })
+
   -- Jump navigation keymaps
   map("n", "]h", function() sh.jump_next() end, { desc = "SmartHighlight: Next Slot Match" })
   map("n", "[h", function() sh.jump_prev() end, { desc = "SmartHighlight: Prev Slot Match" })
   map("n", "]H", function() sh.jump_any_next() end, { desc = "SmartHighlight: Next Match (Any Slot)" })
   map("n", "[H", function() sh.jump_any_prev() end, { desc = "SmartHighlight: Prev Match (Any Slot)" })
+  map("n", "]k", function() sh.jump_bookmark_next() end, { desc = "SmartBookmark: Next Bookmark" })
+  map("n", "[k", function() sh.jump_bookmark_prev() end, { desc = "SmartBookmark: Prev Bookmark" })
 end

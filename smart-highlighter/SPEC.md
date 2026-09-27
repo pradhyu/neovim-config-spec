@@ -29,6 +29,14 @@ High-performance, multi-keyword, pattern, and scope-aware visual highlighter for
 5. **Session Persistence**:
    - Optional automatic saving and restoring of highlight patterns across Neovim sessions per workspace.
 
+6. **Code Bookmarking with Notes & Visual Highlights**:
+   - Highlight any line or visual selection as a persistent bookmark.
+   - Interactive prompt for custom bookmark notes with automatic fallback to highlighted text or line content if left empty.
+   - Distinct bookmark gutter sign (`🔖`), full-line visual background highlight, and end-of-line virtual text annotation.
+   - Dedicated Bookmarks tab in HUD manager (`<leader>hm`, switch tabs with `m` or `<Tab>`), fuzzy search picker via Telescope / Snacks (`<leader>hl`), and bottom quickfix-style list buffer (`<leader>hL`).
+   - Bidirectional jumping between bookmarks (`]k` / `[k`).
+   - Workspace session persistence across Neovim restarts.
+
 ---
 
 ## 📐 Module Hierarchy
@@ -46,12 +54,13 @@ smart-highlighter/
         ├── core/
         │   ├── palette.lua         -- 16-slot theme-adaptive highlight group generator
         │   ├── engine.lua          -- Core pattern registry & buffer match application
+        │   ├── bookmarks.lua       -- Code bookmarking, notes, extmarks & jumping
         │   ├── navigation.lua      -- Next/prev match jumping and cursor navigation
         │   ├── presets.lua         -- Log, HTTP, SQL, and DevOps pattern presets
         │   ├── treesitter.lua      -- AST scope discovery and node-bounded matching
         │   └── session.lua         -- Workspace state persistence & restoration
         └── ui/
-            ├── hud.lua             -- Interactive Floating HUD Manager
+            ├── hud.lua             -- Interactive Floating HUD Manager (Highlights & Bookmarks tabs)
             ├── picker.lua          -- Quickfix / Telescope match exporter
             └── statusline.lua      -- Lualine / Statusline component helper
 ```
@@ -72,9 +81,15 @@ smart-highlighter/
 | `<leader>hp` | `select_preset()` | Open preset picker (Logs, HTTP, SQL, etc.) |
 | `<leader>hs` | `toggle_scope()` | Toggle Treesitter scope-bounded highlight |
 | `<leader>hq` | `export_quickfix()` | Send all active matches to Quickfix list |
-| `<leader>hf` | `search_matches()` | Search matches via Telescope |
+| `<leader>hf` | `search_matches()` | Search matches via Telescope / Snacks (All Open Buffers) |
+| `<leader>hF` | `search_matches_current()` | Search matches via Telescope / Snacks (Current Buffer Only) |
 | `]h` / `[h` | `jump_next()` / `jump_prev()` | Jump to next / previous match of current slot |
 | `]H` / `[H` | `jump_any_next()` / `jump_any_prev()` | Jump to next / previous match across all slots |
+| `<leader>hk` | `toggle_bookmark()` | Toggle bookmark on line (prompts for note, fallback to highlight) |
+| `<leader>hK` | `quick_bookmark()` | Quick toggle bookmark on line without note prompt |
+| `<leader>hl` | `search_bookmarks()` | Search & list all bookmarks via Telescope / Snacks |
+| `<leader>hL` | `bottom_pane_bookmarks()` | Open bookmarks in dedicated bottom list buffer |
+| `]k` / `[k` | `jump_bookmark_next()` / `jump_bookmark_prev()` | Jump to next / previous bookmark |
 
 ---
 
@@ -90,5 +105,12 @@ smart-highlighter/
 - `:SmartHighlightPreset <preset_name>` - Load preset (`logs`, `http`, `sql`, `json`, `devops`)
 - `:SmartHighlightScope` - Toggle treesitter enclosing scope highlight
 - `:SmartHighlightQuickfix` - Export all matches to quickfix list
-- `:SmartHighlightSearch` - Fuzzy search matches via Telescope
+- `:SmartHighlightSearch` - Fuzzy search matches via Telescope / Snacks
 - `:SmartHighlightSave` / `:SmartHighlightLoad` - Manage session persistence
+- `:SmartBookmarkToggle [note]` - Toggle bookmark on current line with optional note
+- `:SmartBookmarkQuick` - Quick toggle bookmark without note prompt
+- `:SmartBookmarkNext` / `:SmartBookmarkPrev` - Jump to next / previous bookmark
+- `:SmartBookmarkSearch` - Fuzzy search bookmarks with live preview
+- `:SmartBookmarkBottom` - Open bookmarks in dedicated bottom list pane
+- `:SmartBookmarkClear` - Clear all bookmarks in workspace
+- `:SmartBookmarkHUD` - Open HUD focused directly on Bookmarks tab

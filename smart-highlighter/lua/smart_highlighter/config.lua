@@ -5,6 +5,13 @@ local M = {}
 ---@field auto_by_filetype boolean
 ---@field filetype_map table<string, string>
 
+---@class SmartBookmarkConfig
+---@field enabled boolean
+---@field sign_text string
+---@field virt_text boolean
+---@field line_highlight boolean
+---@field default_scope "all"|"current"
+
 ---@class SmartHighlightOptions
 ---@field max_slots integer
 ---@field whole_word boolean
@@ -17,6 +24,7 @@ local M = {}
 ---@field debounce_ms integer
 ---@field palette string "modern"|"neon"|"pastel"|"solarized"
 ---@field presets SmartHighlightPresetConfig
+---@field bookmarks SmartBookmarkConfig
 
 ---@type SmartHighlightOptions
 M.defaults = {
@@ -30,6 +38,13 @@ M.defaults = {
   default_keymaps = true,
   debounce_ms = 80,
   palette = "modern",
+  bookmarks = {
+    enabled = true,
+    sign_text = "🔖",
+    virt_text = true,
+    line_highlight = true,
+    default_scope = "all",
+  },
   presets = {
     enabled = true,
     auto_by_filetype = true,
