@@ -240,6 +240,11 @@ function M.render_buffer(buf)
 
   pcall(vim.api.nvim_buf_clear_namespace, buf, M.ns_id, 0, -1)
 
+  local bm_opts = (config.options and config.options.bookmarks) or {}
+  if bm_opts.enabled == false then
+    return
+  end
+
   local buf_file = vim.api.nvim_buf_get_name(buf)
   if buf_file == "" then
     return
@@ -253,7 +258,6 @@ function M.render_buffer(buf)
   local line_count = vim.api.nvim_buf_line_count(buf)
   local p_opts = (config.options and config.options.persistence) or {}
   local do_reconcile = (type(p_opts) == "table" and p_opts.reconcile_lines ~= false)
-  local bm_opts = (config.options and config.options.bookmarks) or {}
   local show_virt = (bm_opts.virt_text ~= false)
   local show_line = (bm_opts.line_highlight ~= false)
   local default_sign = bm_opts.sign_text or "🔖"
@@ -564,6 +568,29 @@ function M.remove_current()
   else
     vim.notify(string.format("[SmartBookmark] No bookmark found on Line %d to remove", line), vim.log.levels.WARN)
   end
+end
+
+---Toggle global visibility of all bookmarks across the editor
+---@return boolean enabled
+function M.toggle_global()
+  if not config.options.bookmarks then
+    config.options.bookmarks = {}
+  end
+  local is_enabled = config.options.bookmarks.enabled ~= false
+  config.options.bookmarks.enabled = not is_enabled
+
+  if config.options.bookmarks.enabled then
+    M.render_all_buffers()
+    vim.notify("[SmartBookmark] Bookmarks display ENABLED (visible globally)", vim.log.levels.INFO)
+  else
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.api.nvim_buf_is_valid(buf) then
+        pcall(vim.api.nvim_buf_clear_namespace, buf, M.ns_id, 0, -1)
+      end
+    end
+    vim.notify("[SmartBookmark] Bookmarks display DISABLED (hidden globally)", vim.log.levels.INFO)
+  end
+  return config.options.bookmarks.enabled
 end
 
 ---Quick toggle bookmark on current line without prompting (immediately uses highlighted/line text)

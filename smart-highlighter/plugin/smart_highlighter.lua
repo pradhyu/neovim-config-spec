@@ -216,8 +216,14 @@ end, {
   desc = "Toggle bookmark on line (prompt note; empty uses highlighted text): :SmartBookmarkToggle [note]",
 })
 
+vim.api.nvim_create_user_command("SmartBookmarkToggleGlobal", function()
+  sh.toggle_global_bookmarks()
+end, {
+  desc = "Toggle global bookmarks visibility (Show/Hide): :SmartBookmarkToggleGlobal",
+})
+
 vim.api.nvim_create_user_command("SmartBookmarkQuick", function()
-  sh.quick_bookmark()
+  sh.quick_add_bookmark()
 end, {
   desc = "Quick bookmark line or selection without prompting",
 })
@@ -335,9 +341,9 @@ if config.options.default_keymaps then
   bind("n", km.search_matches or "<leader>hf", function() sh.search_matches({ scope = "all" }) end, "SmartHighlight: Search Matches (All Open Buffers)")
   bind("n", km.search_matches_buffer or "<leader>hF", function() sh.search_matches({ scope = "current" }) end, "SmartHighlight: Search Matches (Current Buffer Only)")
   -- Bookmark keymaps
-  bind({ "n", "v" }, km.add_bookmark or km.toggle_bookmark or "<leader>hk", function() sh.add_bookmark() end, "SmartBookmark: Add / Edit Bookmark (Prompt Note & Tag)")
-  bind({ "n", "v" }, km.quick_add_bookmark or km.quick_bookmark or "<leader>hK", function() sh.quick_add_bookmark() end, "SmartBookmark: Quick Add Bookmark (No Prompt)")
-  bind({ "n", "v" }, km.toggle_bookmark_quick or "<leader>hx", function() sh.toggle_bookmark() end, "SmartBookmark: Toggle Bookmark (Add / Remove)")
+  bind({ "n", "v" }, km.add_bookmark or "<leader>hk", function() sh.add_bookmark() end, "SmartBookmark: Add / Edit Bookmark (Prompt Note & Tag)")
+  bind({ "n", "v" }, km.quick_add_bookmark or "<leader>hK", function() sh.quick_add_bookmark() end, "SmartBookmark: Quick Add Bookmark (No Prompt)")
+  bind("n", km.toggle_global_bookmarks or "<leader>hx", function() sh.toggle_global_bookmarks() end, "SmartBookmark: Toggle Global Bookmarks (Show/Hide)")
   bind("n", km.delete_bookmark or "<leader>hd", function() sh.delete_bookmark() end, "SmartBookmark: Delete Bookmark at Cursor")
   bind("n", km.clear_bookmarks or "<leader>hD", function() sh.clear_bookmarks() end, "SmartBookmark: Clear All Bookmarks")
   bind("n", km.search_bookmarks or "<leader>hl", function() sh.search_bookmarks({ scope = "all" }) end, "SmartBookmark: List & Search All Bookmarks")

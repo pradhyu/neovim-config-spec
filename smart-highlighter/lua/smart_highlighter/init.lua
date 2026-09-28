@@ -193,6 +193,7 @@ end
 M.add_bookmark = bookmarks.toggle_interactive
 M.quick_add_bookmark = bookmarks.quick_add
 M.toggle_bookmark = bookmarks.quick_toggle
+M.toggle_global_bookmarks = bookmarks.toggle_global
 M.delete_bookmark = bookmarks.remove_current
 M.remove_bookmark = bookmarks.remove_bookmark
 M.clear_bookmarks = bookmarks.clear_all

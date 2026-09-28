@@ -77,7 +77,7 @@ M.defaults = {
     -- Bookmarks
     add_bookmark = "<leader>hk",
     quick_add_bookmark = "<leader>hK",
-    toggle_bookmark = "<leader>hx",
+    toggle_global_bookmarks = "<leader>hx",
     delete_bookmark = "<leader>hd",
     clear_bookmarks = "<leader>hD",
     search_bookmarks = "<leader>hl",
