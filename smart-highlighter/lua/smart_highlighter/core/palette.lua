@@ -42,6 +42,64 @@ M.PALETTES = {
   },
 }
 
+  -- Tag-specific bookmark styles & highlight groups
+M.TAG_STYLES = {
+  FIXME = {
+    canonical = "FIXME",
+    label = "FIXME",
+    icon = "🔥",
+    color_dark = "#f38ba8",
+    color_light = "#d73a49",
+    bg_dark = "#3b2227",
+    bg_light = "#ffeef0",
+  },
+  TODO = {
+    canonical = "TODO",
+    label = "TODO",
+    icon = "📌",
+    color_dark = "#89b4fa",
+    color_light = "#0366d6",
+    bg_dark = "#1e293b",
+    bg_light = "#f0f6fc",
+  },
+  WARN = {
+    canonical = "WARN",
+    label = "WARN",
+    icon = "⚠️",
+    color_dark = "#fab387",
+    color_light = "#d99b00",
+    bg_dark = "#3b2d1d",
+    bg_light = "#fff8e1",
+  },
+  NOTE = {
+    canonical = "NOTE",
+    label = "NOTE",
+    icon = "📝",
+    color_dark = "#a6e3a1",
+    color_light = "#28a745",
+    bg_dark = "#1c3326",
+    bg_light = "#f0fff4",
+  },
+  HACK = {
+    canonical = "HACK",
+    label = "HACK",
+    icon = "⚡",
+    color_dark = "#cba6f7",
+    color_light = "#6f42c1",
+    bg_dark = "#2e1e3b",
+    bg_light = "#fbf0ff",
+  },
+  GENERAL = {
+    canonical = "GENERAL",
+    label = "BOOKMARK",
+    icon = "🔖",
+    color_dark = "#e5c07b",
+    color_light = "#b08800",
+    bg_dark = "#2c313a",
+    bg_light = "#eceff4",
+  },
+}
+
 ---Initialize and define highlight groups in Neovim
 function M.setup_highlights()
   local is_dark = vim.o.background ~= "light"
@@ -72,64 +130,6 @@ function M.setup_highlights()
   vim.api.nvim_set_hl(0, "SmartHighlightHUDHeader", { fg = "#61afef", bold = true, default = true })
   vim.api.nvim_set_hl(0, "SmartHighlightCount", { fg = "#98c379", bold = true, default = true })
   vim.api.nvim_set_hl(0, "SmartHighlightDisabled", { fg = "#5c6370", italic = true, default = true })
-
-  -- Tag-specific bookmark styles & highlight groups
-  M.TAG_STYLES = {
-    FIXME = {
-      canonical = "FIXME",
-      label = "FIXME",
-      icon = "🔥",
-      color_dark = "#f38ba8",
-      color_light = "#d73a49",
-      bg_dark = "#3b2227",
-      bg_light = "#ffeef0",
-    },
-    TODO = {
-      canonical = "TODO",
-      label = "TODO",
-      icon = "📌",
-      color_dark = "#89b4fa",
-      color_light = "#0366d6",
-      bg_dark = "#1e293b",
-      bg_light = "#f0f6fc",
-    },
-    WARN = {
-      canonical = "WARN",
-      label = "WARN",
-      icon = "⚠️",
-      color_dark = "#fab387",
-      color_light = "#d99b00",
-      bg_dark = "#3b2d1d",
-      bg_light = "#fff8e1",
-    },
-    NOTE = {
-      canonical = "NOTE",
-      label = "NOTE",
-      icon = "📝",
-      color_dark = "#a6e3a1",
-      color_light = "#28a745",
-      bg_dark = "#1c3326",
-      bg_light = "#f0fff4",
-    },
-    HACK = {
-      canonical = "HACK",
-      label = "HACK",
-      icon = "⚡",
-      color_dark = "#cba6f7",
-      color_light = "#6f42c1",
-      bg_dark = "#2e1e3b",
-      bg_light = "#fbf0ff",
-    },
-    GENERAL = {
-      canonical = "GENERAL",
-      label = "BOOKMARK",
-      icon = "🔖",
-      color_dark = "#e5c07b",
-      color_light = "#b08800",
-      bg_dark = "#2c313a",
-      bg_light = "#eceff4",
-    },
-  }
 
   for tag, style in pairs(M.TAG_STYLES) do
     local fg = is_dark and style.color_dark or style.color_light

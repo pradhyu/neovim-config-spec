@@ -96,15 +96,134 @@ function M.open_bottom_pane(scope_or_buf)
   local title = is_all and "Smart Highlights [All Open Buffers]" or "Smart Highlights [Current Buffer]"
   vim.fn.setqflist({}, "a", { title = title })
 
+  -- Capture origin window before opening quickfix
+  local origin_win = vim.api.nvim_get_current_win()
+
   -- Open cleanly at the bottom across full screen width
   local height = math.min(10, math.max(4, #qf_list))
   vim.cmd(string.format("botright copen %d", height))
 
-  -- Add comfortable close keymaps inside the bottom quickfix buffer
   local qf_win = vim.api.nvim_get_current_win()
   local qf_buf = vim.api.nvim_win_get_buf(qf_win)
-  vim.keymap.set("n", "q", "<cmd>cclose<cr>", { buffer = qf_buf, silent = true, nowait = true })
-  vim.keymap.set("n", "<Esc>", "<cmd>cclose<cr>", { buffer = qf_buf, silent = true, nowait = true })
+
+  local function get_target_win()
+    if origin_win and vim.api.nvim_win_is_valid(origin_win) and vim.api.nvim_win_get_config(origin_win).relative == "" then
+      local bt = vim.bo[vim.api.nvim_win_get_buf(origin_win)].buftype
+      if bt == "" or bt == "acwrite" then
+        return origin_win
+      end
+    end
+
+    -- Look for a normal editor window
+    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      if win ~= qf_win and vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_config(win).relative == "" then
+        local bt = vim.bo[vim.api.nvim_win_get_buf(win)].buftype
+        if bt == "" or bt == "acwrite" then
+          return win
+        end
+      end
+    end
+
+    -- Fallback to any non-quickfix, non-terminal window
+    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      if win ~= qf_win and vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_config(win).relative == "" then
+        local bt = vim.bo[vim.api.nvim_win_get_buf(win)].buftype
+        if bt ~= "quickfix" and bt ~= "terminal" and bt ~= "prompt" then
+          return win
+        end
+      end
+    end
+
+    return origin_win
+  end
+
+  -- Live preview: update editor window buffer & cursor position as selection moves in the bottom pane
+  local function preview_current_item()
+    if not vim.api.nvim_win_is_valid(qf_win) then
+      return
+    end
+    local target_win = get_target_win()
+    if not (target_win and vim.api.nvim_win_is_valid(target_win)) then
+      return
+    end
+
+    local cursor = vim.api.nvim_win_get_cursor(qf_win)
+    local line_idx = cursor[1]
+    local item = qf_list[line_idx]
+    if not item then
+      return
+    end
+
+    local bufnr = item.bufnr
+    if (not bufnr or not vim.api.nvim_buf_is_valid(bufnr)) and item.filename and item.filename ~= "" then
+      bufnr = vim.fn.bufnr(item.filename, true)
+      if bufnr > 0 and not vim.api.nvim_buf_is_loaded(bufnr) then
+        vim.fn.bufload(bufnr)
+      end
+    end
+
+    if bufnr and bufnr > 0 and vim.api.nvim_buf_is_valid(bufnr) then
+      if vim.api.nvim_win_get_buf(target_win) ~= bufnr then
+        vim.api.nvim_win_set_buf(target_win, bufnr)
+      end
+      local line_count = vim.api.nvim_buf_line_count(bufnr)
+      local row = math.max(1, math.min(item.lnum or 1, line_count))
+      local line_content = vim.api.nvim_buf_get_lines(bufnr, row - 1, row, false)[1] or ""
+      local max_col = #line_content
+      local col = math.max(0, math.min((item.col or 1) - 1, max_col))
+
+      pcall(vim.api.nvim_win_set_cursor, target_win, { row, col })
+      pcall(vim.api.nvim_win_call, target_win, function()
+        vim.cmd("normal! zz")
+      end)
+    end
+  end
+
+  local function open_selected_item()
+    preview_current_item()
+    local target_win = get_target_win()
+    vim.cmd("cclose")
+    if target_win and vim.api.nvim_win_is_valid(target_win) then
+      vim.api.nvim_set_current_win(target_win)
+    end
+  end
+
+  local k_opts = { buffer = qf_buf, silent = true, nowait = true }
+  vim.keymap.set("n", "<CR>", open_selected_item, k_opts)
+  vim.keymap.set("n", "o", open_selected_item, k_opts)
+  vim.keymap.set("n", "<2-LeftMouse>", open_selected_item, k_opts)
+  vim.keymap.set("n", "q", function()
+    local target_win = get_target_win()
+    vim.cmd("cclose")
+    if target_win and vim.api.nvim_win_is_valid(target_win) then
+      vim.api.nvim_set_current_win(target_win)
+    end
+  end, k_opts)
+  vim.keymap.set("n", "<Esc>", function()
+    local target_win = get_target_win()
+    vim.cmd("cclose")
+    if target_win and vim.api.nvim_win_is_valid(target_win) then
+      vim.api.nvim_set_current_win(target_win)
+    end
+  end, k_opts)
+
+  local augroup = vim.api.nvim_create_augroup(string.format("SmartHighlighterQfPreview_%d", qf_buf), { clear = true })
+  vim.api.nvim_create_autocmd({ "CursorMoved" }, {
+    group = augroup,
+    buffer = qf_buf,
+    callback = preview_current_item,
+  })
+  vim.api.nvim_create_autocmd({ "BufWipeout", "BufDelete" }, {
+    group = augroup,
+    buffer = qf_buf,
+    callback = function()
+      pcall(vim.api.nvim_del_augroup_by_id, augroup)
+    end,
+    once = true,
+  })
+
+  -- Preview first selected item immediately on open
+  preview_current_item()
 
   vim.notify(string.format("[SmartHighlight] Opened %d matches (%s) in bottom buffer pane", #qf_list, is_all and "All Open Buffers" or "Current Buffer"), vim.log.levels.INFO)
 end

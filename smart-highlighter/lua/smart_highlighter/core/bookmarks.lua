@@ -526,6 +526,46 @@ function M.toggle_interactive(custom_note)
   end)
 end
 
+---Quick add bookmark on current line without prompting (does not delete if already exists)
+function M.quick_add()
+  local cur_buf = vim.api.nvim_get_current_buf()
+  local file = vim.api.nvim_buf_get_name(cur_buf)
+  if not file or file == "" then
+    vim.notify("[SmartBookmark] Cannot bookmark an unnamed buffer. Save the file first.", vim.log.levels.WARN)
+    return
+  end
+
+  local cur = vim.api.nvim_win_get_cursor(0)
+  local line = cur[1]
+  local col = cur[2]
+
+  local target_text = get_target_text()
+  local bm = M.set_bookmark(file, line, col, target_text, target_text)
+  local style = (palette.TAG_STYLES and palette.TAG_STYLES[bm.tag]) or {}
+  local icon = style.icon or "🔖"
+  vim.notify(string.format("[SmartBookmark] %s Added [%s] Bookmark at Line %d: '%s'", icon, bm.tag, line, bm.note), vim.log.levels.INFO)
+end
+
+---Delete bookmark on the current cursor line
+function M.remove_current()
+  local cur_buf = vim.api.nvim_get_current_buf()
+  local file = vim.api.nvim_buf_get_name(cur_buf)
+  if not file or file == "" then
+    return
+  end
+
+  local cur = vim.api.nvim_win_get_cursor(0)
+  local line = cur[1]
+
+  local _, existing = M.find_by_location(file, line)
+  if existing then
+    M.remove_bookmark(existing.id)
+    vim.notify(string.format("[SmartBookmark] Removed bookmark #%d at Line %d", existing.id, line), vim.log.levels.INFO)
+  else
+    vim.notify(string.format("[SmartBookmark] No bookmark found on Line %d to remove", line), vim.log.levels.WARN)
+  end
+end
+
 ---Quick toggle bookmark on current line without prompting (immediately uses highlighted/line text)
 function M.quick_toggle()
   local cur_buf = vim.api.nvim_get_current_buf()
@@ -782,16 +822,112 @@ function M.open_bottom_pane(scope, tag)
   local title = string.format("Smart Bookmarks [%s%s] (t: Filter Tag | a: All | q: Close)", scope_label, filter_label)
   vim.fn.setqflist({}, "a", { title = title })
 
+  local origin_win = vim.api.nvim_get_current_win()
+
   local height = math.min(10, math.max(4, #list))
   vim.cmd(string.format("botright copen %d", height))
 
   local qf_win = vim.api.nvim_get_current_win()
   local qf_buf = vim.api.nvim_win_get_buf(qf_win)
 
-  -- Bind interactive controls inside the bottom pane
+  local function get_target_win()
+    if origin_win and vim.api.nvim_win_is_valid(origin_win) and vim.api.nvim_win_get_config(origin_win).relative == "" then
+      local bt = vim.bo[vim.api.nvim_win_get_buf(origin_win)].buftype
+      if bt == "" or bt == "acwrite" then
+        return origin_win
+      end
+    end
+
+    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      if win ~= qf_win and vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_config(win).relative == "" then
+        local bt = vim.bo[vim.api.nvim_win_get_buf(win)].buftype
+        if bt == "" or bt == "acwrite" then
+          return win
+        end
+      end
+    end
+
+    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      if win ~= qf_win and vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_config(win).relative == "" then
+        local bt = vim.bo[vim.api.nvim_win_get_buf(win)].buftype
+        if bt ~= "quickfix" and bt ~= "terminal" and bt ~= "prompt" then
+          return win
+        end
+      end
+    end
+
+    return origin_win
+  end
+
+  -- Live preview: update editor window buffer & cursor position as selection moves in the bottom pane
+  local function preview_current_item()
+    if not vim.api.nvim_win_is_valid(qf_win) then
+      return
+    end
+    local target_win = get_target_win()
+    if not (target_win and vim.api.nvim_win_is_valid(target_win)) then
+      return
+    end
+
+    local cursor = vim.api.nvim_win_get_cursor(qf_win)
+    local line_idx = cursor[1]
+    local item = list[line_idx]
+    if not item then
+      return
+    end
+
+    local bufnr = item.bufnr
+    if (not bufnr or not vim.api.nvim_buf_is_valid(bufnr)) and item.filename and item.filename ~= "" then
+      bufnr = vim.fn.bufnr(item.filename, true)
+      if bufnr > 0 and not vim.api.nvim_buf_is_loaded(bufnr) then
+        vim.fn.bufload(bufnr)
+      end
+    end
+
+    if bufnr and bufnr > 0 and vim.api.nvim_buf_is_valid(bufnr) then
+      if vim.api.nvim_win_get_buf(target_win) ~= bufnr then
+        vim.api.nvim_win_set_buf(target_win, bufnr)
+      end
+      local line_count = vim.api.nvim_buf_line_count(bufnr)
+      local row = math.max(1, math.min(item.lnum or 1, line_count))
+      local line_content = vim.api.nvim_buf_get_lines(bufnr, row - 1, row, false)[1] or ""
+      local max_col = #line_content
+      local col = math.max(0, math.min((item.col or 1) - 1, max_col))
+
+      pcall(vim.api.nvim_win_set_cursor, target_win, { row, col })
+      pcall(vim.api.nvim_win_call, target_win, function()
+        vim.cmd("normal! zz")
+      end)
+    end
+  end
+
+  local function open_selected_item()
+    preview_current_item()
+    local target_win = get_target_win()
+    vim.cmd("cclose")
+    if target_win and vim.api.nvim_win_is_valid(target_win) then
+      vim.api.nvim_set_current_win(target_win)
+    end
+  end
+
   local k_opts = { buffer = qf_buf, silent = true, nowait = true }
-  vim.keymap.set("n", "q", "<cmd>cclose<cr>", k_opts)
-  vim.keymap.set("n", "<Esc>", "<cmd>cclose<cr>", k_opts)
+  vim.keymap.set("n", "<CR>", open_selected_item, k_opts)
+  vim.keymap.set("n", "o", open_selected_item, k_opts)
+  vim.keymap.set("n", "<2-LeftMouse>", open_selected_item, k_opts)
+  vim.keymap.set("n", "q", function()
+    local target_win = get_target_win()
+    vim.cmd("cclose")
+    if target_win and vim.api.nvim_win_is_valid(target_win) then
+      vim.api.nvim_set_current_win(target_win)
+    end
+  end, k_opts)
+  vim.keymap.set("n", "<Esc>", function()
+    local target_win = get_target_win()
+    vim.cmd("cclose")
+    if target_win and vim.api.nvim_win_is_valid(target_win) then
+      vim.api.nvim_set_current_win(target_win)
+    end
+  end, k_opts)
 
   -- 't' key: switch tag filter
   vim.keymap.set("n", "t", function()
@@ -805,6 +941,24 @@ function M.open_bottom_pane(scope, tag)
     M.active_filter = nil
     M.open_bottom_pane(scope, nil)
   end, k_opts)
+
+  local augroup = vim.api.nvim_create_augroup(string.format("SmartBookmarkQfPreview_%d", qf_buf), { clear = true })
+  vim.api.nvim_create_autocmd({ "CursorMoved" }, {
+    group = augroup,
+    buffer = qf_buf,
+    callback = preview_current_item,
+  })
+  vim.api.nvim_create_autocmd({ "BufWipeout", "BufDelete" }, {
+    group = augroup,
+    buffer = qf_buf,
+    callback = function()
+      pcall(vim.api.nvim_del_augroup_by_id, augroup)
+    end,
+    once = true,
+  })
+
+  -- Preview first selected item immediately on open
+  preview_current_item()
 
   vim.notify(string.format("[SmartBookmark] %d bookmarks loaded in bottom list (Press 't' to filter by tag)", #list), vim.log.levels.INFO)
 end

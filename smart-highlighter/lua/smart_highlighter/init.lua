@@ -190,8 +190,10 @@ function M.toggle_all_buffers(custom_text)
 end
 
 -- Forward Bookmark APIs
-M.toggle_bookmark = bookmarks.toggle_interactive
-M.quick_bookmark = bookmarks.quick_toggle
+M.add_bookmark = bookmarks.toggle_interactive
+M.quick_add_bookmark = bookmarks.quick_add
+M.toggle_bookmark = bookmarks.quick_toggle
+M.delete_bookmark = bookmarks.remove_current
 M.remove_bookmark = bookmarks.remove_bookmark
 M.clear_bookmarks = bookmarks.clear_all
 M.jump_bookmark = bookmarks.jump

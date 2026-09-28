@@ -75,8 +75,11 @@ M.defaults = {
     search_matches_buffer = "<leader>hF",
 
     -- Bookmarks
-    toggle_bookmark = "<leader>hk",
-    quick_bookmark = "<leader>hK",
+    add_bookmark = "<leader>hk",
+    quick_add_bookmark = "<leader>hK",
+    toggle_bookmark = "<leader>hx",
+    delete_bookmark = "<leader>hd",
+    clear_bookmarks = "<leader>hD",
     search_bookmarks = "<leader>hl",
     bottom_bookmarks = "<leader>hL",
     filter_bookmarks = "<leader>ht",

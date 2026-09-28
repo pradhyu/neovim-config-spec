@@ -334,10 +334,12 @@ if config.options.default_keymaps then
   bind("n", km.export_quickfix or "<leader>hq", function() sh.export_quickfix("all") end, "SmartHighlight: Export to Quickfix (All Buffers)")
   bind("n", km.search_matches or "<leader>hf", function() sh.search_matches({ scope = "all" }) end, "SmartHighlight: Search Matches (All Open Buffers)")
   bind("n", km.search_matches_buffer or "<leader>hF", function() sh.search_matches({ scope = "current" }) end, "SmartHighlight: Search Matches (Current Buffer Only)")
-
   -- Bookmark keymaps
-  bind({ "n", "v" }, km.toggle_bookmark or "<leader>hk", function() sh.toggle_bookmark() end, "SmartBookmark: Toggle Bookmark (Prompt Note)")
-  bind({ "n", "v" }, km.quick_bookmark or "<leader>hK", function() sh.quick_bookmark() end, "SmartBookmark: Quick Toggle (Use Highlighted Text)")
+  bind({ "n", "v" }, km.add_bookmark or km.toggle_bookmark or "<leader>hk", function() sh.add_bookmark() end, "SmartBookmark: Add / Edit Bookmark (Prompt Note & Tag)")
+  bind({ "n", "v" }, km.quick_add_bookmark or km.quick_bookmark or "<leader>hK", function() sh.quick_add_bookmark() end, "SmartBookmark: Quick Add Bookmark (No Prompt)")
+  bind({ "n", "v" }, km.toggle_bookmark_quick or "<leader>hx", function() sh.toggle_bookmark() end, "SmartBookmark: Toggle Bookmark (Add / Remove)")
+  bind("n", km.delete_bookmark or "<leader>hd", function() sh.delete_bookmark() end, "SmartBookmark: Delete Bookmark at Cursor")
+  bind("n", km.clear_bookmarks or "<leader>hD", function() sh.clear_bookmarks() end, "SmartBookmark: Clear All Bookmarks")
   bind("n", km.search_bookmarks or "<leader>hl", function() sh.search_bookmarks({ scope = "all" }) end, "SmartBookmark: List & Search All Bookmarks")
   bind("n", km.bottom_bookmarks or "<leader>hL", function() sh.bottom_pane_bookmarks("all") end, "SmartBookmark: Bottom Pane Bookmarks")
   bind("n", km.filter_bookmarks or "<leader>ht", function()
@@ -355,10 +357,10 @@ if config.options.default_keymaps then
 
   -- Option (Alt) Key Shortcuts (Zero-leader rapid access)
   if config.options.alt_keymaps ~= false then
-    bind({ "n", "v" }, km.alt_toggle_bookmark or "<M-b>", function() sh.toggle_bookmark() end, "SmartBookmark: Toggle Bookmark (Alt/Option-b)")
-    bind({ "n", "v" }, km.alt_quick_bookmark or "<M-B>", function() sh.quick_bookmark() end, "SmartBookmark: Quick Toggle (Alt/Option-B)")
-    bind({ "n", "v" }, km.alt_toggle_highlight or "<M-h>", function() sh.toggle() end, "SmartHighlight: Toggle Highlight (Alt/Option-h)")
-    bind("n", km.alt_open_hud or "<M-m>", function() sh.open_hud() end, "SmartHighlight: Open HUD Manager (Alt/Option-m)")
+    bind({ "n", "v" }, km.alt_toggle_bookmark or "<M-b>", function() sh.toggle_bookmark() end, "SmartBookmark: Add / Edit Bookmark (Alt-b)")
+    bind({ "n", "v" }, km.alt_quick_bookmark or "<M-B>", function() sh.quick_bookmark() end, "SmartBookmark: Quick Add Bookmark (Alt-B)")
+    bind({ "n", "v" }, km.alt_toggle_highlight or "<M-h>", function() sh.toggle() end, "SmartHighlight: Toggle Highlight (Alt-h)")
+    bind("n", km.alt_open_hud or "<M-m>", function() sh.open_hud() end, "SmartHighlight: Open HUD Manager (Alt-m)")
   end
 
   -- Jump navigation keymaps
