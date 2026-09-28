@@ -59,7 +59,7 @@
   9. `navarasu/onedark.nvim` (Deep / dark atom style)
   10. `folke/tokyonight.nvim` (Default LazyVim dark blue)
 
-### C. AI & Agent Integration
+## C. AI & Agent Integration
 * **`folke/sidekick.nvim`**:
   * Tools: `antigravity` (`cmd = { "agy" }`)
   * Keymaps:
