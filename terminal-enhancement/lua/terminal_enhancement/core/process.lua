@@ -234,15 +234,12 @@ function M.get_process_info(pid)
   end
 
   local comm = read_file(string.format("/proc/%d/comm", pid))
-  comm = comm and vim.trim(comm) or "unknown"
+  comm = comm and vim.trim(comm) or nil
 
   local cmdline_raw = read_file(string.format("/proc/%d/cmdline", pid))
   local cmdline = ""
   if cmdline_raw then
     cmdline = cmdline_raw:gsub("%z", " "):gsub("%s+$", "")
-  end
-  if cmdline == "" then
-    cmdline = comm
   end
 
   local ppid = 0
@@ -252,6 +249,26 @@ function M.get_process_info(pid)
     if ppid_str then
       ppid = tonumber(ppid_str) or 0
     end
+  end
+
+  -- macOS / BSD fallback when /proc doesn't exist
+  if not comm or comm == "" or ppid == 0 then
+    local ok, ps_out = pcall(vim.fn.system, { "ps", "-p", tostring(pid), "-o", "ppid=,comm=,args=" })
+    if ok and vim.v.shell_error == 0 and ps_out and ps_out ~= "" then
+      local ppid_str, comm_str, args_str = ps_out:match("^%s*(%d+)%s+([^%s]+)%s+(.*)$")
+      if ppid_str then
+        ppid = tonumber(ppid_str) or ppid
+        comm = comm or vim.fn.fnamemodify(comm_str, ":t")
+        if cmdline == "" and args_str then
+          cmdline = vim.trim(args_str)
+        end
+      end
+    end
+  end
+
+  comm = comm or "unknown"
+  if cmdline == "" then
+    cmdline = comm
   end
 
   return {
@@ -332,6 +349,18 @@ function M.get_terminal_cwd(inst_or_buf)
   if ok and cwd and cwd ~= "" then
     return cwd
   end
+
+  -- macOS fallback via lsof
+  if vim.fn.executable("lsof") == 1 then
+    local ok_lsof, lsof_out = pcall(vim.fn.system, { "lsof", "-a", "-p", tostring(pid), "-d", "cwd", "-Fn" })
+    if ok_lsof and lsof_out and lsof_out ~= "" then
+      local dir = lsof_out:match("n(/.+)")
+      if dir and dir ~= "" then
+        return vim.trim(dir)
+      end
+    end
+  end
+
   return nil
 end
 
@@ -403,7 +432,7 @@ function M.get_listening_ports(filter_pids)
   local ports = {}
   local seen_keys = {}
 
-  -- 1. Try ss -tulpnH
+  -- 1. Try ss -tulpnH (Linux)
   local ok, ss_out = pcall(vim.fn.system, { "ss", "-tulpnH" })
   if ok and ss_out and ss_out ~= "" then
     for line in ss_out:gmatch("[^\r\n]+") do
@@ -463,7 +492,38 @@ function M.get_listening_ports(filter_pids)
         end
       end
     end
-    return ports
+    if #ports > 0 then
+      return ports
+    end
+  end
+
+  -- 2. Fallback to lsof -iTCP -sTCP:LISTEN -n -P (macOS & BSD & Linux)
+  if vim.fn.executable("lsof") == 1 then
+    local ok_lsof, lsof_out = pcall(vim.fn.system, { "lsof", "-iTCP", "-sTCP:LISTEN", "-n", "-P" })
+    if ok_lsof and lsof_out and lsof_out ~= "" then
+      for line in lsof_out:gmatch("[^\r\n]+") do
+        local comm, pid_str, port_str = line:match("^([^%s]+)%s+(%d+)%s+.-TCP%s+.-:(%d+)%s+%(")
+        if not port_str then
+          comm, pid_str, port_str = line:match("^([^%s]+)%s+(%d+)%s+.-TCP%s+.-:(%d+)$")
+        end
+        local p = tonumber(pid_str)
+        local port = tonumber(port_str)
+        if port and p then
+          if not filter_pids or filter_pids[p] then
+            local key = string.format("tcp:%d:%d", port, p)
+            if not seen_keys[key] then
+              seen_keys[key] = true
+              table.insert(ports, {
+                port = port,
+                proto = "tcp",
+                pid = p,
+                comm = comm,
+              })
+            end
+          end
+        end
+      end
+    end
   end
 
   return ports

@@ -28,6 +28,76 @@ end, {
   desc = "Open split terminal",
 })
 
+vim.api.nvim_create_user_command("TermHide", function(opts)
+  local arg = opts.args ~= "" and opts.args or nil
+  term_enh.hide(arg)
+end, {
+  nargs = "?",
+  complete = function()
+    local matches = {}
+    for _, item in ipairs(term_enh.get_active_terminals()) do
+      table.insert(matches, item.id)
+    end
+    return matches
+  end,
+  desc = "Hide terminal window (current or specified) without closing process",
+})
+
+vim.api.nvim_create_user_command("TermHideAll", function()
+  term_enh.hide_all()
+end, {
+  desc = "Hide all open terminal windows without terminating background jobs",
+})
+
+vim.api.nvim_create_user_command("TermShow", function(opts)
+  local arg = opts.args ~= "" and opts.args or nil
+  term_enh.show(arg)
+end, {
+  nargs = "?",
+  complete = function()
+    local matches = {}
+    for _, item in ipairs(term_enh.get_active_terminals()) do
+      table.insert(matches, item.id)
+    end
+    return matches
+  end,
+  desc = "Show/open hidden terminal without restarting or killing session",
+})
+
+vim.api.nvim_create_user_command("TermShowAll", function(opts)
+  local dir = opts.args ~= "" and opts.args:lower() or nil
+  term_enh.show_all(dir)
+end, {
+  nargs = "?",
+  complete = function()
+    return { "float", "horizontal", "vertical" }
+  end,
+  desc = "Unhide and show all hidden terminal windows at once",
+})
+
+vim.api.nvim_create_user_command("TermUnhideAll", function(opts)
+  local dir = opts.args ~= "" and opts.args:lower() or nil
+  term_enh.show_all(dir)
+end, {
+  nargs = "?",
+  complete = function()
+    return { "float", "horizontal", "vertical" }
+  end,
+  desc = "Unhide and show all hidden terminal windows at once",
+})
+
+vim.api.nvim_create_user_command("TermUnhide", function()
+  term_enh.unhide_picker()
+end, {
+  desc = "Interactive multi-select picker to inspect, check, and unhide hidden terminals",
+})
+
+vim.api.nvim_create_user_command("TermShowPicker", function()
+  term_enh.unhide_picker()
+end, {
+  desc = "Interactive multi-select picker to inspect, check, and unhide hidden terminals",
+})
+
 vim.api.nvim_create_user_command("TermTool", function(opts)
   local tool = opts.args
   if tool == "" then
@@ -50,23 +120,125 @@ end, {
   desc = "Open dedicated tool terminal (lazygit, htop, agy, etc.)",
 })
 
+vim.api.nvim_create_user_command("TermPrompt", function(opts)
+  term_enh.prompt({ initial_text = opts.args })
+end, {
+  nargs = "?",
+  desc = "Interactive command bar with Fish-like live dimmed autocomplete & history ghost text",
+})
+
+vim.api.nvim_create_user_command("TermExec", function(opts)
+  term_enh.prompt({ initial_text = opts.args })
+end, {
+  nargs = "?",
+  desc = "Interactive command runner with Fish-like ghost text completion",
+})
+
 vim.api.nvim_create_user_command("TermRun", function(opts)
   if opts.args == "" then
-    vim.notify("[TermEnhance] Usage: :TermRun <command>", vim.log.levels.WARN)
+    term_enh.prompt()
     return
   end
   term_enh.run(opts.args)
 end, {
-  nargs = "+",
-  desc = "Run arbitrary shell command in floating terminal",
+  nargs = "*",
+  desc = "Run shell command in terminal (opens Fish ghost-text prompt if no command provided)",
 })
 
 vim.api.nvim_create_user_command("TermSend", function(opts)
-  term_enh.send_selection(opts.line1, opts.line2, "raw")
+  local subcmd = opts.args ~= "" and opts.args:lower() or nil
+
+  if subcmd == "line" then
+    term_enh.send_line()
+  elseif subcmd == "block" then
+    term_enh.send_block()
+  elseif subcmd == "step" then
+    term_enh.send_step()
+  elseif subcmd == "file" then
+    term_enh.send_file()
+  elseif subcmd == "visual" then
+    term_enh.send_visual()
+  elseif subcmd == "last" or subcmd == "outcome" then
+    term_enh.show_last_output()
+  elseif subcmd == "history" then
+    term_enh.show_history()
+  elseif subcmd == "copy_output" or subcmd == "copy" then
+    term_enh.copy_last_output()
+  elseif subcmd == "copy_command" or subcmd == "copy_cmd" then
+    term_enh.copy_last_command()
+  elseif subcmd == "paste_output" or subcmd == "paste" then
+    term_enh.paste_last_output()
+  elseif subcmd == "toggle_copy" then
+    term_enh.toggle_copy_output()
+  elseif subcmd == "toggle_paste" then
+    term_enh.toggle_paste_output()
+  elseif opts.range ~= 0 then
+    term_enh.send_selection(opts.line1, opts.line2, "raw")
+  else
+    term_enh.send_line()
+  end
 end, {
   range = true,
-  desc = "Send line or visual selection to target terminal with bracketed paste",
+  nargs = "?",
+  complete = function()
+    return {
+      "line",
+      "block",
+      "step",
+      "file",
+      "visual",
+      "last",
+      "outcome",
+      "history",
+      "copy_output",
+      "copy_command",
+      "paste_output",
+      "toggle_copy",
+      "toggle_paste",
+    }
+  end,
+  desc = "Send code (line, block, step, file, visual) or manage outcome history",
 })
+
+vim.api.nvim_create_user_command("TermSendLine", function()
+  term_enh.send_line()
+end, { desc = "Send current line or inline command with prompt stripping" })
+
+vim.api.nvim_create_user_command("TermSendBlock", function()
+  term_enh.send_block()
+end, { desc = "Send current code block (Markdown fence or Treesitter node)" })
+
+vim.api.nvim_create_user_command("TermSendStep", function()
+  term_enh.send_step()
+end, { desc = "Send current command and step cursor to next line" })
+
+vim.api.nvim_create_user_command("TermSendFile", function()
+  term_enh.send_file()
+end, { desc = "Send entire buffer/file to target terminal" })
+
+vim.api.nvim_create_user_command("TermOutcome", function()
+  term_enh.show_last_output()
+end, { desc = "Show floating modal of the last terminal execution outcome" })
+
+vim.api.nvim_create_user_command("TermHistory", function()
+  term_enh.show_history()
+end, { desc = "Show interactive terminal execution history" })
+
+vim.api.nvim_create_user_command("TermCopyOutput", function()
+  term_enh.copy_last_output()
+end, { desc = "Copy last terminal execution outcome to clipboard" })
+
+vim.api.nvim_create_user_command("TermPasteOutput", function()
+  term_enh.paste_last_output()
+end, { desc = "Paste last terminal execution outcome as commented lines below cursor" })
+
+vim.api.nvim_create_user_command("TermToggleCopy", function()
+  term_enh.toggle_copy_output()
+end, { desc = "Toggle auto-copying outcome to clipboard" })
+
+vim.api.nvim_create_user_command("TermTogglePaste", function()
+  term_enh.toggle_paste_output()
+end, { desc = "Toggle auto-pasting outcome into buffer" })
 
 vim.api.nvim_create_user_command("TermSendJoined", function(opts)
   local mode = (opts.args == "and" or opts.args == "&&") and "join_and" or "join_continuation"
@@ -354,6 +526,30 @@ end, {
     return matches
   end,
   desc = "Inspect terminal shell, process tree, and listening ports: :TermInfo [term_id]",
+})
+
+vim.api.nvim_create_user_command("TermStatusBarToggle", function()
+  term_enh.toggle_status_bar()
+end, {
+  desc = "Toggle terminal lower status bar",
+})
+
+vim.api.nvim_create_user_command("TermStatus", function()
+  term_enh.toggle_status_bar()
+end, {
+  desc = "Toggle terminal lower status bar",
+})
+
+vim.api.nvim_create_user_command("TermStickyToggle", function()
+  term_enh.toggle_status_bar()
+end, {
+  desc = "Toggle terminal lower status bar (legacy alias)",
+})
+
+vim.api.nvim_create_user_command("TermSticky", function()
+  term_enh.toggle_status_bar()
+end, {
+  desc = "Toggle terminal lower status bar (legacy alias)",
 })
 
 

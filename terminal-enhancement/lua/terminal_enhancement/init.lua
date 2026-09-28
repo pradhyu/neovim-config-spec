@@ -49,6 +49,41 @@ function M.toggle(direction, id)
   terminal.toggle(id or terminal.default_target or "default", nil, direction)
 end
 
+---Explicitly hide terminal window (current or specified) without closing process
+---@param id_or_buf? string|integer
+function M.hide(id_or_buf)
+  terminal.hide(id_or_buf)
+end
+
+---Hide all open terminal windows without closing running processes
+function M.hide_all()
+  terminal.hide_all()
+end
+
+---Explicitly show/open terminal window
+---@param id? string
+---@param direction? "float"|"horizontal"|"vertical"
+---@param focus? boolean
+function M.show(id, direction, focus)
+  terminal.show(id, direction, focus)
+end
+
+---Unhide/show all currently hidden terminals
+---@param direction? "float"|"horizontal"|"vertical"
+function M.show_all(direction)
+  terminal.show_all(direction)
+end
+
+---Open interactive multi-select picker to check and unhide hidden terminals
+function M.unhide_picker()
+  terminal.unhide_interactive()
+end
+
+---Alias for unhide_picker
+function M.show_picker()
+  terminal.unhide_interactive()
+end
+
 ---Open terminal directly in active window like a normal buffer
 ---@param id? string
 function M.open_as_buffer(id)
@@ -84,9 +119,70 @@ function M.send_joined(line1, line2, mode)
   runner.send_joined(line1, line2, mode)
 end
 
----Send current line to terminal
+---Send current line or inline code to terminal
 function M.send_line()
-  runner.send_current_line()
+  runner.send_line()
+end
+
+---Send enclosing code block (Markdown code fence, Treesitter block, or paragraph)
+function M.send_block()
+  runner.send_block()
+end
+
+---Send current line/command and auto-advance to next executable line
+function M.send_step()
+  runner.send_step()
+end
+
+---Send entire buffer/file to terminal
+function M.send_file()
+  runner.send_file()
+end
+
+---Send visual selection to terminal
+function M.send_visual()
+  runner.send_visual()
+end
+
+---Show floating modal with the last command execution outcome
+function M.show_last_output()
+  history.show_last_output()
+end
+
+---Interactive execution history picker
+function M.show_history()
+  history.show_history_ui()
+end
+
+---Copy last command outcome/output to clipboard
+function M.copy_last_output()
+  history.copy_last_output()
+end
+
+---Copy last executed command text to clipboard
+function M.copy_last_command()
+  history.copy_last_command()
+end
+
+---Paste last output as commented lines below current line
+function M.paste_last_output()
+  history.paste_last_output_to_current_buffer()
+end
+
+---Toggle auto-copying outcome to clipboard
+function M.toggle_copy_output()
+  config.options.history = config.options.history or {}
+  config.options.history.copy_output_to_clipboard = not config.options.history.copy_output_to_clipboard
+  local state_str = config.options.history.copy_output_to_clipboard and "ENABLED" or "DISABLED"
+  vim.notify(string.format("[TermEnhance] Auto-copy outcome to clipboard: %s", state_str), vim.log.levels.INFO)
+end
+
+---Toggle auto-pasting outcome into buffer
+function M.toggle_paste_output()
+  config.options.history = config.options.history or {}
+  config.options.history.paste_output_to_buffer = not config.options.history.paste_output_to_buffer
+  local state_str = config.options.history.paste_output_to_buffer and "ENABLED" or "DISABLED"
+  vim.notify(string.format("[TermEnhance] Auto-paste outcome into buffer: %s", state_str), vim.log.levels.INFO)
 end
 
 ---Select or switch the default target terminal
@@ -201,6 +297,22 @@ end
 ---@param target? string
 function M.open_link(target)
   return link_resolver.open(target)
+end
+
+---Open interactive command prompt with Fish-like live ghost text autocomplete
+---@param opts? table
+function M.prompt(opts)
+  require("terminal_enhancement.ui.prompt").open(opts)
+end
+
+---Toggle terminal lower status bar
+function M.toggle_status_bar()
+  require("terminal_enhancement.ui.status_bar").toggle()
+end
+
+---Toggle status bar (legacy alias)
+function M.toggle_sticky_scroll()
+  M.toggle_status_bar()
 end
 
 return M

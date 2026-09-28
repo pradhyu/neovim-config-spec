@@ -12,6 +12,7 @@
   * `ripgrep` (`rg`) - for fast project search.
   * `fd` - for fast file search.
   * `agy` (Antigravity CLI) - for AI pair programming.
+  * `leaf` (`leaf-markdown-viewer`) - terminal Markdown reader with interactive TOC, fuzzy picker, and watch mode.
   * `mermaid-cli` (`mmdc`) - for compiling Mermaid diagrams into terminal images.
   * `helix` (`hx`) - secondary modal editor.
 
@@ -69,6 +70,12 @@
 * **`antigravity.nvim`**: Local remote RPC helper for Antigravity skills.
 
 ### D. Markdown & Documentation
+* **`leaf` (Leaf Markdown Viewer)**:
+  * Fast terminal-based Markdown reader with GUI-like interactive table of contents, fuzzy file picker, search, and live watch mode.
+  * Installation: `brew install leaf-markdown-viewer` or `cargo install leaf-markdown-viewer` or direct binary from `github.com/RivoLink/leaf`.
+  * Integration:
+    * Run via `:TermTool leaf %` or `:TermTool leaf -w %` inside Neovim.
+    * Keymap: `<leader>tm` (Launch Leaf in watch mode for active buffer).
 * **`lazyvim.plugins.extras.lang.markdown`**:
   * **`MeanderingProgrammer/render-markdown.nvim`**: Full in-buffer rich rendering of Markdown tables, callout blocks (`> [!NOTE]`), interactive checkboxes, styled headings, and code block badges.
   * **`iamcco/markdown-preview.nvim`**: Real-time browser preview with synchronous scrolling and interactive Mermaid graphs.
@@ -119,22 +126,45 @@
     * `<leader>um`: Lua Memory and Garbage Collection
 
 * **`terminal-enhancement.nvim`** (Local repo: `~/git/neovim-config-spec/terminal-enhancement`):
-  * Multi-direction persistent terminals, atomic multi-line code runners, multi-select process termination, dynamic terminal renaming, and smart compiler/stacktrace link navigation.
+  * Unified modern terminal suite: Multi-direction persistent terminals, intelligent Markdown/REPL code dispatcher, prompt stripping, stepper execution, execution outcome recording & clipboard sync, interactive process & port killer, dynamic renaming, and smart compiler/stacktrace link navigation.
   * **Key Features:**
-    * **Multi-Line Continuation & Auto-Expansion:** Automatically detects `\` (Bash/Zsh) and `` ` `` (PowerShell) continuations. Selecting any single line of a multi-line command automatically captures and sends the entire command.
+    * **VS Code-Style Sticky Scroll:** Pinned terminal header (`winbar`) that stays fixed at the top when scrolling up through terminal output history, dynamically displaying the command that produced the visible output section (`📌 [Sticky Scroll] ⚡ <cmd> (L<start>-L<end>)`).
+    * **Fish-Like Autocomplete & Dimmed Ghost Text:** Interactive command launcher (`:TermPrompt` / `<leader>tp` / `<leader>ti`) with real-time dimmed virtual text suggestions from plugin history, shell history (`~/.zsh_history`, `~/.bash_history`), and project scripts. Accept with `<Right>`, `<Tab>`, `<C-e>`, `<C-f>`, or word-by-word with `<Alt-Right>`.
+    * **Last Fired Command as Name Across All Pickers:** Terminals dynamically display their most recent command or active foreground process with a `⚡ <command>` indicator across Switcher (`<leader>tl`), Unhide Picker (`<leader>tu`), and Process Manager (`<leader>tk`).
+    * **Live Dual-Pane Terminal Output Preview:** Interactive selection modals show a real-time 60-line live buffer tail alongside process tree, listening ports, and PTY state.
+    * **Smart Markdown & REPL Extraction:** Automatically strips shell prompts (`$ `, `PS >`, `>>> `, `... `), filters tutorial output lines, and extracts inline backtick commands (`` `cargo test` ``).
+    * **Code Block & Step-Through Execution:** Send entire Markdown code fences, Treesitter statement blocks, or execute step-by-step (`<leader>tsn`) while auto-advancing to the next statement.
+    * **Outcome Recording & Clipboard Sync:** Automatically captures terminal output, strips ANSI colors, auto-copies to system clipboard (`"+"`), and provides a float outcome inspection modal (`<leader>tso`, `<leader>tsh`).
+    * **Multi-Line Continuation & Auto-Expansion:** Automatically detects `\` (Bash/Zsh) and `` ` `` (PowerShell) continuations. Selecting any single line of a multi-line command automatically captures and sends the entire command without premature line breaks.
     * **Atomic Bracketed Paste:** Wraps multi-line code blocks in `\e[200~ ... \e[201~` with auto-dedent to prevent premature execution.
-    * **Multi-Select Process Killer:** Floating UI (`<Space>`, `a`, `h`, `<CR>`) to selectively or batch terminate background terminal processes.
+    * **Multi-Select Process & Port Killer:** Floating UI (`<Space>`, `a`, `h`, `<CR>`) to selectively or batch terminate background terminal processes.
+    * **Unhide & Show Picker:** Interactive multi-select checklist (`<leader>tu`) to check and restore hidden background terminals.
     * **One-Key Background Purge:** Instantly terminates hidden terminals and frees PTYs/memory (`:TermClean`).
     * **Dynamic Renaming:** Runtime terminal and buffer renaming (`term://<name>`).
-    * **Universal Quick-Close:** `q` (in Normal mode) and `<C-q>` (in Terminal mode) uniformly closes/hides floats, horizontal splits, and vertical splits.
-  * **Commands:** `:TermToggle`, `:TermFloat`, `:TermSplit`, `:TermTool`, `:TermRun`, `:TermSend`, `:TermSendJoined`, `:TermSelect`, `:TermTarget`, `:TermRename`, `:TermBuffer`, `:TermList`, `:TermKill`, `:TermClean`, `:TermKillHidden`, `:TermKillAll`
+    * **Universal Quick-Close & Hide:** `q` (in Normal mode), `<C-q>` (in Terminal mode), `<leader>tz`, or `:TermHide` closes/hides terminal windows without killing underlying jobs or deleting buffers (`bufhidden = "hide"`).
+  * **Commands:** `:TermToggle`, `:TermHide`, `:TermHideAll`, `:TermShow`, `:TermShowAll`, `:TermUnhide`, `:TermUnhideAll`, `:TermShowPicker`, `:TermPrompt`, `:TermExec`, `:TermFloat`, `:TermSplit`, `:TermTool`, `:TermRun`, `:TermSend`, `:TermSendLine`, `:TermSendBlock`, `:TermSendStep`, `:TermSendFile`, `:TermOutcome`, `:TermHistory`, `:TermCopyOutput`, `:TermPasteOutput`, `:TermToggleCopy`, `:TermTogglePaste`, `:TermSendJoined`, `:TermSelect`, `:TermTarget`, `:TermRename`, `:TermBuffer`, `:TermList`, `:TermKill`, `:TermClean`, `:TermKillHidden`, `:TermKillAll`, `:TermPicker`, `:TermSwitch`, `:TermFind`
   * **Keymaps:**
-    * `<leader>tt`: Toggle Default Floating Terminal
+    * `<leader>tt`: Toggle Default Floating Terminal (Show if hidden, Hide if shown)
+    * `<leader>tl`: Open interactive terminal list and live filter switcher (`:TermPicker` / `:TermList`)
+    * `<leader>ti`: Open interactive terminal prompt with Fish-like live ghost text autocomplete (`:TermPrompt`)
+    * `<leader>tp`: Run command with Fish-like autocomplete & history ghost text (`:TermPrompt`)
+    * `<leader>tu`: Open interactive Unhide Picker to check and restore hidden terminals (`:TermUnhide`)
+    * `<leader>tU`: Unhide and show all hidden terminal windows at once (`:TermShowAll`)
+    * `<leader>tz`: Explicitly Hide Active Terminal Window (Preserves background job)
+    * `<leader>tZ`: Hide All Open Terminal Windows (Preserves background jobs)
     * `<leader>tf`: Toggle Centered Floating Terminal
     * `<leader>th`: Toggle Horizontal Bottom Split Terminal
     * `<leader>tv`: Toggle Vertical Right Split Terminal
-    * `<leader>ts`: Send current line / selection with Bracketed Paste (auto-expands multi-line commands)
+    * `<leader>tss`: Send current line / inline command with prompt stripping (`:TermSend line`)
+    * `<leader>tsb`: Send current code block (Markdown fence or Treesitter node) (`:TermSend block`)
+    * `<leader>tsn`: Send command and step cursor to next executable line (`:TermSend step`)
+    * `<leader>tsf`: Send entire buffer / file to terminal (`:TermSend file`)
+    * `<leader>ts`: Send visual selection with Bracketed Paste (`:TermSend visual`)
     * `<leader>tS`: Send lines joined with `\` (Bash) or `` ` `` (PowerShell)
+    * `<leader>tsh`: Show interactive execution history modal (`:TermHistory`)
+    * `<leader>tso`: Show last outcome float modal (`:TermOutcome`)
+    * `<leader>tsy`: Copy last outcome to system clipboard (`:TermCopyOutput`)
+    * `<leader>tsp`: Paste last outcome as commented lines below command (`:TermPasteOutput`)
     * `<leader>tc`: Interactive prompt to select/change target terminal
     * `<leader>tr`: Rename terminal session
     * `<leader>tk`: Interactive Multi-Select Terminal Killer
@@ -142,6 +172,7 @@
     * `<leader>tB`: Open terminal directly as a regular buffer in current window
     * `<leader>tg`: Open LazyGit Popup Terminal
     * `<leader>top`: Open htop Process Monitor Terminal
+    * `<leader>tm`: Open Leaf Markdown Viewer in Watch Mode for current buffer
 
 * **`smart-highlighter.nvim`** (Local repo: `~/git/neovim-config-spec/smart-highlighter`):
   * Ultra-fast, 16-slot multi-keyword, pattern, regex, and Treesitter scope-aware visual highlighter with floating HUD and match navigation.

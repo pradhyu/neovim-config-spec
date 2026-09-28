@@ -26,6 +26,14 @@ function M.apply_terminal_styling(buf, win)
     "Normal:NormalFloat,NormalNC:NormalFloatNC,FloatBorder:FloatBorder,FloatTitle:FloatTitle",
     { win = win }
   )
+
+  -- Clear winbar to prevent sticky top bar flickering
+  pcall(vim.api.nvim_set_option_value, "winbar", "", { win = win })
+
+  local status_opt = opts.status_bar or opts.sticky_scroll or {}
+  if status_opt.enabled ~= false then
+    require("terminal_enhancement.ui.status_bar").attach(buf, win)
+  end
 end
 
 ---Open a window according to specified direction
@@ -49,7 +57,7 @@ function M.create_window(buf, direction, title)
     vim.api.nvim_win_set_buf(win_id, buf)
   else
     -- High-performance Centered Floating Window
-    local f_opts = config.options.float_opts
+    local f_opts = vim.tbl_deep_extend("force", config.defaults.float_opts or {}, config.options.float_opts or {})
     local total_w = vim.o.columns
     local total_h = vim.o.lines
 
@@ -59,6 +67,13 @@ function M.create_window(buf, direction, title)
     local col = math.floor((total_w - width) / 2)
 
     local win_title = title or f_opts.title or " ⚡ Terminal (Float) "
+
+    local status_opts = config.options.status_bar or config.options.sticky_scroll or {}
+    local footer_text = nil
+    if status_opts.enabled ~= false then
+      local status_bar = require("terminal_enhancement.ui.status_bar")
+      footer_text = status_bar.render_float_footer(buf)
+    end
 
     local win_config = {
       relative = "editor",
@@ -71,6 +86,11 @@ function M.create_window(buf, direction, title)
       title = win_title,
       title_pos = f_opts.title_pos or "center",
     }
+
+    if footer_text and footer_text ~= "" then
+      win_config.footer = footer_text
+      win_config.footer_pos = "left"
+    end
 
     win_id = vim.api.nvim_open_win(buf, true, win_config)
   end

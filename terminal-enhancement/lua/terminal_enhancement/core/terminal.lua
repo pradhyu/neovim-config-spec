@@ -1,5 +1,6 @@
 local config = require("terminal_enhancement.config")
 local window_ui = require("terminal_enhancement.ui.window")
+local process = require("terminal_enhancement.core.process")
 
 local M = {}
 
@@ -54,9 +55,21 @@ function M.get_active_terminals()
       local last_cmd, cmd_type = process.get_last_command(inst)
       local cwd = process.get_terminal_cwd(inst)
 
+      local cmd_title = nil
+      if last_cmd and last_cmd ~= "" then
+        local c = last_cmd:gsub("\n.*$", ""):gsub("^%s+", ""):gsub("%s+$", "")
+        if #c > 45 then c = c:sub(1, 42) .. "..." end
+        cmd_title = c
+      elseif fg_proc and fg_proc.comm and fg_proc.comm ~= "" and fg_proc.pid ~= pid then
+        cmd_title = fg_proc.comm
+      end
+
+      local final_title = cmd_title and string.format("⚡ %s", cmd_title) or (inst.title or string.format("Terminal: %s", id))
+
       table.insert(list, {
         id = id,
-        title = inst.title or string.format("Terminal: %s", id),
+        title = final_title,
+        base_title = inst.title or id,
         buf = inst.buf,
         win = win or (win_on_screen ~= -1 and win_on_screen or nil),
         chan = chan,
@@ -67,6 +80,7 @@ function M.get_active_terminals()
         fg_proc = fg_proc,
         ports = ports,
         last_cmd = last_cmd,
+        last_duration = inst.last_duration,
         cmd_type = cmd_type,
         cwd = cwd,
       })
@@ -85,7 +99,23 @@ function M.get_active_terminals()
       local is_default = (M.default_target == id_str or M.default_target == tostring(buf))
       local chan = vim.bo[buf].channel or vim.b[buf].terminal_job_id or 0
 
-      local display_title = format_term_display(buf, b_name)
+      local shell_type = process.detect_shell_type(buf)
+      local pid = process.get_terminal_pid(buf)
+      local fg_proc = process.get_foreground_process(buf)
+      local ports = process.get_terminal_ports(buf)
+      local last_cmd, cmd_type = process.get_last_command(buf)
+      local cwd = process.get_terminal_cwd(buf)
+
+      local cmd_title = nil
+      if last_cmd and last_cmd ~= "" then
+        local c = last_cmd:gsub("\n.*$", ""):gsub("^%s+", ""):gsub("%s+$", "")
+        if #c > 45 then c = c:sub(1, 42) .. "..." end
+        cmd_title = c
+      elseif fg_proc and fg_proc.comm and fg_proc.comm ~= "" and fg_proc.pid ~= pid then
+        cmd_title = fg_proc.comm
+      end
+
+      local display_title = cmd_title and string.format("⚡ %s", cmd_title) or format_term_display(buf, b_name)
 
       -- Register into instances so it can be targeted and toggled seamlessly
       M.instances[id_str] = {
@@ -98,16 +128,10 @@ function M.get_active_terminals()
         direction = "float",
       }
 
-      local shell_type = process.detect_shell_type(buf)
-      local pid = process.get_terminal_pid(buf)
-      local fg_proc = process.get_foreground_process(buf)
-      local ports = process.get_terminal_ports(buf)
-      local last_cmd, cmd_type = process.get_last_command(buf)
-      local cwd = process.get_terminal_cwd(buf)
-
       table.insert(list, {
         id = id_str,
         title = display_title,
+        base_title = "Buffer #" .. buf,
         buf = buf,
         win = (win ~= -1) and win or nil,
         chan = chan,
@@ -121,6 +145,7 @@ function M.get_active_terminals()
         cmd_type = cmd_type,
         cwd = cwd,
       })
+      seen_bufs[buf] = true
     end
   end
 
@@ -326,10 +351,15 @@ function M.toggle(id, cmd, direction, title, focus)
     end,
   })
 
-  -- If terminal job not spawned yet or terminated, start it
-  if not inst.job_id or inst.job_id <= 0 then
+  -- If terminal job not spawned yet or terminated, start it only if not already a terminal buffer
+  local is_term_buf = (vim.bo[inst.buf].buftype == "terminal")
+  if is_term_buf and (not inst.job_id or inst.job_id <= 0) then
+    inst.job_id = vim.b[inst.buf].terminal_job_id or vim.bo[inst.buf].channel or 0
+  end
+
+  if not is_term_buf and (not inst.job_id or inst.job_id <= 0) then
     vim.api.nvim_win_call(win, function()
-      inst.job_id = vim.fn.jobstart(inst.cmd or vim.o.shell, {
+      local ok, job = pcall(vim.fn.jobstart, inst.cmd or vim.o.shell, {
         term = true,
         on_exit = function()
           if inst.win and vim.api.nvim_win_is_valid(inst.win) then
@@ -345,6 +375,9 @@ function M.toggle(id, cmd, direction, title, focus)
           end
         end,
       })
+      if ok then
+        inst.job_id = job
+      end
     end)
   end
 
@@ -356,6 +389,135 @@ function M.toggle(id, cmd, direction, title, focus)
       pcall(vim.api.nvim_set_current_win, orig_win)
     end
   end
+end
+
+---Explicitly hide a terminal window without terminating its job or closing the buffer
+---@param id_or_buf? string|integer
+function M.hide(id_or_buf)
+  local target_id = id_or_buf and tostring(id_or_buf) or nil
+  local inst = target_id and M.instances[target_id] or nil
+
+  if not inst and not id_or_buf then
+    -- Check if current window contains a terminal
+    local cur_buf = vim.api.nvim_get_current_buf()
+    if vim.bo[cur_buf].buftype == "terminal" or vim.bo[cur_buf].filetype == "terminal" then
+      local cur_win = vim.api.nvim_get_current_win()
+      if vim.api.nvim_win_is_valid(cur_win) then
+        local tab_wins = vim.api.nvim_tabpage_list_wins(0)
+        local cfg = vim.api.nvim_win_get_config(cur_win)
+        if cfg.relative ~= "" or #tab_wins > 1 then
+          pcall(vim.api.nvim_win_close, cur_win, true)
+        else
+          vim.cmd("bprevious")
+        end
+        return
+      end
+    end
+    -- Otherwise hide default target if visible
+    inst = M.instances[M.default_target or "default"]
+  end
+
+  if inst and inst.win and vim.api.nvim_win_is_valid(inst.win) then
+    pcall(vim.api.nvim_win_close, inst.win, true)
+    inst.win = nil
+  elseif inst and inst.buf then
+    local win = vim.fn.bufwinid(inst.buf)
+    if win ~= -1 and vim.api.nvim_win_is_valid(win) then
+      pcall(vim.api.nvim_win_close, win, true)
+    end
+  end
+end
+
+---Hide all open/visible terminal windows across current tab without terminating jobs
+function M.hide_all()
+  local count = 0
+  for _, inst in pairs(M.instances) do
+    if inst and inst.win and vim.api.nvim_win_is_valid(inst.win) then
+      pcall(vim.api.nvim_win_close, inst.win, true)
+      inst.win = nil
+      count = count + 1
+    end
+  end
+
+  -- Also check any visible terminal windows in current tab
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+    if vim.api.nvim_win_is_valid(win) then
+      local buf = vim.api.nvim_win_get_buf(win)
+      if vim.api.nvim_buf_is_valid(buf) and (vim.bo[buf].buftype == "terminal" or vim.bo[buf].filetype == "terminal") then
+        local cfg = vim.api.nvim_win_get_config(win)
+        local tab_wins = vim.api.nvim_tabpage_list_wins(0)
+        if cfg.relative ~= "" or #tab_wins > 1 then
+          pcall(vim.api.nvim_win_close, win, true)
+          count = count + 1
+        end
+      end
+    end
+  end
+
+  vim.notify(string.format("[TermEnhance] Hidden %d terminal window(s) (processes still running)", count), vim.log.levels.INFO)
+end
+
+---Explicitly show/open a terminal window (without creating duplicate sessions)
+---@param id? string
+---@param direction? "float"|"horizontal"|"vertical"
+---@param focus? boolean
+function M.show(id, direction, focus)
+  local term_id = id or M.default_target or "default"
+  local inst = M.instances[term_id]
+
+  -- If already open and valid on screen, simply focus it
+  if inst and inst.win and vim.api.nvim_win_is_valid(inst.win) then
+    if focus ~= false then
+      pcall(vim.api.nvim_set_current_win, inst.win)
+      if config.options.auto_insert then
+        vim.cmd("startinsert")
+      end
+    end
+    return
+  end
+
+  if inst and inst.buf and vim.api.nvim_buf_is_valid(inst.buf) then
+    local win_on_screen = vim.fn.bufwinid(inst.buf)
+    if win_on_screen ~= -1 and vim.api.nvim_win_is_valid(win_on_screen) then
+      inst.win = win_on_screen
+      if focus ~= false then
+        pcall(vim.api.nvim_set_current_win, win_on_screen)
+        if config.options.auto_insert then
+          vim.cmd("startinsert")
+        end
+      end
+      return
+    end
+  end
+
+  M.toggle(term_id, nil, direction, nil, focus ~= false)
+end
+
+---Unhide/show all currently hidden terminals
+---@param direction? "float"|"horizontal"|"vertical"
+function M.show_all(direction)
+  local active = M.get_active_terminals()
+  local count = 0
+  for _, item in ipairs(active) do
+    if not item.is_open then
+      local ok, _ = pcall(function()
+        M.show(item.id, direction or (item.direction or "float"), false)
+      end)
+      if ok then
+        count = count + 1
+      end
+    end
+  end
+  if count == 0 then
+    vim.notify("[TermEnhance] No hidden terminals to unhide.", vim.log.levels.INFO)
+  else
+    vim.notify(string.format("[TermEnhance] Unhidden %d terminal(s)", count), vim.log.levels.INFO)
+  end
+end
+
+---Open interactive multi-select picker to inspect and unhide hidden terminals
+function M.unhide_interactive()
+  require("terminal_enhancement.ui.unhide_picker").open()
 end
 
 ---Switch focus directly to a terminal (open it if closed)
@@ -462,7 +624,7 @@ function M.send(id, text)
   end
 
   local payload = text
-  if not raw and text:find("\n") then
+  if not raw and text:find("\n") and not text:match("^\27%[200~") then
     local shell_helper = require("terminal_enhancement.core.shell_helper")
     payload = shell_helper.wrap_bracketed_paste(text)
   end
@@ -485,7 +647,50 @@ function M.send(id, text)
     end
   end
 
-  inst.last_command = text:gsub("\r", ""):gsub("\n$", "")
+  local clean_cmd = text:gsub("\r", ""):gsub("\n$", "")
+  inst.last_command = clean_cmd
+  local uv = vim.uv or vim.loop
+  local start_time = uv.hrtime()
+
+  if inst.buf and vim.api.nvim_buf_is_valid(inst.buf) then
+    local sticky = require("terminal_enhancement.ui.sticky_scroll")
+    sticky.record_command(inst.buf, clean_cmd)
+    if inst.win and vim.api.nvim_win_is_valid(inst.win) then
+      sticky.update_window(inst.win, inst.buf)
+    end
+
+    -- Asynchronously monitor execution completion to compute exact command duration
+    local max_polls = 600 -- up to 60s
+    local poll_count = 0
+    local root_pid = process.get_terminal_pid(inst)
+
+    local function check_completion()
+      poll_count = poll_count + 1
+      if not inst.buf or not vim.api.nvim_buf_is_valid(inst.buf) or poll_count > max_polls then
+        return
+      end
+
+      local fg = process.get_foreground_process(inst)
+      -- If still executing non-shell child process, continue polling
+      if fg and fg.pid and fg.pid ~= root_pid then
+        vim.defer_fn(check_completion, 100)
+        return
+      end
+
+      -- If finished or idle
+      local elapsed_ms = (uv.hrtime() - start_time) / 1e6
+      local history_mod = require("terminal_enhancement.core.history")
+      local dur_str = history_mod.format_duration(elapsed_ms)
+      inst.last_duration = dur_str
+
+      sticky.record_duration(inst.buf, dur_str)
+      if inst.win and vim.api.nvim_win_is_valid(inst.win) then
+        sticky.update_window(inst.win, inst.buf)
+      end
+    end
+
+    vim.defer_fn(check_completion, 150)
+  end
 end
 
 ---Kill and purge a terminal by ID or buffer number

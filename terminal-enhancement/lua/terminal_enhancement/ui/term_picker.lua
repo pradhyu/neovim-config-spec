@@ -18,13 +18,15 @@ local function format_item_label(item)
   local cmd_str = ""
   if item.last_cmd and item.last_cmd ~= "" then
     local clean_cmd = item.last_cmd:gsub("\n.*$", "")
-    if #clean_cmd > 35 then
-      clean_cmd = clean_cmd:sub(1, 32) .. "..."
+    if #clean_cmd > 32 then
+      clean_cmd = clean_cmd:sub(1, 29) .. "..."
     end
     cmd_str = string.format(" ⚡ %s", clean_cmd)
   elseif item.fg_proc and item.fg_proc.comm and item.fg_proc.pid ~= item.pid then
     cmd_str = string.format(" ➔ %s (PID %d)", item.fg_proc.comm, item.fg_proc.pid)
   end
+
+  local dur_str = (item.last_duration and item.last_duration ~= "") and string.format(" ⏱️ %s", item.last_duration) or ""
 
   local port_str = ""
   if item.ports and #item.ports > 0 then
@@ -38,8 +40,8 @@ local function format_item_label(item)
   local def_badge = item.is_default and " ⭐ TARGET" or ""
   local buf_str = item.buf and string.format(" (Buf #%d)", item.buf) or ""
 
-  return string.format("%s %s %s%s%s%s%s%s",
-    state_icon, shell_badge, item.title, cmd_str, port_str, pid_str, buf_str, def_badge)
+  return string.format("%s %s %s%s%s%s%s%s%s",
+    state_icon, shell_badge, item.title, cmd_str, dur_str, port_str, pid_str, buf_str, def_badge)
 end
 
 ---Open terminal switcher using Snacks.picker with live preview window
@@ -53,8 +55,8 @@ function M.open_snacks(opts)
   local items = {}
 
   for idx, t in ipairs(active_list) do
-    local search_text = string.format("%s %s %s %s %s",
-      t.id, t.title, t.shell_type or "", t.last_cmd or "", t.pid and tostring(t.pid) or "")
+    local search_text = string.format("%s %s %s %s %s %s",
+      t.id, t.title, t.shell_type or "", t.last_cmd or "", t.last_duration or "", t.pid and tostring(t.pid) or "")
     if t.ports then
       for _, p in ipairs(t.ports) do
         search_text = search_text .. " " .. tostring(p.port)
@@ -114,11 +116,13 @@ function M.open_snacks(opts)
       local cmd_str = ""
       if t.last_cmd and t.last_cmd ~= "" then
         local c = t.last_cmd:gsub("\n.*$", "")
-        if #c > 35 then
-          c = c:sub(1, 32) .. "..."
+        if #c > 32 then
+          c = c:sub(1, 29) .. "..."
         end
         cmd_str = " ⚡ " .. c
       end
+
+      local dur_str = (t.last_duration and t.last_duration ~= "") and (" ⏱️ " .. t.last_duration) or ""
 
       local port_str = ""
       if t.ports and #t.ports > 0 then
@@ -139,6 +143,9 @@ function M.open_snacks(opts)
 
       if cmd_str ~= "" then
         table.insert(formatted, { cmd_str .. " ", "String" })
+      end
+      if dur_str ~= "" then
+        table.insert(formatted, { dur_str .. " ", "DiagnosticInfo" })
       end
       if port_str ~= "" then
         table.insert(formatted, { port_str .. " ", "Special" })
