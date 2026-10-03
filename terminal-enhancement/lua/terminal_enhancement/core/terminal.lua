@@ -32,10 +32,13 @@ local function format_term_display(buf, raw_name)
 end
 
 ---Get all active terminals (both managed instances and any open terminal splits/buffers)
+---Get all active terminals (both managed instances and any open terminal splits/buffers)
+---@param opts? { deep?: boolean, fast?: boolean }
 ---@return table[] list of { id: string, title: string, is_open: boolean, is_default: boolean, buf: integer, chan: integer }
-function M.get_active_terminals()
+function M.get_active_terminals(opts)
   local list = {}
   local seen_bufs = {}
+  local is_deep = opts and opts.deep == true
 
   local process = require("terminal_enhancement.core.process")
 
@@ -50,10 +53,13 @@ function M.get_active_terminals()
 
       local shell_type = process.detect_shell_type(inst)
       local pid = process.get_terminal_pid(inst)
-      local fg_proc = process.get_foreground_process(inst)
-      local ports = process.get_terminal_ports(inst)
-      local last_cmd, cmd_type = process.get_last_command(inst)
-      local cwd = process.get_terminal_cwd(inst)
+      local fg_proc = is_deep and process.get_foreground_process(inst) or nil
+      local ports = is_deep and process.get_terminal_ports(inst) or {}
+      local last_cmd, cmd_type = inst.last_command, "sent"
+      if is_deep and not last_cmd then
+        last_cmd, cmd_type = process.get_last_command(inst)
+      end
+      local cwd = inst.cwd or (is_deep and process.get_terminal_cwd(inst)) or vim.fn.getcwd()
 
       local cmd_title = nil
       if last_cmd and last_cmd ~= "" then
@@ -101,10 +107,13 @@ function M.get_active_terminals()
 
       local shell_type = process.detect_shell_type(buf)
       local pid = process.get_terminal_pid(buf)
-      local fg_proc = process.get_foreground_process(buf)
-      local ports = process.get_terminal_ports(buf)
-      local last_cmd, cmd_type = process.get_last_command(buf)
-      local cwd = process.get_terminal_cwd(buf)
+      local fg_proc = is_deep and process.get_foreground_process(buf) or nil
+      local ports = is_deep and process.get_terminal_ports(buf) or {}
+      local last_cmd, cmd_type = nil, nil
+      if is_deep then
+        last_cmd, cmd_type = process.get_last_command(buf)
+      end
+      local cwd = (is_deep and process.get_terminal_cwd(buf)) or vim.fn.getcwd()
 
       local cmd_title = nil
       if last_cmd and last_cmd ~= "" then

@@ -2,6 +2,14 @@
 local term_enh = require("terminal_enhancement")
 local config = require("terminal_enhancement.config")
 
+local function get_term_ids()
+  local matches = {}
+  for _, item in ipairs(term_enh.get_active_terminals({ fast = true })) do
+    table.insert(matches, item.id)
+  end
+  return matches
+end
+
 vim.api.nvim_create_user_command("TermToggle", function(opts)
   local dir = opts.args ~= "" and opts.args:lower() or nil
   term_enh.toggle(dir)
@@ -33,13 +41,7 @@ vim.api.nvim_create_user_command("TermHide", function(opts)
   term_enh.hide(arg)
 end, {
   nargs = "?",
-  complete = function()
-    local matches = {}
-    for _, item in ipairs(term_enh.get_active_terminals()) do
-      table.insert(matches, item.id)
-    end
-    return matches
-  end,
+  complete = get_term_ids,
   desc = "Hide terminal window (current or specified) without closing process",
 })
 
@@ -54,13 +56,7 @@ vim.api.nvim_create_user_command("TermShow", function(opts)
   term_enh.show(arg)
 end, {
   nargs = "?",
-  complete = function()
-    local matches = {}
-    for _, item in ipairs(term_enh.get_active_terminals()) do
-      table.insert(matches, item.id)
-    end
-    return matches
-  end,
+  complete = get_term_ids,
   desc = "Show/open hidden terminal without restarting or killing session",
 })
 
@@ -278,13 +274,7 @@ vim.api.nvim_create_user_command("TermSwitch", function(opts)
   end
 end, {
   nargs = "?",
-  complete = function()
-    local matches = {}
-    for _, item in ipairs(term_enh.get_active_terminals()) do
-      table.insert(matches, item.id)
-    end
-    return matches
-  end,
+  complete = get_term_ids,
   desc = "Switch to terminal by name or open live filter picker: :TermSwitch [term_id]",
 })
 
@@ -303,13 +293,7 @@ vim.api.nvim_create_user_command("TermTarget", function(opts)
   end
 end, {
   nargs = "?",
-  complete = function()
-    local matches = {}
-    for _, item in ipairs(term_enh.get_active_terminals()) do
-      table.insert(matches, item.id)
-    end
-    return matches
-  end,
+  complete = get_term_ids,
   desc = "Set or switch default target terminal for code execution",
 })
 
@@ -318,13 +302,7 @@ vim.api.nvim_create_user_command("TermBuffer", function(opts)
   require("terminal_enhancement.core.terminal").open_as_buffer(arg)
 end, {
   nargs = "?",
-  complete = function()
-    local matches = {}
-    for _, item in ipairs(term_enh.get_active_terminals()) do
-      table.insert(matches, item.id)
-    end
-    return matches
-  end,
+  complete = get_term_ids,
   desc = "Open terminal directly into current window as a regular buffer",
 })
 
@@ -350,8 +328,8 @@ end, {
   nargs = "?",
   complete = function()
     local matches = { "hidden", "all" }
-    for _, item in ipairs(term_enh.get_active_terminals()) do
-      table.insert(matches, item.id)
+    for _, id in ipairs(get_term_ids()) do
+      table.insert(matches, id)
     end
     return matches
   end,
@@ -381,13 +359,7 @@ vim.api.nvim_create_user_command("TermRename", function(opts)
   term_enh.rename_interactive(arg)
 end, {
   nargs = "?",
-  complete = function()
-    local matches = {}
-    for _, item in ipairs(term_enh.get_active_terminals()) do
-      table.insert(matches, item.id)
-    end
-    return matches
-  end,
+  complete = get_term_ids,
   desc = "Rename terminal session or open interactive rename prompt",
 })
 
@@ -444,13 +416,7 @@ vim.api.nvim_create_user_command("TermInterrupt", function(opts)
   end
 end, {
   nargs = "?",
-  complete = function()
-    local matches = {}
-    for _, item in ipairs(term_enh.get_active_terminals()) do
-      table.insert(matches, item.id)
-    end
-    return matches
-  end,
+  complete = get_term_ids,
   desc = "Send interrupt (Ctrl+C / SIGINT) to terminal",
 })
 
@@ -467,13 +433,7 @@ vim.api.nvim_create_user_command("TermKillTree", function(opts)
   end
 end, {
   nargs = "*",
-  complete = function()
-    local matches = {}
-    for _, item in ipairs(term_enh.get_active_terminals()) do
-      table.insert(matches, item.id)
-    end
-    return matches
-  end,
+  complete = get_term_ids,
   desc = "Kill child process tree without closing terminal: :TermKillTree [term_id] [signal]",
 })
 
@@ -518,13 +478,7 @@ vim.api.nvim_create_user_command("TermInfo", function(opts)
   vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO)
 end, {
   nargs = "?",
-  complete = function()
-    local matches = {}
-    for _, item in ipairs(term_enh.get_active_terminals()) do
-      table.insert(matches, item.id)
-    end
-    return matches
-  end,
+  complete = get_term_ids,
   desc = "Inspect terminal shell, process tree, and listening ports: :TermInfo [term_id]",
 })
 

@@ -28,16 +28,25 @@ function M.setup(user_opts)
     setup_term_buffer(buf)
   end
 
-  -- Autocmd to format terminal buffers upon creation and entry
-  vim.api.nvim_create_autocmd({ "TermOpen", "BufEnter", "FileType" }, {
-    group = vim.api.nvim_create_augroup("TerminalEnhancementAuto", { clear = true }),
-    pattern = { "*", "terminal", "sidekick_terminal" },
+  -- Autocmd to format terminal buffers only upon terminal creation and filetype
+  local augroup = vim.api.nvim_create_augroup("TerminalEnhancementAuto", { clear = true })
+  vim.api.nvim_create_autocmd("TermOpen", {
+    group = augroup,
+    pattern = "*",
     callback = function(args)
       local buf = args.buf
       setup_term_buffer(buf)
-      if args.event == "TermOpen" and config.options.auto_insert then
+      if config.options.auto_insert then
         vim.cmd("startinsert")
       end
+    end,
+  })
+
+  vim.api.nvim_create_autocmd("FileType", {
+    group = augroup,
+    pattern = { "terminal", "sidekick_terminal" },
+    callback = function(args)
+      setup_term_buffer(args.buf)
     end,
   })
 end

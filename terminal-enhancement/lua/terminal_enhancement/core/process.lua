@@ -3,6 +3,17 @@ local config = require("terminal_enhancement.config")
 
 local M = {}
 
+-- In-memory TTL caches to eliminate system command lag (especially on macOS/BSD)
+local CACHE_TTL_MS = 1500
+local proc_info_cache = {}
+local proc_tree_cache = {}
+local cwd_cache = {}
+local ports_cache = { timestamp = 0, data = {} }
+
+local function get_now_ms()
+  return (uv.hrtime() / 1e6)
+end
+
 -- Standard POSIX Signal map
 M.SIGNALS = {
   SIGHUP = 1,
@@ -233,6 +244,12 @@ function M.get_process_info(pid)
     return nil
   end
 
+  local now = get_now_ms()
+  local cached = proc_info_cache[pid]
+  if cached and (now - cached.time) < CACHE_TTL_MS then
+    return cached.info
+  end
+
   local comm = read_file(string.format("/proc/%d/comm", pid))
   comm = comm and vim.trim(comm) or nil
 
@@ -271,12 +288,15 @@ function M.get_process_info(pid)
     cmdline = comm
   end
 
-  return {
+  local info = {
     pid = pid,
     ppid = ppid,
     comm = comm,
     cmdline = cmdline,
   }
+
+  proc_info_cache[pid] = { time = now, info = info }
+  return info
 end
 
 ---Recursively traverse and return the entire process tree starting from root_pid
@@ -285,6 +305,12 @@ end
 function M.get_process_tree(root_pid)
   if not root_pid or root_pid <= 0 then
     return {}
+  end
+
+  local now = get_now_ms()
+  local cached = proc_tree_cache[root_pid]
+  if cached and (now - cached.time) < CACHE_TTL_MS then
+    return cached.tree
   end
 
   local tree = {}
@@ -308,6 +334,7 @@ function M.get_process_tree(root_pid)
     end
   end
 
+  proc_tree_cache[root_pid] = { time = now, tree = tree }
   return tree
 end
 
@@ -345,18 +372,28 @@ function M.get_terminal_cwd(inst_or_buf)
   if not pid or pid <= 0 then
     return nil
   end
+
+  local now = get_now_ms()
+  local cached = cwd_cache[pid]
+  if cached and (now - cached.time) < CACHE_TTL_MS then
+    return cached.cwd
+  end
+
   local ok, cwd = pcall(uv.fs_readlink, string.format("/proc/%d/cwd", pid))
   if ok and cwd and cwd ~= "" then
+    cwd_cache[pid] = { time = now, cwd = cwd }
     return cwd
   end
 
-  -- macOS fallback via lsof
+  -- macOS fallback via lsof (cached to prevent UI freezes)
   if vim.fn.executable("lsof") == 1 then
     local ok_lsof, lsof_out = pcall(vim.fn.system, { "lsof", "-a", "-p", tostring(pid), "-d", "cwd", "-Fn" })
     if ok_lsof and lsof_out and lsof_out ~= "" then
       local dir = lsof_out:match("n(/.+)")
       if dir and dir ~= "" then
-        return vim.trim(dir)
+        local clean_dir = vim.trim(dir)
+        cwd_cache[pid] = { time = now, cwd = clean_dir }
+        return clean_dir
       end
     end
   end
@@ -429,43 +466,45 @@ end
 ---@param filter_pids? table<integer, boolean> optional PID lookup set
 ---@return table[]
 function M.get_listening_ports(filter_pids)
-  local ports = {}
-  local seen_keys = {}
+  local now = get_now_ms()
+  local all_ports = {}
 
-  -- 1. Try ss -tulpnH (Linux)
-  local ok, ss_out = pcall(vim.fn.system, { "ss", "-tulpnH" })
-  if ok and ss_out and ss_out ~= "" then
-    for line in ss_out:gmatch("[^\r\n]+") do
-      local proto = line:match("^([TU][%a%d]+)") or "tcp"
-      proto = proto:lower():match("udp") and "udp" or "tcp"
+  if (now - ports_cache.timestamp) < (CACHE_TTL_MS * 2) and #ports_cache.data > 0 then
+    all_ports = ports_cache.data
+  else
+    local ports = {}
+    local seen_keys = {}
 
-      -- Match local port from column 4 (e.g. 127.0.0.1:8080, [::]:3000, *:5000)
-      local port_str = line:match(":(%d+)%s+")
-      local port = tonumber(port_str)
+    -- 1. Try ss -tulpnH (Linux)
+    local ok, ss_out = pcall(vim.fn.system, { "ss", "-tulpnH" })
+    if ok and ss_out and ss_out ~= "" then
+      for line in ss_out:gmatch("[^\r\n]+") do
+        local proto = line:match("^([TU][%a%d]+)") or "tcp"
+        proto = proto:lower():match("udp") and "udp" or "tcp"
 
-      if port then
-        -- Match users:(("comm",pid=123,fd=4),...)
-        local pids = {}
-        for comm, pid_str in line:gmatch('"([^"]+)",pid=(%d+)') do
-          local p = tonumber(pid_str)
-          if p then
-            table.insert(pids, { pid = p, comm = comm })
-          end
-        end
+        local port_str = line:match(":(%d+)%s+")
+        local port = tonumber(port_str)
 
-        if #pids == 0 then
-          -- Process info without quotes: pid=123
-          for pid_str in line:gmatch("pid=(%d+)") do
+        if port then
+          local pids = {}
+          for comm, pid_str in line:gmatch('"([^"]+)",pid=(%d+)') do
             local p = tonumber(pid_str)
             if p then
-              table.insert(pids, { pid = p, comm = "unknown" })
+              table.insert(pids, { pid = p, comm = comm })
             end
           end
-        end
 
-        if #pids > 0 then
-          for _, proc in ipairs(pids) do
-            if not filter_pids or filter_pids[proc.pid] then
+          if #pids == 0 then
+            for pid_str in line:gmatch("pid=(%d+)") do
+              local p = tonumber(pid_str)
+              if p then
+                table.insert(pids, { pid = p, comm = "unknown" })
+              end
+            end
+          end
+
+          if #pids > 0 then
+            for _, proc in ipairs(pids) do
               local key = string.format("%s:%d:%d", proto, port, proc.pid)
               if not seen_keys[key] then
                 seen_keys[key] = true
@@ -477,39 +516,34 @@ function M.get_listening_ports(filter_pids)
                 })
               end
             end
-          end
-        elseif not filter_pids then
-          local key = string.format("%s:%d:0", proto, port)
-          if not seen_keys[key] then
-            seen_keys[key] = true
-            table.insert(ports, {
-              port = port,
-              proto = proto,
-              pid = nil,
-              comm = nil,
-            })
+          else
+            local key = string.format("%s:%d:0", proto, port)
+            if not seen_keys[key] then
+              seen_keys[key] = true
+              table.insert(ports, {
+                port = port,
+                proto = proto,
+                pid = nil,
+                comm = nil,
+              })
+            end
           end
         end
       end
     end
-    if #ports > 0 then
-      return ports
-    end
-  end
 
-  -- 2. Fallback to lsof -iTCP -sTCP:LISTEN -n -P (macOS & BSD & Linux)
-  if vim.fn.executable("lsof") == 1 then
-    local ok_lsof, lsof_out = pcall(vim.fn.system, { "lsof", "-iTCP", "-sTCP:LISTEN", "-n", "-P" })
-    if ok_lsof and lsof_out and lsof_out ~= "" then
-      for line in lsof_out:gmatch("[^\r\n]+") do
-        local comm, pid_str, port_str = line:match("^([^%s]+)%s+(%d+)%s+.-TCP%s+.-:(%d+)%s+%(")
-        if not port_str then
-          comm, pid_str, port_str = line:match("^([^%s]+)%s+(%d+)%s+.-TCP%s+.-:(%d+)$")
-        end
-        local p = tonumber(pid_str)
-        local port = tonumber(port_str)
-        if port and p then
-          if not filter_pids or filter_pids[p] then
+    -- 2. Fallback to lsof -iTCP -sTCP:LISTEN -n -P (macOS & BSD & Linux)
+    if #ports == 0 and vim.fn.executable("lsof") == 1 then
+      local ok_lsof, lsof_out = pcall(vim.fn.system, { "lsof", "-iTCP", "-sTCP:LISTEN", "-n", "-P" })
+      if ok_lsof and lsof_out and lsof_out ~= "" then
+        for line in lsof_out:gmatch("[^\r\n]+") do
+          local comm, pid_str, port_str = line:match("^([^%s]+)%s+(%d+)%s+.-TCP%s+.-:(%d+)%s+%(")
+          if not port_str then
+            comm, pid_str, port_str = line:match("^([^%s]+)%s+(%d+)%s+.-TCP%s+.-:(%d+)$")
+          end
+          local p = tonumber(pid_str)
+          local port = tonumber(port_str)
+          if port and p then
             local key = string.format("tcp:%d:%d", port, p)
             if not seen_keys[key] then
               seen_keys[key] = true
@@ -524,9 +558,23 @@ function M.get_listening_ports(filter_pids)
         end
       end
     end
+
+    ports_cache.timestamp = now
+    ports_cache.data = ports
+    all_ports = ports
   end
 
-  return ports
+  if not filter_pids then
+    return all_ports
+  end
+
+  local filtered = {}
+  for _, p in ipairs(all_ports) do
+    if p.pid and filter_pids[p.pid] then
+      table.insert(filtered, p)
+    end
+  end
+  return filtered
 end
 
 ---Get all listening ports opened by processes in a specific terminal's process tree

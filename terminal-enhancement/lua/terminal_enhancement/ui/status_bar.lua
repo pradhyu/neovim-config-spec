@@ -133,7 +133,7 @@ local function get_terminal_directory(buf)
     return ""
   end
 
-  local cwd = process.get_terminal_cwd(buf) or vim.fn.getcwd()
+  local cwd = vim.fn.getcwd()
   if cwd and cwd ~= "" then
     local pretty_dir = vim.fn.fnamemodify(cwd, ":~")
     if #pretty_dir > 32 then
@@ -159,10 +159,10 @@ function M.render(buf)
   local cache = term_status_cache[buf] or {}
   local internal_name = cache.internal_name or get_internal_name(buf)
   local buf_name = cache.buf_name or get_buffer_name(buf)
-  local shell = cache.shell or process.detect_shell_type(buf) or "term"
+  local shell = cache.shell or "term"
   local cwd = cache.cwd or get_terminal_directory(buf)
-  local pid = cache.pid or process.get_terminal_pid(buf)
-  local last_cmd = cache.cmd or process.get_last_command(buf) or ""
+  local pid = cache.pid
+  local last_cmd = cache.cmd or ""
   local duration = cache.duration or ""
 
   -- Clean and truncate command if needed
@@ -198,10 +198,10 @@ function M.render_float_footer(buf)
   local cache = term_status_cache[buf] or {}
   local internal_name = cache.internal_name or get_internal_name(buf)
   local buf_name = cache.buf_name or get_buffer_name(buf)
-  local shell = cache.shell or process.detect_shell_type(buf) or "term"
+  local shell = cache.shell or "term"
   local cwd = cache.cwd or get_terminal_directory(buf)
-  local pid = cache.pid or process.get_terminal_pid(buf)
-  local last_cmd = cache.cmd or process.get_last_command(buf) or ""
+  local pid = cache.pid
+  local last_cmd = cache.cmd or ""
   local duration = cache.duration or ""
 
   local cmd_str = ""
