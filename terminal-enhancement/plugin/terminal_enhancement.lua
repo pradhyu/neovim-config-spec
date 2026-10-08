@@ -506,4 +506,72 @@ end, {
   desc = "Toggle terminal lower status bar (legacy alias)",
 })
 
+-- SendToTerminal command compatibility & multiplexer dispatch
+local send_subcommands = {
+  line = function() term_enh.send_line() end,
+  block = function() term_enh.send_block() end,
+  visual = function() term_enh.send_visual() end,
+  step = function() term_enh.send_step() end,
+  file = function() term_enh.send_file() end,
+  motion = function() term_enh.send_motion() end,
+  select = function() term_enh.select_target() end,
+  select_terminal = function() term_enh.select_target() end,
+  history = function() term_enh.show_history() end,
+  last = function() term_enh.show_last_output() end,
+  show_last = function() term_enh.show_last_output() end,
+  copy_output = function() term_enh.copy_last_output() end,
+  copy_command = function() term_enh.copy_last_command() end,
+  paste_output = function() term_enh.paste_last_output() end,
+  toggle_paste = function() term_enh.toggle_paste_output() end,
+  toggle_paste_output = function() term_enh.toggle_paste_output() end,
+  toggle_copy = function() term_enh.toggle_copy_output() end,
+  status = function()
+    local opts = config.options
+    local hist_opts = opts.history or {}
+    local lines = {
+      "=== Terminal Enhancement & Dispatch Status ===",
+      string.format("  Backend:                 %s", opts.backend or "auto"),
+      string.format("  Bracketed Paste:         %s", opts.bracketed_paste and "ON" or "OFF"),
+      string.format("  History Tracking:        %s", hist_opts.enabled and "ON" or "OFF"),
+      string.format("  Auto Paste Output:       %s", hist_opts.paste_output_to_buffer and "ON" or "OFF"),
+      string.format("  Auto Copy Output:        %s", hist_opts.copy_output_to_clipboard and "ON" or "OFF"),
+      string.format("  Active Terminals:        %d", #term_enh.get_active_terminals()),
+    }
+    vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO)
+  end,
+}
+
+vim.api.nvim_create_user_command("SendToTerminal", function(opts)
+  local arg = opts.fargs[1] or "line"
+  local handler = send_subcommands[arg]
+  if handler then
+    handler(opts.fargs)
+  else
+    vim.notify(string.format("[TermEnhance] Unknown SendToTerminal subcommand: %s", arg), vim.log.levels.ERROR)
+  end
+end, {
+  nargs = "*",
+  range = true,
+  complete = function(arg_lead, cmd_line, _)
+    local parts = vim.split(cmd_line, "%s+")
+    if #parts <= 2 then
+      local items = {
+        "line", "block", "visual", "step", "file", "motion",
+        "select", "select_terminal", "history", "last", "show_last",
+        "copy_output", "copy_command", "paste_output",
+        "toggle_paste", "toggle_paste_output", "toggle_copy", "status",
+      }
+      local matches = {}
+      for _, item in ipairs(items) do
+        if item:find("^" .. arg_lead) then
+          table.insert(matches, item)
+        end
+      end
+      return matches
+    end
+    return {}
+  end,
+  desc = "Send code snippets, manage terminal targets, toggle features, or inspect history",
+})
+
 

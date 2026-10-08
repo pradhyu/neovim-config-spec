@@ -38,6 +38,18 @@ M.defaults = {
   auto_newline = true,
   shell_continuation = "auto", -- "auto" (detects bash/zsh vs pwsh), "bash" (\), "powershell" (`)
 
+  -- Multiplexer & terminal backend ("auto", "neovim", "tmux", "zellij", "kitty", "wezterm", "snacks", "toggleterm")
+  backend = "auto",
+  tmux = {
+    target = "{last}",
+  },
+  kitty = {
+    target = "recent:1",
+  },
+  wezterm = {
+    pane_id = nil,
+  },
+
   -- Terminal Lower Status Bar
   status_bar = {
     enabled = true,

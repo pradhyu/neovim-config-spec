@@ -153,6 +153,19 @@ function M.send_visual()
   runner.send_visual()
 end
 
+---Operatorfunc callback for motion execution (`g@`)
+---@param motion_type string
+function M.opfunc(motion_type)
+  runner.opfunc(motion_type)
+end
+
+---Send code covered by motion to terminal
+function M.send_motion()
+  runner.send_motion()
+end
+
+local history = require("terminal_enhancement.core.history")
+
 ---Show floating modal with the last command execution outcome
 function M.show_last_output()
   history.show_last_output()

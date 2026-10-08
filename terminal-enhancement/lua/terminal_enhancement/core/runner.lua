@@ -9,56 +9,16 @@ local utils = require("terminal_enhancement.core.utils")
 
 local M = {}
 
+local backends = require("terminal_enhancement.backends")
+
 ---Internal helper to dispatch text to resolved or chosen target terminal
 ---@param text string
+---@param opts? table
 ---@param lang? string
 ---@param on_done? fun(target_id: string, term_buf: integer, start_lines: integer)
-local function dispatch_to_terminal(text, lang, on_done)
-  local active = terminal.get_active_terminals()
-
-  local function do_send(target_id)
-    local inst = terminal.instances[target_id]
-    if not inst then
-      inst = terminal.get_or_create(target_id)
-    end
-
-    local term_buf = inst.buf
-    local start_line_count = (term_buf and vim.api.nvim_buf_is_valid(term_buf)) and vim.api.nvim_buf_line_count(term_buf) or 0
-
-    terminal.send(target_id, text)
-
-    local preview = text:gsub("\27%[[0-9;?]*[a-zA-Z]", ""):sub(1, 40):gsub("\n", " ")
-    if #text > 40 then
-      preview = preview .. "..."
-    end
-
-    vim.notify(
-      string.format("[TermEnhance -> %s] Dispatched: %s", target_id, preview),
-      vim.log.levels.INFO
-    )
-
-    if on_done then
-      on_done(target_id, term_buf, start_line_count)
-    end
-  end
-
-  if #active == 0 then
-    terminal.get_or_create("default")
-    terminal.set_default_target("default")
-    do_send("default")
-  elseif #active == 1 then
-    local target = active[1].id
-    terminal.set_default_target(target)
-    do_send(target)
-  else
-    if terminal.default_target and terminal.instances[terminal.default_target] then
-      do_send(terminal.default_target)
-    else
-      terminal.select_target_terminal(function(chosen_id)
-        do_send(chosen_id)
-      end)
-    end
-  end
+---@param entry_id? integer
+local function dispatch_to_terminal(text, opts, lang, on_done, entry_id)
+  return backends.send(text, opts, lang, on_done, entry_id)
 end
 
 ---Execute an extraction result (highlight, format, send, record history)
@@ -93,12 +53,21 @@ local function execute_result(result, opts, on_done)
     command = result.text,
   })
 
-  dispatch_to_terminal(payload, result.lang, function(target_id, term_buf, start_lines)
-    if entry and term_buf and vim.api.nvim_buf_is_valid(term_buf) then
-      history.capture_terminal_output(term_buf, start_lines, entry.id, opts)
+  local done_called = false
+  local function done_wrapper(target_id, term_buf, start_lines)
+    if not done_called then
+      done_called = true
+      if entry and term_buf and vim.api.nvim_buf_is_valid(term_buf) then
+        history.capture_terminal_output(term_buf, start_lines, entry.id, opts)
+      end
+      if on_done then on_done(true) end
     end
-    if on_done then on_done(true) end
-  end)
+  end
+
+  local ok = dispatch_to_terminal(payload, opts, result.lang, done_wrapper, entry and entry.id or nil)
+  if ok and not done_called then
+    done_wrapper("dispatched", nil, 0)
+  end
 
   return true
 end
@@ -216,11 +185,11 @@ function M.send_selection(line1, line2, mode)
     command = text,
   })
 
-  dispatch_to_terminal(payload, filetype, function(_, term_buf, start_lines)
+  dispatch_to_terminal(payload, config.options, filetype, function(_, term_buf, start_lines)
     if entry and term_buf and vim.api.nvim_buf_is_valid(term_buf) then
-      history.capture_terminal_output(term_buf, start_lines, entry.id)
+      history.capture_terminal_output(term_buf, start_lines, entry.id, config.options)
     end
-  end)
+  end, entry and entry.id or nil)
 end
 
 ---Send lines joined with line continuation (\ or `)
@@ -239,9 +208,66 @@ function M.run_command(cmd, direction)
   terminal.toggle(temp_id, cmd, direction or "float", string.format(" Run: %s ", cmd))
 end
 
+---Operatorfunc callback for motion execution (`g@`)
+---@param motion_type string
+function M.opfunc(motion_type)
+  local bufnr = vim.api.nvim_get_current_buf()
+  local s_pos = vim.fn.getpos("'[")
+  local e_pos = vim.fn.getpos("']")
+
+  local s_line = s_pos[2]
+  local s_col = s_pos[3]
+  local e_line = e_pos[2]
+  local e_col = e_pos[3]
+
+  if s_line == 0 or e_line == 0 then
+    return
+  end
+
+  local lines = utils.get_buf_lines(bufnr, s_line, e_line)
+  local lang = utils.get_filetype(bufnr)
+  local is_char = (motion_type == "char")
+
+  if is_char then
+    if #lines == 1 then
+      lines[1] = lines[1]:sub(s_col, e_col)
+    else
+      lines[1] = lines[1]:sub(s_col)
+      lines[#lines] = lines[#lines]:sub(1, e_col)
+    end
+  end
+
+  local opts = config.options
+  local sanitized = sanitizer.sanitize_lines(lines, lang, opts)
+  local res = {
+    text = table.concat(sanitized, "\n"),
+    raw_lines = lines,
+    sanitized_lines = sanitized,
+    lang = lang,
+    is_inline = is_char and (#lines == 1),
+    range = {
+      bufnr = bufnr,
+      start_row = s_line - 1,
+      start_col = is_char and (s_col - 1) or 0,
+      end_row = e_line - 1,
+      end_col = is_char and e_col or -1,
+      start_line = s_line,
+      end_line = e_line,
+    },
+  }
+
+  execute_result(res, opts)
+end
+
 ---Interactive prompt to select or switch the default target terminal
 function M.select_target()
   terminal.select_target_terminal()
+end
+
+---Trigger operator motion
+function M.send_motion()
+  vim.go.operatorfunc = "v:lua.require'terminal_enhancement'.opfunc"
+  vim.api.nvim_feedkeys("g@", "n", false)
 end
 
 return M
