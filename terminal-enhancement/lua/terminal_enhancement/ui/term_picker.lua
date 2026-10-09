@@ -78,6 +78,7 @@ function M.open_snacks(opts)
     { id = "__new_split_h__", title = "➕ [New] Create Horizontal Split Terminal", desc = "Spawns a bottom horizontal split terminal" },
     { id = "__new_split_v__", title = "➕ [New] Create Vertical Split Terminal", desc = "Spawns a right vertical split terminal" },
     { id = "__new_pwsh__", title = "➕ [New] Create PowerShell Terminal (pwsh)", desc = "Spawns a floating PowerShell (pwsh) terminal" },
+    { id = "__tmux_sessions__", title = "🪟 [Tmux] Browse & Attach Tmux Sessions (Local/WSL/SSH)", desc = "Opens the multi-environment Tmux session manager" },
   }
 
   if #active_list > 0 then
@@ -240,6 +241,10 @@ function M.open_snacks(opts)
           terminal.toggle("vertical", nil, "vertical")
         elseif a.id == "__new_pwsh__" then
           terminal.toggle("pwsh", "pwsh", "float")
+        elseif a.id == "__tmux_sessions__" then
+          vim.schedule(function()
+            require("terminal_enhancement.ui.tmux_picker").open()
+          end)
         elseif a.id == "__clean_hidden__" then
           terminal.kill_hidden()
         end
@@ -306,6 +311,12 @@ function M.open(opts)
     shell_type = "pwsh",
     is_action = true,
   })
+  table.insert(items, {
+    id = "__tmux_sessions__",
+    title = "🪟 [Tmux] Browse & Attach Tmux Sessions (Local/WSL/SSH)",
+    shell_type = "tmux",
+    is_action = true,
+  })
 
   if #active_list > 0 then
     table.insert(items, {
@@ -333,6 +344,8 @@ function M.open(opts)
       terminal.toggle("vertical", nil, "vertical")
     elseif choice.id == "__new_pwsh__" then
       terminal.toggle("pwsh", "pwsh", "float")
+    elseif choice.id == "__tmux_sessions__" then
+      require("terminal_enhancement.ui.tmux_picker").open()
     elseif choice.id == "__clean_hidden__" then
       terminal.kill_hidden()
     else
