@@ -232,10 +232,17 @@ function M.capture_pane(target_name, target_spec, num_lines)
     return {}
   end
 
+  local raw_lines = vim.split(out, "\n", { plain = true })
   local lines = {}
-  for line in out:gmatch("[^\r\n]+") do
-    table.insert(lines, line)
+  for _, l in ipairs(raw_lines) do
+    table.insert(lines, (l:gsub("\r", "")))
   end
+
+  -- Trim trailing empty lines
+  while #lines > 0 and vim.trim(lines[#lines]) == "" do
+    table.remove(lines)
+  end
+
   return lines
 end
 
