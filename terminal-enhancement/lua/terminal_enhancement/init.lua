@@ -11,6 +11,7 @@ local M = {}
 ---@param user_opts? table
 function M.setup(user_opts)
   config.setup(user_opts)
+  require("terminal_enhancement.core.tmux").setup(user_opts)
   keymaps.setup()
 
   local function setup_term_buffer(buf)
@@ -335,6 +336,33 @@ end
 ---Toggle status bar (legacy alias)
 function M.toggle_sticky_scroll()
   M.toggle_status_bar()
+end
+
+---Tmux core bridge
+M.tmux = require("terminal_enhancement.core.tmux")
+
+---Open interactive Tmux session manager picker
+---@param target? string
+function M.tmux_picker(target)
+  require("terminal_enhancement.ui.tmux_picker").open(target)
+end
+
+---Open interactive Tmux target/VM switcher
+---@param callback? fun(target: string)
+function M.tmux_targets(callback)
+  require("terminal_enhancement.ui.tmux_picker").switch_target_picker(callback)
+end
+
+---Prompt to create a new Tmux session on target
+---@param target? string
+function M.tmux_new(target)
+  require("terminal_enhancement.ui.tmux_picker").prompt_new_session(target)
+end
+
+---Prompt to add a new VM/WSL/SSH target
+---@param callback? fun(target: string)
+function M.tmux_add_target(callback)
+  require("terminal_enhancement.ui.tmux_picker").prompt_add_target(callback)
 end
 
 return M

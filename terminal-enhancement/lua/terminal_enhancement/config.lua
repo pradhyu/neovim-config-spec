@@ -42,6 +42,22 @@ M.defaults = {
   backend = "auto",
   tmux = {
     target = "{last}",
+    default_target = "local",
+    layout = "float", -- "float" | "horizontal" | "vertical" | "tab"
+    targets = {
+      ["local"] = {
+        name = "local",
+        desc = "Local Host Tmux",
+        type = "local",
+        cmd = { "tmux" },
+      },
+      ["wsl"] = {
+        name = "wsl",
+        desc = "WSL (Default Linux Distro)",
+        type = "wsl",
+        cmd = vim.fn.has("win32") == 1 and { "wsl.exe", "--", "tmux" } or { "wsl", "--", "tmux" },
+      },
+    },
   },
   kitty = {
     target = "recent:1",

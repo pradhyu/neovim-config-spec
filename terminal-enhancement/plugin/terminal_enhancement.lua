@@ -574,4 +574,51 @@ end, {
   desc = "Send code snippets, manage terminal targets, toggle features, or inspect history",
 })
 
+-- Tmux Multi-Environment Session Manager Commands (Local, WSL, SSH, Custom VM)
+local function get_tmux_target_names()
+  local matches = {}
+  for _, t in ipairs(term_enh.tmux.get_targets()) do
+    table.insert(matches, t.name)
+  end
+  return matches
+end
+
+vim.api.nvim_create_user_command("TermTmux", function(opts)
+  local arg = opts.args ~= "" and opts.args or nil
+  term_enh.tmux_picker(arg)
+end, {
+  nargs = "?",
+  complete = get_tmux_target_names,
+  desc = "Interactive Tmux Session Manager (Local/WSL/SSH): :TermTmux [target]",
+})
+
+vim.api.nvim_create_user_command("TermTmuxTarget", function(opts)
+  local arg = opts.args ~= "" and opts.args or nil
+  if arg then
+    term_enh.tmux.set_active_target(arg)
+  else
+    term_enh.tmux_targets()
+  end
+end, {
+  nargs = "?",
+  complete = get_tmux_target_names,
+  desc = "Switch or inspect active Tmux Target / VM: :TermTmuxTarget [target]",
+})
+
+vim.api.nvim_create_user_command("TermTmuxNew", function(opts)
+  local arg = opts.args ~= "" and opts.args or nil
+  term_enh.tmux_new(arg)
+end, {
+  nargs = "?",
+  complete = get_tmux_target_names,
+  desc = "Create & attach to new Tmux session on target: :TermTmuxNew [target]",
+})
+
+vim.api.nvim_create_user_command("TermTmuxAdd", function()
+  term_enh.tmux_add_target()
+end, {
+  desc = "Register a new Tmux Target (WSL Distro, SSH Host, or custom command)",
+})
+
+
 

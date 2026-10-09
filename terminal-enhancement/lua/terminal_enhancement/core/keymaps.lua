@@ -156,6 +156,15 @@ function M.setup()
   vim.keymap.set("n", "<leader>tX", function()
     require("terminal_enhancement.core.terminal").kill_hidden()
   end, { desc = "Clean all hidden terminal buffers" })
+
+  -- Tmux Multi-Environment Session Management (Local, WSL, SSH, Custom VM)
+  vim.keymap.set("n", "<leader>tT", function()
+    require("terminal_enhancement.ui.tmux_picker").open()
+  end, { desc = "Tmux Session Manager (Local/WSL/SSH)" })
+
+  vim.keymap.set("n", "<leader>tM", function()
+    require("terminal_enhancement.ui.tmux_picker").switch_target_picker()
+  end, { desc = "Tmux Target / VM Switcher" })
 end
 
 return M
