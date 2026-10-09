@@ -191,12 +191,37 @@
     * **Configuration & Keymaps:**
       * Keybinding: `<prefix>+o` (Prefix: `C-Space` or `C-b`).
       * Managed via TPM (`~/.config/tmux/plugins/tpm`) with `@sessionx-zoxide-mode 'on'`, `@sessionx-preview-location 'right'`, and 85% height / 80% width geometry.
-    * **Windows & WSL Cross-Platform Bridge Architecture:**
-      * When running **Native Windows Neovim (`nvim.exe`)**, Tmux runs inside WSL (Windows Subsystem for Linux) where `tmux-sessionx`, `fzf`, `bat`, and `zoxide` reside.
-      * `terminal-enhancement.nvim` automatically detects `vim.fn.has("win32") == 1` and bridges via `wsl.exe -d <distro> -- tmux`.
-      * Windows Neovim queries sessions via `wsl.exe` and attaches through a ConPTY terminal modal.
-      * Inside the attached terminal, `tmux-sessionx` operates natively within WSL (`<prefix>+o`) without needing X11, Wayland, or SSH overhead.
-      * Detaching with `Ctrl+b d` cleanly exits the terminal and returns focus back to Windows Neovim.
+    * **Windows & WSL Cross-Platform Bridge Architecture (Example: Fedora in WSL):**
+      * **Scenario:** You run native Windows Neovim (`nvim.exe` or Neovide) on Windows 11, while your dev environment, compiler toolchains, Tmux, and `tmux-sessionx` run inside a **Fedora** WSL distribution (`wsl -d Fedora`).
+      * **Configuration in `lua/plugins/terminal-enhancement.lua` (or `opts`):**
+        ```lua
+        tmux = {
+          default_target = "wsl_fedora",
+          layout = "float", -- "float" | "horizontal" | "vertical" | "tab"
+          targets = {
+            wsl_fedora = {
+              distro = "Fedora",
+              desc = "Fedora Linux (WSL)",
+            },
+          },
+        }
+        ```
+      * **Execution Pipeline Under the Hood:**
+        1. **Session Discovery:** Windows Neovim invokes:
+           `wsl.exe -d Fedora -- tmux list-sessions -F "#{session_name}:#{session_windows}:#{session_attached}:#{session_created}"`
+           Sessions running inside Fedora are fetched and rendered with window counts, attach states, and preview panes inside Neovim's `Snacks.picker`.
+        2. **PTY Attachment:** When selecting or creating a session (e.g. `dev`), Windows Neovim calls:
+           `vim.fn.termopen({ "wsl.exe", "-d", "Fedora", "--", "tmux", "attach-session", "-t", "dev" })`
+           Windows ConPTY hooks directly into Fedora's Linux PTY, opening a centered 85% floating terminal with full 256color/RGB and mouse support.
+        3. **In-Session `tmux-sessionx` Operation:**
+           Inside the attached window, you are inside Fedora. Pressing `<prefix>+o` (`Ctrl+Space o` or `Ctrl+b o`) launches `tmux-sessionx`'s interactive fuzzy finder, searching Fedora's `zoxide` history, `~/git`, and `~/projects` with live `bat` syntax previews.
+        4. **Clean Detach:**
+           Pressing `Ctrl+b d` detaches the session inside Fedora, cleanly terminates the `wsl.exe` terminal job, and closes the floating window, instantly returning you to your Windows Neovim buffer.
+      * **Available Commands in Windows Neovim:**
+        * `:TermTmux wsl_fedora` $\rightarrow$ Open session manager targeting Fedora directly.
+        * `:TermTmuxNew wsl_fedora` $\rightarrow$ Create and attach to a new named session inside Fedora.
+        * `:TermTmuxTarget` $\rightarrow$ Switch active target between Fedora, other WSL distros, or remote SSH VMs.
+        * `:TermTmuxAdd` $\rightarrow$ Interactive wizard to register another WSL distro (e.g. Debian, Ubuntu) on the fly without restarting Neovim.
 
 * **`smart-highlighter.nvim`** (Local repo: `~/git/neovim-config-spec/smart-highlighter`):
   * Ultra-fast, 16-slot multi-keyword, pattern, regex, and Treesitter scope-aware visual highlighter with floating HUD and match navigation.
