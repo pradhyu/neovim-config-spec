@@ -191,7 +191,12 @@
     * **Configuration & Keymaps:**
       * Keybinding: `<prefix>+o` (Prefix: `C-Space` or `C-b`).
       * Managed via TPM (`~/.config/tmux/plugins/tpm`) with `@sessionx-zoxide-mode 'on'`, `@sessionx-preview-location 'right'`, and 85% height / 80% width geometry.
-      * Fully complementary to `terminal-enhancement.nvim`'s in-editor Neovim session manager (`<leader>tT`).
+    * **Windows & WSL Cross-Platform Bridge Architecture:**
+      * When running **Native Windows Neovim (`nvim.exe`)**, Tmux runs inside WSL (Windows Subsystem for Linux) where `tmux-sessionx`, `fzf`, `bat`, and `zoxide` reside.
+      * `terminal-enhancement.nvim` automatically detects `vim.fn.has("win32") == 1` and bridges via `wsl.exe -d <distro> -- tmux`.
+      * Windows Neovim queries sessions via `wsl.exe` and attaches through a ConPTY terminal modal.
+      * Inside the attached terminal, `tmux-sessionx` operates natively within WSL (`<prefix>+o`) without needing X11, Wayland, or SSH overhead.
+      * Detaching with `Ctrl+b d` cleanly exits the terminal and returns focus back to Windows Neovim.
 
 * **`smart-highlighter.nvim`** (Local repo: `~/git/neovim-config-spec/smart-highlighter`):
   * Ultra-fast, 16-slot multi-keyword, pattern, regex, and Treesitter scope-aware visual highlighter with floating HUD and match navigation.
