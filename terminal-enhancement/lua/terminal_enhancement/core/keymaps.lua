@@ -171,6 +171,10 @@ function M.setup()
   vim.keymap.set("n", "<leader>tM", function()
     require("terminal_enhancement.ui.tmux_picker").switch_target_picker()
   end, { desc = "Tmux Target / VM Switcher" })
+
+  vim.keymap.set("n", "<leader>tP", function()
+    require("terminal_enhancement.ui.tmux_picker").open_project_picker()
+  end, { desc = "Instant Tmux Project / Zoxide Session" })
 end
 
 return M

@@ -620,5 +620,66 @@ end, {
   desc = "Register a new Tmux Target (WSL Distro, SSH Host, or custom command)",
 })
 
+vim.api.nvim_create_user_command("TermTmuxProject", function(opts)
+  local arg = opts.args ~= "" and opts.args or nil
+  term_enh.tmux_project(arg)
+end, {
+  nargs = "?",
+  complete = get_tmux_target_names,
+  desc = "Instant Tmux session from project/workspace/zoxide: :TermTmuxProject [target]",
+})
+
+vim.api.nvim_create_user_command("TermTmuxWindows", function(opts)
+  local parts = vim.split(vim.trim(opts.args), "%s+")
+  local sess = parts[1] ~= "" and parts[1] or nil
+  local tgt = parts[2]
+  if sess then
+    term_enh.tmux_windows(tgt or term_enh.tmux.active_target, sess)
+  else
+    term_enh.tmux_picker(tgt)
+  end
+end, {
+  nargs = "*",
+  desc = "Drill down into windows of a tmux session: :TermTmuxWindows <session> [target]",
+})
+
+vim.api.nvim_create_user_command("TermTmuxRename", function(opts)
+  local parts = vim.split(vim.trim(opts.args), "%s+")
+  local old_name = parts[1]
+  local new_name = parts[2]
+  local tgt = parts[3]
+  if not old_name or not new_name then
+    vim.notify("[TermEnhance] Usage: :TermTmuxRename <old_name> <new_name> [target]", vim.log.levels.WARN)
+    return
+  end
+  local ok, msg = term_enh.tmux_rename(old_name, new_name, tgt)
+  if ok then
+    vim.notify("[TermEnhance] " .. msg, vim.log.levels.INFO)
+  else
+    vim.notify("[TermEnhance] " .. msg, vim.log.levels.WARN)
+  end
+end, {
+  nargs = "+",
+  desc = "Rename a tmux session: :TermTmuxRename <old_name> <new_name> [target]",
+})
+
+vim.api.nvim_create_user_command("TermTmuxSend", function(opts)
+  local text = opts.args
+  if text == "" then
+    vim.notify("[TermEnhance] Usage: :TermTmuxSend <command_or_text>", vim.log.levels.WARN)
+    return
+  end
+  local ok, msg = term_enh.tmux_send(text)
+  if ok then
+    vim.notify("[TermEnhance] " .. msg, vim.log.levels.INFO)
+  else
+    vim.notify("[TermEnhance] " .. msg, vim.log.levels.WARN)
+  end
+end, {
+  nargs = "+",
+  desc = "Send command headlessly to active tmux target session: :TermTmuxSend <text>",
+})
+
+
 
 

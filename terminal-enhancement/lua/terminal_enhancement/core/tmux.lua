@@ -210,6 +210,48 @@ function M.list_windows(target_name, session_name)
   return windows
 end
 
+---Capture the visible text from the active pane of a session or window
+---@param target_name string?
+---@param target_spec string session or session:window
+---@param num_lines? integer Number of history lines (default 35)
+---@return string[] lines
+function M.capture_pane(target_name, target_spec, num_lines)
+  local target = M.get_target(target_name)
+  num_lines = num_lines or 35
+  local cmd = build_cmd(target.name, {
+    "capture-pane",
+    "-p",
+    "-t",
+    target_spec,
+    "-S",
+    string.format("-%d", num_lines),
+  })
+
+  local ok, out = pcall(vim.fn.system, cmd)
+  if not ok or vim.v.shell_error ~= 0 or not out or out == "" then
+    return {}
+  end
+
+  local lines = {}
+  for line in out:gmatch("[^\r\n]+") do
+    table.insert(lines, line)
+  end
+  return lines
+end
+
+---Currently attached session tracker
+---@type { target: string, session: string, started_at: integer }?
+M.current_attached = nil
+
+---Get formatted statusline badge for attached Tmux session
+---@return string
+function M.status()
+  if M.current_attached then
+    return string.format("🪟 [%s:%s]", M.current_attached.target, M.current_attached.session)
+  end
+  return ""
+end
+
 ---Attach to a tmux session in a Neovim terminal window (float, split, or tab)
 ---@param target_name string?
 ---@param session_name string
@@ -221,8 +263,24 @@ function M.attach(target_name, session_name, layout)
 
   layout = layout or (config.options.tmux and config.options.tmux.layout) or "float"
 
+  M.current_attached = {
+    target = target.name,
+    session = session_name,
+    started_at = os.time(),
+  }
+
+  local on_exit_cb = function(win, buf)
+    M.current_attached = nil
+    if win and vim.api.nvim_win_is_valid(win) then
+      pcall(vim.api.nvim_win_close, win, true)
+    end
+    if buf and vim.api.nvim_buf_is_valid(buf) then
+      pcall(vim.api.nvim_buf_delete, buf, { force = true })
+    end
+    vim.notify(string.format("[TermEnhance] Detached from Tmux session '%s' (%s)", session_name, target.name), vim.log.levels.INFO)
+  end
+
   if layout == "float" then
-    -- Open in centered floating modal window
     local width = math.floor(vim.o.columns * 0.90)
     local height = math.floor(vim.o.lines * 0.85)
     local row = math.floor((vim.o.lines - height) / 2)
@@ -243,13 +301,7 @@ function M.attach(target_name, session_name, layout)
 
     vim.fn.termopen(attach_cmd, {
       on_exit = function()
-        if vim.api.nvim_win_is_valid(win) then
-          pcall(vim.api.nvim_win_close, win, true)
-        end
-        if vim.api.nvim_buf_is_valid(buf) then
-          pcall(vim.api.nvim_buf_delete, buf, { force = true })
-        end
-        vim.notify(string.format("[TermEnhance] Detached from Tmux session '%s' (%s)", session_name, target.name), vim.log.levels.INFO)
+        on_exit_cb(win, buf)
       end,
     })
     vim.cmd("startinsert")
@@ -261,9 +313,7 @@ function M.attach(target_name, session_name, layout)
 
     vim.fn.termopen(attach_cmd, {
       on_exit = function()
-        if vim.api.nvim_win_is_valid(win) then
-          pcall(vim.api.nvim_win_close, win, true)
-        end
+        on_exit_cb(win, buf)
       end,
     })
     vim.cmd("startinsert")
@@ -275,14 +325,11 @@ function M.attach(target_name, session_name, layout)
 
     vim.fn.termopen(attach_cmd, {
       on_exit = function()
-        if vim.api.nvim_win_is_valid(win) then
-          pcall(vim.api.nvim_win_close, win, true)
-        end
+        on_exit_cb(win, buf)
       end,
     })
     vim.cmd("startinsert")
   else
-    -- Full tab
     vim.cmd("tabnew")
     local win = vim.api.nvim_get_current_win()
     local buf = vim.api.nvim_create_buf(false, true)
@@ -290,6 +337,7 @@ function M.attach(target_name, session_name, layout)
 
     vim.fn.termopen(attach_cmd, {
       on_exit = function()
+        M.current_attached = nil
         pcall(vim.cmd, "tabclose")
       end,
     })
@@ -301,12 +349,35 @@ end
 ---@param target_name string?
 ---@param session_name string
 ---@param layout? "float"|"horizontal"|"vertical"|"tab"
-function M.create_session(target_name, session_name, layout)
+---@param cwd? string
+function M.create_session(target_name, session_name, layout, cwd)
   local target = M.get_target(target_name)
-  local new_cmd = build_cmd(target.name, { "new-session", "-s", session_name })
+  local args = { "new-session", "-s", session_name }
+  if cwd and cwd ~= "" then
+    table.insert(args, "-c")
+    table.insert(args, vim.fn.expand(cwd))
+  end
+  local new_cmd = build_cmd(target.name, args)
   local win_title = string.format(" Tmux [%s]: %s (New) ", target.name, session_name)
 
   layout = layout or (config.options.tmux and config.options.tmux.layout) or "float"
+
+  M.current_attached = {
+    target = target.name,
+    session = session_name,
+    started_at = os.time(),
+  }
+
+  local on_exit_cb = function(win, buf)
+    M.current_attached = nil
+    if win and vim.api.nvim_win_is_valid(win) then
+      pcall(vim.api.nvim_win_close, win, true)
+    end
+    if buf and vim.api.nvim_buf_is_valid(buf) then
+      pcall(vim.api.nvim_buf_delete, buf, { force = true })
+    end
+    vim.notify(string.format("[TermEnhance] Closed Tmux session '%s' (%s)", session_name, target.name), vim.log.levels.INFO)
+  end
 
   if layout == "float" then
     local width = math.floor(vim.o.columns * 0.90)
@@ -329,16 +400,11 @@ function M.create_session(target_name, session_name, layout)
 
     vim.fn.termopen(new_cmd, {
       on_exit = function()
-        if vim.api.nvim_win_is_valid(win) then
-          pcall(vim.api.nvim_win_close, win, true)
-        end
-        if vim.api.nvim_buf_is_valid(buf) then
-          pcall(vim.api.nvim_buf_delete, buf, { force = true })
-        end
+        on_exit_cb(win, buf)
       end,
     })
     vim.cmd("startinsert")
-  else
+  elseif layout == "horizontal" then
     vim.cmd("botright 15split")
     local win = vim.api.nvim_get_current_win()
     local buf = vim.api.nvim_create_buf(false, true)
@@ -346,9 +412,32 @@ function M.create_session(target_name, session_name, layout)
 
     vim.fn.termopen(new_cmd, {
       on_exit = function()
-        if vim.api.nvim_win_is_valid(win) then
-          pcall(vim.api.nvim_win_close, win, true)
-        end
+        on_exit_cb(win, buf)
+      end,
+    })
+    vim.cmd("startinsert")
+  elseif layout == "vertical" then
+    vim.cmd("botright 75vsplit")
+    local win = vim.api.nvim_get_current_win()
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_win_set_buf(win, buf)
+
+    vim.fn.termopen(new_cmd, {
+      on_exit = function()
+        on_exit_cb(win, buf)
+      end,
+    })
+    vim.cmd("startinsert")
+  else
+    vim.cmd("tabnew")
+    local win = vim.api.nvim_get_current_win()
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_win_set_buf(win, buf)
+
+    vim.fn.termopen(new_cmd, {
+      on_exit = function()
+        M.current_attached = nil
+        pcall(vim.cmd, "tabclose")
       end,
     })
     vim.cmd("startinsert")
@@ -368,6 +457,128 @@ function M.kill_session(target_name, session_name)
   else
     return false, string.format("Failed to kill session '%s': %s", session_name, vim.trim(out or "error"))
   end
+end
+
+---Rename a tmux session
+---@param target_name string?
+---@param old_name string
+---@param new_name string
+---@return boolean success, string message
+function M.rename_session(target_name, old_name, new_name)
+  local target = M.get_target(target_name)
+  local cmd = build_cmd(target.name, { "rename-session", "-t", old_name, new_name })
+  local ok, out = pcall(vim.fn.system, cmd)
+  if ok and vim.v.shell_error == 0 then
+    return true, string.format("Renamed session '%s' -> '%s' on %s", old_name, new_name, target.name)
+  else
+    return false, string.format("Failed to rename session: %s", vim.trim(out or "error"))
+  end
+end
+
+---Create a new window in a tmux session
+---@param target_name string?
+---@param session_name string
+---@param window_name? string
+---@param cwd? string
+---@return boolean success, string message
+function M.new_window(target_name, session_name, window_name, cwd)
+  local target = M.get_target(target_name)
+  local args = { "new-window", "-t", session_name }
+  if window_name and window_name ~= "" then
+    table.insert(args, "-n")
+    table.insert(args, window_name)
+  end
+  if cwd and cwd ~= "" then
+    table.insert(args, "-c")
+    table.insert(args, vim.fn.expand(cwd))
+  end
+  local cmd = build_cmd(target.name, args)
+  local ok, out = pcall(vim.fn.system, cmd)
+  if ok and vim.v.shell_error == 0 then
+    return true, string.format("Created window in session '%s' on %s", session_name, target.name)
+  else
+    return false, string.format("Failed to create window: %s", vim.trim(out or "error"))
+  end
+end
+
+---Send text/command to a tmux session/pane headlessly
+---@param target_name string?
+---@param target_spec string session_name, session:window, or pane_id
+---@param text string
+---@param execute? boolean whether to send Enter (default true)
+---@return boolean success, string message
+function M.send_keys(target_name, target_spec, text, execute)
+  local target = M.get_target(target_name)
+  if execute == nil then execute = true end
+
+  text = text:gsub("\r\n", "\n"):gsub("\r", "\n")
+
+  local cmd = build_cmd(target.name, { "send-keys", "-t", target_spec, "-l", text })
+  local ok, out = pcall(vim.fn.system, cmd)
+  if not ok or vim.v.shell_error ~= 0 then
+    return false, string.format("Failed to send keys to %s: %s", target_spec, vim.trim(out or "error"))
+  end
+
+  if execute then
+    local enter_cmd = build_cmd(target.name, { "send-keys", "-t", target_spec, "Enter" })
+    pcall(vim.fn.system, enter_cmd)
+  end
+
+  return true, string.format("Dispatched to Tmux [%s:%s]", target.name, target_spec)
+end
+
+---Get list of projects for fast session bootstrapping (zoxide, workspace roots, git dirs)
+---@return table[] list of { name: string, path: string, source: string }
+function M.get_projects()
+  local projects = {}
+  local seen = {}
+
+  local function add_proj(path, source)
+    if not path or path == "" then return end
+    local expanded = vim.fn.expand(path)
+    if vim.fn.isdirectory(expanded) == 1 and not seen[expanded] then
+      seen[expanded] = true
+      local name = vim.fn.fnamemodify(expanded, ":t")
+      table.insert(projects, {
+        name = name ~= "" and name or expanded,
+        path = expanded,
+        source = source or "project",
+      })
+    end
+  end
+
+  -- 1. Current workspace root / git root
+  local cwd = vim.fn.getcwd()
+  add_proj(cwd, "workspace (cwd)")
+
+  -- 2. Query zoxide if available
+  if vim.fn.executable("zoxide") == 1 then
+    local z_ok, z_out = pcall(vim.fn.system, { "zoxide", "query", "-l" })
+    if z_ok and z_out then
+      local count = 0
+      for line in z_out:gmatch("[^\r\n]+") do
+        if count >= 30 then break end
+        add_proj(line, "zoxide")
+        count = count + 1
+      end
+    end
+  end
+
+  -- 3. Common directories
+  local scan_roots = { "~/git", "~/projects", "~/workspace", "~/.config" }
+  for _, root in ipairs(scan_roots) do
+    local exp = vim.fn.expand(root)
+    if vim.fn.isdirectory(exp) == 1 then
+      local entries = vim.fn.globpath(exp, "*", false, true)
+      for _, entry in ipairs(entries) do
+        if vim.fn.isdirectory(entry) == 1 then
+          add_proj(entry, "directory")
+        end
+      end
+    end
+  end
+
+  return projects
 end
 
 return M

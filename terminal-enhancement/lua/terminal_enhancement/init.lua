@@ -365,4 +365,42 @@ function M.tmux_add_target(callback)
   require("terminal_enhancement.ui.tmux_picker").prompt_add_target(callback)
 end
 
+---Open interactive Tmux Project / Zoxide session creator
+---@param target? string
+function M.tmux_project(target)
+  require("terminal_enhancement.ui.tmux_picker").open_project_picker(target)
+end
+
+---Drill down into windows of a tmux session
+---@param target string
+---@param session string
+function M.tmux_windows(target, session)
+  require("terminal_enhancement.ui.tmux_picker").open_windows_picker(target, session)
+end
+
+---Send text or command headlessly to tmux session/pane
+---@param text string
+---@param target? string
+---@param session? string
+---@param execute? boolean
+function M.tmux_send(text, target, session, execute)
+  local tgt = target or M.tmux.active_target
+  local sess = session or "{last}"
+  return M.tmux.send_keys(tgt, sess, text, execute)
+end
+
+---Rename a tmux session
+---@param old_name string
+---@param new_name string
+---@param target? string
+function M.tmux_rename(old_name, new_name, target)
+  return M.tmux.rename_session(target or M.tmux.active_target, old_name, new_name)
+end
+
+---Get attached Tmux session status for statusline / winbar
+---@return string
+function M.tmux_status()
+  return M.tmux.status()
+end
+
 return M
