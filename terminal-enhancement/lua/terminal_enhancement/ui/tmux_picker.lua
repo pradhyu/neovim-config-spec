@@ -317,9 +317,9 @@ function M.open_project_picker(target_name)
       win = {
         input = {
           keys = {
-            ["<c-v>"] = { "tmux_vsplit", desc = "Attach in Vertical Split" },
-            ["<c-s>"] = { "tmux_hsplit", desc = "Attach in Horizontal Split" },
-            ["<c-t>"] = { "tmux_tab", desc = "Attach in New Tab" },
+            ["<c-v>"] = { "tmux_vsplit", desc = "Attach in Vertical Split", mode = { "n", "i" } },
+            ["<c-s>"] = { "tmux_hsplit", desc = "Attach in Horizontal Split", mode = { "n", "i" } },
+            ["<c-t>"] = { "tmux_tab", desc = "Attach in New Tab", mode = { "n", "i" } },
           },
         },
       },
@@ -468,9 +468,9 @@ function M.open_windows_picker(target_name, session_name)
       win = {
         input = {
           keys = {
-            ["<c-v>"] = { "tmux_vsplit", desc = "Attach in Vertical Split" },
-            ["<c-s>"] = { "tmux_hsplit", desc = "Attach in Horizontal Split" },
-            ["<c-t>"] = { "tmux_tab", desc = "Attach in New Tab" },
+            ["<c-v>"] = { "tmux_vsplit", desc = "Attach in Vertical Split", mode = { "n", "i" } },
+            ["<c-s>"] = { "tmux_hsplit", desc = "Attach in Horizontal Split", mode = { "n", "i" } },
+            ["<c-t>"] = { "tmux_tab", desc = "Attach in New Tab", mode = { "n", "i" } },
           },
         },
       },
@@ -643,13 +643,13 @@ function M.open_snacks(target_name)
     win = {
       input = {
         keys = {
-          ["<c-v>"] = { "tmux_vsplit", desc = "Attach in Vertical Split" },
-          ["<c-s>"] = { "tmux_hsplit", desc = "Attach in Horizontal Split" },
-          ["<c-t>"] = { "tmux_tab", desc = "Attach in New Tab" },
-          ["<c-x>"] = { "tmux_kill", desc = "Kill Session" },
-          ["<c-r>"] = { "tmux_rename", desc = "Rename Session" },
-          ["<c-n>"] = { "tmux_new_win", desc = "New Window in Session" },
-          ["<c-w>"] = { "tmux_windows", desc = "Drill Down into Windows" },
+          ["<c-v>"] = { "tmux_vsplit", desc = "Attach in Vertical Split", mode = { "n", "i" } },
+          ["<c-s>"] = { "tmux_hsplit", desc = "Attach in Horizontal Split", mode = { "n", "i" } },
+          ["<c-t>"] = { "tmux_tab", desc = "Attach in New Tab", mode = { "n", "i" } },
+          ["<c-x>"] = { "tmux_kill", desc = "Kill Session", mode = { "n", "i" } },
+          ["<c-r>"] = { "tmux_rename", desc = "Rename Session", mode = { "n", "i" } },
+          ["<c-n>"] = { "tmux_new_win", desc = "New Window in Session", mode = { "n", "i" } },
+          ["<c-w>"] = { "tmux_windows", desc = "Drill Down into Windows", mode = { "n", "i" } },
         },
       },
     },
