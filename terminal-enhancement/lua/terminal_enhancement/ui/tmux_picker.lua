@@ -261,6 +261,68 @@ function M.open_project_picker(target_name)
         end
         ctx.preview:set_lines(lines)
       end,
+      actions = {
+        tmux_vsplit = function(picker, item)
+          picker:close()
+          if not item then return end
+          local p = item.project
+          vim.schedule(function()
+            local sessions = tmux.list_sessions(target.name)
+            local exists = false
+            for _, s in ipairs(sessions) do
+              if s.name == p.name then exists = true; break end
+            end
+            if exists then
+              tmux.attach(target.name, p.name, "vertical")
+            else
+              tmux.create_session(target.name, p.name, "vertical", p.path)
+            end
+          end)
+        end,
+        tmux_hsplit = function(picker, item)
+          picker:close()
+          if not item then return end
+          local p = item.project
+          vim.schedule(function()
+            local sessions = tmux.list_sessions(target.name)
+            local exists = false
+            for _, s in ipairs(sessions) do
+              if s.name == p.name then exists = true; break end
+            end
+            if exists then
+              tmux.attach(target.name, p.name, "horizontal")
+            else
+              tmux.create_session(target.name, p.name, "horizontal", p.path)
+            end
+          end)
+        end,
+        tmux_tab = function(picker, item)
+          picker:close()
+          if not item then return end
+          local p = item.project
+          vim.schedule(function()
+            local sessions = tmux.list_sessions(target.name)
+            local exists = false
+            for _, s in ipairs(sessions) do
+              if s.name == p.name then exists = true; break end
+            end
+            if exists then
+              tmux.attach(target.name, p.name, "tab")
+            else
+              tmux.create_session(target.name, p.name, "tab", p.path)
+            end
+          end)
+        end,
+      },
+      win = {
+        input = {
+          keys = {
+            ["<c-v>"] = { "tmux_vsplit", desc = "Attach in Vertical Split" },
+            ["<c-s>"] = { "tmux_hsplit", desc = "Attach in Horizontal Split" },
+            ["<c-t>"] = { "tmux_tab", desc = "Attach in New Tab" },
+          },
+        },
+      },
       confirm = function(picker, item)
         picker:close()
         if not item then return end
@@ -374,6 +436,44 @@ function M.open_windows_picker(target_name, session_name)
         end
         ctx.preview:set_lines(lines)
       end,
+      actions = {
+        tmux_vsplit = function(picker, item)
+          picker:close()
+          if not item then return end
+          local w = item.window
+          local spec = string.format("%s:%d", session_name, w.index)
+          vim.schedule(function()
+            tmux.attach(target.name, spec, "vertical")
+          end)
+        end,
+        tmux_hsplit = function(picker, item)
+          picker:close()
+          if not item then return end
+          local w = item.window
+          local spec = string.format("%s:%d", session_name, w.index)
+          vim.schedule(function()
+            tmux.attach(target.name, spec, "horizontal")
+          end)
+        end,
+        tmux_tab = function(picker, item)
+          picker:close()
+          if not item then return end
+          local w = item.window
+          local spec = string.format("%s:%d", session_name, w.index)
+          vim.schedule(function()
+            tmux.attach(target.name, spec, "tab")
+          end)
+        end,
+      },
+      win = {
+        input = {
+          keys = {
+            ["<c-v>"] = { "tmux_vsplit", desc = "Attach in Vertical Split" },
+            ["<c-s>"] = { "tmux_hsplit", desc = "Attach in Horizontal Split" },
+            ["<c-t>"] = { "tmux_tab", desc = "Attach in New Tab" },
+          },
+        },
+      },
       confirm = function(picker, item)
         picker:close()
         if not item then return end

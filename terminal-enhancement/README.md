@@ -15,9 +15,10 @@
   - [1. Smart Multi-Line Code Execution & Auto-Expansion](#1-smart-multi-line-code-execution--auto-expansion)
   - [2. Multi-Terminal Management & Renaming](#2-multi-terminal-management--renaming)
   - [3. Multi-Select Process Killer & Memory Purge](#3-multi-select-process-killer--memory-purge)
-  - [4. Universal Window Quick-Close](#4-universal-window-quick-close)
-  - [5. Smart Link & Compiler Error Trace Resolver](#5-smart-link--compiler-error-trace-resolver)
-  - [6. Dedicated Tool Launchers](#6-dedicated-tool-launchers)
+  - [4. Universal Window Quick-Close & Dynamic Zoom](#4-universal-window-quick-close--dynamic-zoom)
+  - [5. Cross-Platform Tmux Integration (Local, WSL, SSH)](#5-cross-platform-tmux-integration-local-wsl-ssh)
+  - [6. Smart Link & Compiler Error Trace Resolver](#6-smart-link--compiler-error-trace-resolver)
+  - [7. Dedicated Tool Launchers](#7-dedicated-tool-launchers)
 - [⚙️ Full Configuration Options](#️-full-configuration-options)
 - [📄 License](#-license)
 
@@ -25,7 +26,8 @@
 
 ## ✨ Core Features
 
-* 🪟 **Multi-Direction Windows**: Instant toggling between **Floating popups**, **Horizontal bottom splits**, and **Vertical right splits** with persistent shell jobs.
+* 🪟 **Multi-Direction Windows & Dynamic Zoom**: Instant toggling between **Floating popups**, **Horizontal bottom splits**, and **Vertical right splits**. One-key dynamic fullscreen zoom (`<M-z>` / `<leader>tz`) for floats and splits!
+* 🪟 **Multi-Environment Tmux Session Hub**: Seamlessly manage Tmux sessions across **Local Linux**, **Windows Subsystem for Linux (WSL)** (e.g. Fedora, Arch, Ubuntu), and **Remote SSH VMs**. Real-time screen preview (`capture-pane`), layout triggers (`<CR>`, `<C-v>`, `<C-s>`, `<C-t>`), window drill-down, and instant Zoxide project spawning.
 * 🔗 **Atomic Multi-Line Execution**: Sends multi-line commands as single atomic paste blocks with auto-dedent and terminal **Bracketed Paste** (`\e[200~ ... \e[201~`).
 * 🧠 **Smart Multi-Line Auto-Expansion**: Selecting or placing cursor on **any line** of a multi-line command with **`\` (Bash/Zsh)** or **`` ` `` (PowerShell)** automatically captures and executes the entire multi-line command.
 * 🏷️ **Dynamic Terminal Renaming**: Give custom names to any active terminal session (`term://<name>`) to organize backend servers, REPLs, and test watchers.
@@ -46,7 +48,7 @@ Add the following spec to `~/.config/nvim/lua/plugins/terminal_enhancement.lua` 
 ```lua
 return {
   {
-    dir = "/Users/pkshrestha/git/neovim-config/terminal-enhancement", -- or git repo URI
+    dir = "~/git/neovim-config-spec/terminal-enhancement", -- or git repo URI
     name = "terminal-enhancement.nvim",
     cmd = {
       "TermToggle",
@@ -73,6 +75,16 @@ return {
       "TermPicker",
       "TermSwitch",
       "TermFind",
+      "TermZoom",
+      "TermMaximize",
+      "TermTmux",
+      "TermTmuxTarget",
+      "TermTmuxNew",
+      "TermTmuxAdd",
+      "TermTmuxProject",
+      "TermTmuxWindows",
+      "TermTmuxRename",
+      "TermTmuxSend",
     },
     keys = {
       -- Terminal Toggling & Live Switching
@@ -81,6 +93,12 @@ return {
       { "<leader>tf", "<cmd>TermFloat<cr>", desc = "Toggle Floating Terminal" },
       { "<leader>th", "<cmd>TermToggle horizontal<cr>", desc = "Toggle Terminal (Horizontal Split)" },
       { "<leader>tv", "<cmd>TermToggle vertical<cr>", desc = "Toggle Terminal (Vertical Split)" },
+      { "<leader>tz", "<cmd>TermZoom<cr>", desc = "Toggle Terminal Zoom / Fullscreen" },
+      
+      -- Tmux Session Hub (Local, WSL, SSH)
+      { "<leader>tT", "<cmd>TermTmux<cr>", desc = "Interactive Tmux Sessions (Local/WSL/SSH)" },
+      { "<leader>tM", "<cmd>TermTmuxTarget<cr>", desc = "Switch / Configure Tmux Target VM" },
+      { "<leader>tP", "<cmd>TermTmuxProject<cr>", desc = "Tmux Project / Zoxide Session" },
       
       -- Code Execution
       { "<leader>ts", "<cmd>TermSend<cr>", mode = { "n", "v" }, desc = "Send Line / Selection (Bracketed Paste)" },
@@ -110,6 +128,14 @@ return {
       bracketed_paste = true,
       auto_dedent = true,
       shell_continuation = "auto", -- "auto", "bash" (\), or "powershell" (`)
+      tmux = {
+        enabled = true,
+        default_target = "local",
+        layout = "float", -- "float" | "tab" | "vertical" | "horizontal"
+        targets = {
+          local_host = { type = "local", desc = "Local Machine" },
+        },
+      },
     },
     config = function(_, opts)
       require("terminal_enhancement").setup(opts)
@@ -131,6 +157,10 @@ return {
 | **`<leader>tf`** | Normal | **Toggle Float** | Opens centered floating terminal popup |
 | **`<leader>th`** | Normal | **Horizontal Split** | Opens/hides persistent horizontal bottom split |
 | **`<leader>tv`** | Normal | **Vertical Split** | Opens/hides persistent vertical right split |
+| **`<leader>tz`** | Normal | **Toggle Zoom** | Maximizes terminal float/split to fullscreen (and back) |
+| **`<leader>tT`** | Normal | **Tmux Sessions** | Opens Tmux Manager (`Snacks.picker` live dual-pane screen preview) |
+| **`<leader>tM`** | Normal | **Tmux Targets** | Switch or register Tmux target environment (Local, WSL, SSH) |
+| **`<leader>tP`** | Normal | **Tmux Project** | Search Zoxide / Git repositories and spawn/attach session |
 | **`<leader>ts`** | Normal / Visual | **Send Code** | Sends current line or selection with Bracketed Paste (auto-expands multi-line commands) |
 | **`<leader>tS`** | Normal / Visual | **Send Joined** | Joins multiple lines with `\` (Bash) or `` ` `` (PowerShell) |
 | **`<leader>tc`** | Normal | **Select Target** | Live fuzzy filter to select default target terminal for code execution |
@@ -143,10 +173,12 @@ return {
 | **`<leader>tg`** | Normal | **LazyGit** | Dedicated LazyGit floating terminal |
 | **`<leader>top`** | Normal | **htop** | Dedicated htop process monitor |
 
-### Inside Any Terminal Buffer (Float, Horizontal, Vertical)
+### Inside Any Terminal Buffer (Float, Horizontal, Vertical, Tmux)
 
 | Keybinding | Mode | Action | Description |
 | :--- | :--- | :--- | :--- |
+| **`<M-z>` / `<M-m>`** | Normal & Terminal | **Dynamic Zoom / Maximize** | Toggles window between normal dimensions and **100% full screen** |
+| **`<C-w>m` / `<C-w>z`**| Normal Mode | **Window Zoom** | Maximizes current floating or split window |
 | **`q`** | Normal Mode | **Quick Hide** | Hides/closes the terminal window immediately |
 | **`<Esc><Esc><Esc>`** | Terminal / Normal Mode | **Quick Hide** | Triple Escape closes the terminal window immediately |
 | **`<C-q>`** | Terminal Mode | **Instant Hide** | Hides/closes the terminal window directly without leaving terminal mode |
@@ -154,6 +186,7 @@ return {
 | **`<C-h/j/k/l>`** | Terminal Mode | **Navigate Window** | Jumps focus to adjacent editor window left/down/up/right |
 | **`<CR>`** | Normal Mode on error/path | **Smart Jump** | Resolves stack trace / compiler error under cursor and opens the target file |
 | **`gf`** | Normal Mode | **Smart Resolver** | Resolves and jumps to file / URL under cursor |
+| **`Ctrl+b d`** | Inside Tmux Session | **Detach** | Cleanly detaches Tmux session and returns to Neovim buffer |
 
 ---
 
@@ -250,17 +283,61 @@ One keystroke kills and purges all hidden/background terminals while keeping vis
 
 ---
 
-### 4. Universal Window Quick-Close
+### 4. Universal Window Quick-Close & Dynamic Zoom
 
-Unlike standard Neovim terminals where closing split windows requires awkward window commands, `terminal-enhancement.nvim` provides uniform single-key closing:
+Unlike standard Neovim terminals where closing split windows requires awkward window commands or where floats cannot be maximized, `terminal-enhancement.nvim` provides uniform single-key closing and instant fullscreen zooming:
 
 * **`q`** in Normal Mode (after `<Esc><Esc>`) hides any terminal window (float, horizontal split, or vertical split).
 * **`<C-q>`** in Terminal Mode hides the terminal window directly without leaving insert mode.
-* Toggling with **`<leader>tt`**, **`<leader>th`**, or **`<leader>tv`** opens if hidden and hides if visible.
+* **`<M-z>` / `<M-m>` / `<leader>tz` (`:TermZoom`)**:
+  - **Inside Floating Terminals**: Dynamically saves the current geometry and maximizes the floating window to **100% full screen** (`col=0, row=0, width=columns-2, height=lines-3`). Pressing it again restores the original centered scratchpad dimensions!
+  - **Inside Split Terminals**: Maximizes height and width (`<C-w>_` + `<C-w>|`). Pressing it again equalizes the windows (`<C-w>=`).
+* Toggling with **`<leader>tt`**, **`<leader>th`**, or **`<leader>tv`** opens if hidden and hides if visible while preserving background jobs.
 
 ---
 
-### 5. Smart Link & Compiler Error Trace Resolver
+### 5. Cross-Platform Tmux Integration (Local, WSL, SSH)
+
+Connect Neovim to any Tmux instance across your local system, WSL Linux distributions (Fedora, Debian, Ubuntu, Arch), or remote SSH developer VMs.
+
+```
+┌─ 🪟 Tmux Sessions [local_host: Local Machine] ──────────────────────────────────────────┐
+│  🟢 dev (3 win) [attached] ⏱️ 2026-10-09 19:30   │ 🪟 Session: dev      Target: local_host  │
+│  ⚪ backend (1 win) [detached]                   │ 🖥️  Host Type: LOCAL   Status: Attached    │
+│  ⚪ worker (2 win) [detached]                    │ 📑 Total Windows: 3                      │
+│  🚀 [Projects / Zoxide] Instant Session          │ ─── Live Output (capture-pane) ──────── │
+│  ➕ [New Session] Create & Attach on [local_host]│   $ cargo watch -x test                  │
+│  🔄 [Switch Target/VM] Current: [local_host]     │   Running 14 tests...                    │
+│  ➕ [Add Target] Configure WSL / SSH VM          │   test test_worker ... ok                │
+│                                                  │ ─────────────────────────────────────── │
+│                                                  │   <CR>: Float  <C-v>: V-Split            │
+│                                                  │   <C-s>: H-Split <C-t>: New Tab          │
+└──────────────────────────────────────────────────┴─────────────────────────────────────────┘
+```
+
+#### 🔹 Key Features
+1. **Live Screen Preview (`tmux capture-pane`)**: The right preview pane streams the live terminal output from the active pane in real time before attaching.
+2. **Flexible Attach Layouts**:
+   - **`<CR>`**: Attach in a centered floating scratchpad.
+   - **`<C-v>`**: Attach in a vertical right split (`75vsplit`).
+   - **`<C-s>`**: Attach in a horizontal bottom split (`15split`).
+   - **`<C-t>`**: Attach in a dedicated **New Tab** with 100% full-screen terminal real estate.
+3. **Session Actions**:
+   - **`<C-w>`**: Drill down into session windows (`tmux list-windows`) with live window previews.
+   - **`<C-r>`**: Rename session interactively (`:TermTmuxRename`).
+   - **`<C-n>`**: Create new window inside session.
+   - **`<C-x>`**: Terminate / kill session.
+4. **Zoxide & Project Session Creator (`<leader>tP` / `:TermTmuxProject`)**:
+   - Indexes `zoxide` directories, git repositories, and workspace roots.
+   - Select a project to instantly attach if the session exists, or spawn a new session rooted at that project directory.
+5. **Headless Command Dispatch (`tmux.send_keys` / `:TermTmuxSend`)**:
+   - Send code or shell commands headlessly into any background Tmux session or pane without needing to attach.
+6. **Clean Detach (`Ctrl+b d`)**:
+   - Pressing `Ctrl+b d` cleanly detaches from Tmux, closes the Neovim window/tab, and returns focus to your buffer without leaving orphaned processes.
+
+---
+
+### 6. Smart Link & Compiler Error Trace Resolver
 
 Navigate compiler output and stack traces instantly:
 
@@ -273,7 +350,7 @@ Navigate compiler output and stack traces instantly:
 
 ---
 
-### 6. Dedicated Tool Launchers
+### 7. Dedicated Tool Launchers
 
 Pre-configured floating windows with dedicated styling and sizing:
 
@@ -282,6 +359,38 @@ Pre-configured floating windows with dedicated styling and sizing:
 * **`:TermTool agy`**: Google Antigravity AI CLI
 * **`:TermTool python`**: Interactive Python REPL
 * **`:TermTool node`**: Interactive Node.js REPL
+
+---
+
+## 💻 Complete User Commands Reference
+
+| Command | Arguments | Description |
+| :--- | :--- | :--- |
+| **`:TermToggle`** | `[float\|horizontal\|vertical]` | Toggles persistent terminal in specified layout direction. |
+| **`:TermFloat`** | — | Opens centered floating terminal. |
+| **`:TermSplit`** | `[horizontal\|vertical]` | Opens split terminal (defaults to horizontal). |
+| **`:TermBuffer`** | `[id]` | Opens terminal directly into current window as a regular listed buffer. |
+| **`:TermZoom`** | — | Dynamically toggles terminal zoom/maximize to full screen and back. |
+| **`:TermMaximize`** | — | Alias for `:TermZoom`. |
+| **`:TermTool`** | `<name>` | Opens dedicated tool (`lazygit`, `htop`, `agy`, `python`, `node`). |
+| **`:TermRun`** | `<command>` | Runs arbitrary shell command in a dedicated floating terminal. |
+| **`:TermSend`** | `[range]` | Sends selection or line to target terminal with Bracketed Paste and dedent. |
+| **`:TermSendJoined`**| `[continuation\|and]` | Sends lines joined with line continuations (`\` or `` ` ``) or `&&`. |
+| **`:TermSelect`** | — | Interactive selector to switch default target terminal. |
+| **`:TermTarget`** | `[id]` | Sets default target terminal ID directly or opens picker. |
+| **`:TermRename`** | `[new_name]` | Renames terminal instance, buffer name, and window title. |
+| **`:TermList`** | — | Prints status, buffer IDs, PIDs, and visibility of all running terminals. |
+| **`:TermClean`** | — | Kills all background/hidden terminal jobs to reclaim memory and PTYs. |
+| **`:TermKill`** | `[id\|buf]` | Interactively select terminals to kill, or kill specified terminal ID. |
+| **`:TermKillAll`** | — | Kills and terminates all active terminal sessions across Neovim. |
+| **`:TermTmux`** | `[target_name]` | Opens interactive Tmux session picker with live screen previews. |
+| **`:TermTmuxTarget`**| — | Switch or configure active Tmux target (Local, WSL, SSH). |
+| **`:TermTmuxNew`** | `[session_name]` | Prompt to create and attach to a new Tmux session on active target. |
+| **`:TermTmuxAdd`** | — | Interactive wizard to register a new WSL distro or SSH host. |
+| **`:TermTmuxProject`**| — | Search Zoxide / Git repositories and spawn/attach session. |
+| **`:TermTmuxWindows`**| `[session_name]` | Drill down and list windows inside a specific Tmux session. |
+| **`:TermTmuxRename`**| `[old] [new]` | Rename a Tmux session. |
+| **`:TermTmuxSend`** | `<spec> <command>` | Dispatches command headlessly to background Tmux session or pane. |
 
 ---
 
@@ -318,6 +427,33 @@ require("terminal_enhancement").setup({
   auto_dedent = true,          -- Remove leading indent from multi-line code blocks
   shell_continuation = "auto", -- "auto" (detects bash vs pwsh), "bash" (\), "powershell" (`)
 
+  -- Cross-Platform Tmux Subsystem
+  tmux = {
+    enabled = true,
+    default_target = "local",
+    layout = "float", -- "float" | "tab" | "vertical" | "horizontal"
+    targets = {
+      local_host = {
+        type = "local",
+        desc = "Local Machine",
+      },
+      -- Example WSL Target:
+      -- fedora_wsl = {
+      --   type = "wsl",
+      --   distro = "Fedora",
+      --   desc = "Fedora Linux in WSL",
+      -- },
+      -- Example SSH Target:
+      -- dev_vm = {
+      --   type = "ssh",
+      --   host = "dev-server.internal",
+      --   user = "developer",
+      --   port = 22,
+      --   desc = "Remote Cloud VM",
+      -- },
+    },
+  },
+
   -- Tool specifications
   tools = {
     lazygit = { cmd = "lazygit", direction = "float", desc = "LazyGit GUI" },
@@ -334,3 +470,4 @@ require("terminal_enhancement").setup({
 ## 📄 License
 
 MIT © [Pradhyumna Shrestha](https://github.com/pkshrestha)
+
