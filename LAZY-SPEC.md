@@ -276,9 +276,13 @@ Replaces standard `gf`, `<CR>` (in markdown/terminal), and `<C-LeftMouse>` with 
 5. **Terminal Window Preservation:** When invoked from inside a terminal or sidekick split, switches focus to the main editor window before opening the target file.
 
 ### B. Additional Keybindings
+* `<Esc><Esc>` in Terminal mode (`t`): Exits terminal mode to normal mode (replaces `<C-\><C-n>`).
 * `<Esc><Esc><Esc>` in Terminal mode (`t`) / Normal mode (`n`): Quick-closes/hides the active terminal window (just like `q`).
 * `<leader>*` in Normal mode: Ripgrep word under cursor across project using Telescope.
 * `grepprg`: Set to `rg --vimgrep --smart-case`.
+
+> [!NOTE]
+> For the complete keymap matrix and portable snippets across plugins and external Neovim installs, see [`key-mapping.md`](file:///home/pkshrestha/git/neovim-config-spec/key-mapping.md).
 
 ---
 

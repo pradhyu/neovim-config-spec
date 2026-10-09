@@ -40,6 +40,9 @@ function M.attach_to_buffer(buf, win)
   vim.keymap.set("n", "q", close_terminal_win, b_opts)
   vim.keymap.set("n", "<Esc><Esc><Esc>", close_terminal_win, b_opts)
 
+  -- Terminal mode: <Esc><Esc> exits to normal mode (<C-\><C-n>)
+  vim.keymap.set("t", "<Esc><Esc>", "<C-\\><C-n>", b_opts)
+
   -- Terminal mode: <Esc><Esc><Esc> (Triple Esc) or <C-q> hides/closes the terminal window directly
   vim.keymap.set("t", "<Esc><Esc><Esc>", close_terminal_win, b_opts)
   vim.keymap.set("t", "<C-q>", close_terminal_win, b_opts)
@@ -55,6 +58,9 @@ function M.setup()
   local opts = config.options
 
   if opts.smart_navigation then
+    -- Exit terminal mode directly with <Esc><Esc>
+    vim.keymap.set("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
+
     -- Window navigation directly from terminal mode
     vim.keymap.set("t", "<C-h>", "<C-\\><C-n><C-w>h", { desc = "Navigate window left" })
     vim.keymap.set("t", "<C-j>", "<C-\\><C-n><C-w>j", { desc = "Navigate window down" })
