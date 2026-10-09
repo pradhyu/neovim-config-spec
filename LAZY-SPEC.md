@@ -145,9 +145,10 @@
     * **Unhide & Show Picker:** Interactive multi-select checklist (`<leader>tu`) to check and restore hidden background terminals.
     * **One-Key Background Purge:** Instantly terminates hidden terminals and frees PTYs/memory (`:TermClean`).
     * **Dynamic Renaming:** Runtime terminal and buffer renaming (`term://<name>`).
-    * **Universal Quick-Close & Hide:** `q` (in Normal mode), `<C-q>` (in Terminal mode), `<leader>tz`, or `:TermHide` closes/hides terminal windows without killing underlying jobs or deleting buffers (`bufhidden = "hide"`).
+    * **Dynamic Fullscreen Zoom & Maximize:** Pressing `<M-z>` (in Normal or Terminal mode), `<leader>tz`, or `:TermZoom` toggles the floating modal between its 85% centered geometry and **100% maximized full screen** (`col=0, row=0, 100% lines x 100% cols`). For split terminals, it toggles window maximization.
+    * **Universal Quick-Close & Hide:** `q` (in Normal mode), `<C-q>` (in Terminal mode), `<Esc><Esc><Esc>`, or `:TermHide` closes/hides terminal windows without killing underlying jobs or deleting buffers (`bufhidden = "hide"`).
     * **Multi-Environment Tmux Session Manager:** In-Neovim Tmux manager supporting local Linux, Windows Subsystem for Linux (WSL) with arbitrary distro names (`Ubuntu`, `Debian`, `Arch`), and remote SSH VMs/hosts. Features interactive `Snacks.picker` live dual-pane preview displaying active sessions, attachment status, creation timestamps, and detailed window/pane lists. Attach cleanly in centered modal floats or splits, and detach (`Ctrl+b d`) cleanly back to Neovim without orphaned windows. Targets are fully configurable and dynamically registerable.
-  * **Commands:** `:TermToggle`, `:TermHide`, `:TermHideAll`, `:TermShow`, `:TermShowAll`, `:TermUnhide`, `:TermUnhideAll`, `:TermShowPicker`, `:TermPrompt`, `:TermExec`, `:TermFloat`, `:TermSplit`, `:TermTool`, `:TermRun`, `:TermSend`, `:TermSendLine`, `:TermSendBlock`, `:TermSendStep`, `:TermSendFile`, `:TermOutcome`, `:TermHistory`, `:TermCopyOutput`, `:TermPasteOutput`, `:TermToggleCopy`, `:TermTogglePaste`, `:TermSendJoined`, `:TermSelect`, `:TermTarget`, `:TermRename`, `:TermBuffer`, `:TermList`, `:TermKill`, `:TermClean`, `:TermKillHidden`, `:TermKillAll`, `:TermPicker`, `:TermSwitch`, `:TermFind`, `:TermTmux`, `:TermTmuxTarget`, `:TermTmuxNew`, `:TermTmuxAdd`, `:TermTmuxProject`, `:TermTmuxWindows`, `:TermTmuxRename`, `:TermTmuxSend`
+  * **Commands:** `:TermToggle`, `:TermHide`, `:TermHideAll`, `:TermShow`, `:TermShowAll`, `:TermUnhide`, `:TermUnhideAll`, `:TermShowPicker`, `:TermPrompt`, `:TermExec`, `:TermFloat`, `:TermSplit`, `:TermTool`, `:TermRun`, `:TermSend`, `:TermSendLine`, `:TermSendBlock`, `:TermSendStep`, `:TermSendFile`, `:TermOutcome`, `:TermHistory`, `:TermCopyOutput`, `:TermPasteOutput`, `:TermToggleCopy`, `:TermTogglePaste`, `:TermSendJoined`, `:TermSelect`, `:TermTarget`, `:TermRename`, `:TermBuffer`, `:TermList`, `:TermKill`, `:TermClean`, `:TermKillHidden`, `:TermKillAll`, `:TermPicker`, `:TermSwitch`, `:TermFind`, `:TermTmux`, `:TermTmuxTarget`, `:TermTmuxNew`, `:TermTmuxAdd`, `:TermTmuxProject`, `:TermTmuxWindows`, `:TermTmuxRename`, `:TermTmuxSend`, `:TermZoom`, `:TermMaximize`
   * **Keymaps:**
     * `<leader>tt`: Toggle Default Floating Terminal (Show if hidden, Hide if shown)
     * `<leader>tl`: Open interactive terminal list and live filter switcher (`:TermPicker` / `:TermList`)
@@ -158,7 +159,7 @@
     * `<leader>tT`: Interactive Tmux Session Manager across Local/WSL/SSH (`:TermTmux`)
     * `<leader>tM`: Switch or Configure Tmux Targets / VMs (`:TermTmuxTarget`)
     * `<leader>tP`: Instant Tmux Project / Zoxide Session Creator (`:TermTmuxProject`)
-    * `<leader>tz`: Explicitly Hide Active Terminal Window (Preserves background job)
+    * `<leader>tz` / `<M-z>`: Toggle Terminal Zoom / Maximize to Fullscreen (`:TermZoom`)
     * `<leader>tZ`: Hide All Open Terminal Windows (Preserves background jobs)
     * `<leader>tf`: Toggle Centered Floating Terminal
     * `<leader>th`: Toggle Horizontal Bottom Split Terminal

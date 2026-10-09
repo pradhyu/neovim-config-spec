@@ -311,6 +311,8 @@ function M.attach(target_name, session_name, layout)
         on_exit_cb(win, buf)
       end,
     })
+    require("terminal_enhancement.ui.window").apply_terminal_styling(buf, win)
+    require("terminal_enhancement.core.keymaps").attach_to_buffer(buf, win)
     vim.cmd("startinsert")
   elseif layout == "horizontal" then
     vim.cmd("botright 15split")
@@ -323,6 +325,8 @@ function M.attach(target_name, session_name, layout)
         on_exit_cb(win, buf)
       end,
     })
+    require("terminal_enhancement.ui.window").apply_terminal_styling(buf, win)
+    require("terminal_enhancement.core.keymaps").attach_to_buffer(buf, win)
     vim.cmd("startinsert")
   elseif layout == "vertical" then
     vim.cmd("botright 75vsplit")
@@ -335,6 +339,8 @@ function M.attach(target_name, session_name, layout)
         on_exit_cb(win, buf)
       end,
     })
+    require("terminal_enhancement.ui.window").apply_terminal_styling(buf, win)
+    require("terminal_enhancement.core.keymaps").attach_to_buffer(buf, win)
     vim.cmd("startinsert")
   else
     vim.cmd("tabnew")
@@ -348,6 +354,8 @@ function M.attach(target_name, session_name, layout)
         pcall(vim.cmd, "tabclose")
       end,
     })
+    require("terminal_enhancement.ui.window").apply_terminal_styling(buf, win)
+    require("terminal_enhancement.core.keymaps").attach_to_buffer(buf, win)
     vim.cmd("startinsert")
   end
 end
@@ -410,6 +418,8 @@ function M.create_session(target_name, session_name, layout, cwd)
         on_exit_cb(win, buf)
       end,
     })
+    require("terminal_enhancement.ui.window").apply_terminal_styling(buf, win)
+    require("terminal_enhancement.core.keymaps").attach_to_buffer(buf, win)
     vim.cmd("startinsert")
   elseif layout == "horizontal" then
     vim.cmd("botright 15split")
@@ -422,6 +432,8 @@ function M.create_session(target_name, session_name, layout, cwd)
         on_exit_cb(win, buf)
       end,
     })
+    require("terminal_enhancement.ui.window").apply_terminal_styling(buf, win)
+    require("terminal_enhancement.core.keymaps").attach_to_buffer(buf, win)
     vim.cmd("startinsert")
   elseif layout == "vertical" then
     vim.cmd("botright 75vsplit")
@@ -434,6 +446,8 @@ function M.create_session(target_name, session_name, layout, cwd)
         on_exit_cb(win, buf)
       end,
     })
+    require("terminal_enhancement.ui.window").apply_terminal_styling(buf, win)
+    require("terminal_enhancement.core.keymaps").attach_to_buffer(buf, win)
     vim.cmd("startinsert")
   else
     vim.cmd("tabnew")
@@ -447,6 +461,8 @@ function M.create_session(target_name, session_name, layout, cwd)
         pcall(vim.cmd, "tabclose")
       end,
     })
+    require("terminal_enhancement.ui.window").apply_terminal_styling(buf, win)
+    require("terminal_enhancement.core.keymaps").attach_to_buffer(buf, win)
     vim.cmd("startinsert")
   end
 end

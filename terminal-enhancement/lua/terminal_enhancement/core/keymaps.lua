@@ -51,6 +51,17 @@ function M.attach_to_buffer(buf, win)
   if is_float then
     vim.keymap.set("n", "<Esc>", close_terminal_win, b_opts)
   end
+
+  -- Maximize / Zoom toggle handler (<M-z>, <M-m>, <C-w>m, <C-w>z)
+  local function toggle_zoom()
+    require("terminal_enhancement.ui.window").toggle_zoom()
+  end
+  vim.keymap.set("n", "<M-z>", toggle_zoom, b_opts)
+  vim.keymap.set("n", "<M-m>", toggle_zoom, b_opts)
+  vim.keymap.set("n", "<C-w>m", toggle_zoom, b_opts)
+  vim.keymap.set("n", "<C-w>z", toggle_zoom, b_opts)
+  vim.keymap.set("t", "<M-z>", toggle_zoom, b_opts)
+  vim.keymap.set("t", "<M-m>", toggle_zoom, b_opts)
 end
 
 ---Setup global terminal navigation and smart link keybindings
@@ -175,6 +186,11 @@ function M.setup()
   vim.keymap.set("n", "<leader>tP", function()
     require("terminal_enhancement.ui.tmux_picker").open_project_picker()
   end, { desc = "Instant Tmux Project / Zoxide Session" })
+
+  -- Toggle Terminal Zoom / Maximize
+  vim.keymap.set("n", "<leader>tz", function()
+    require("terminal_enhancement.ui.window").toggle_zoom()
+  end, { desc = "Toggle Terminal Zoom / Maximize" })
 end
 
 return M

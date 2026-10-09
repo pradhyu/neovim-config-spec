@@ -506,6 +506,18 @@ end, {
   desc = "Toggle terminal lower status bar (legacy alias)",
 })
 
+vim.api.nvim_create_user_command("TermZoom", function()
+  term_enh.toggle_zoom()
+end, {
+  desc = "Toggle maximize / fullscreen zoom for active terminal window (float or split)",
+})
+
+vim.api.nvim_create_user_command("TermMaximize", function()
+  term_enh.toggle_zoom()
+end, {
+  desc = "Toggle maximize / fullscreen zoom for active terminal window (float or split)",
+})
+
 -- SendToTerminal command compatibility & multiplexer dispatch
 local send_subcommands = {
   line = function() term_enh.send_line() end,

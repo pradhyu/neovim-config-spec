@@ -100,4 +100,74 @@ function M.create_window(buf, direction, title)
   return win_id
 end
 
+---Stored original geometry for zoomed windows
+---@type table<integer, { width: integer, height: integer, row: number, col: number, border: any }>
+M.zoomed_windows = {}
+
+---Toggle maximize / zoom for active or specified terminal window
+---@param win_id? integer
+---@return boolean is_now_zoomed
+function M.toggle_zoom(win_id)
+  win_id = win_id or vim.api.nvim_get_current_win()
+  if not vim.api.nvim_win_is_valid(win_id) then
+    return false
+  end
+
+  local cfg = vim.api.nvim_win_get_config(win_id)
+  local is_float = (cfg.relative ~= "")
+
+  if is_float then
+    if M.zoomed_windows[win_id] then
+      -- Restore original floating window geometry
+      local orig = M.zoomed_windows[win_id]
+      M.zoomed_windows[win_id] = nil
+      vim.api.nvim_win_set_config(win_id, {
+        relative = "editor",
+        width = orig.width,
+        height = orig.height,
+        row = orig.row,
+        col = orig.col,
+        border = orig.border,
+      })
+      vim.notify("[TermEnhance] 🔍 Restored modal geometry", vim.log.levels.INFO)
+      return false
+    else
+      -- Save original geometry and maximize to full screen
+      M.zoomed_windows[win_id] = {
+        width = cfg.width,
+        height = cfg.height,
+        row = tonumber(cfg.row) or 0,
+        col = tonumber(cfg.col) or 0,
+        border = cfg.border,
+      }
+      local max_w = math.max(1, vim.o.columns - 2)
+      local max_h = math.max(1, vim.o.lines - 3)
+      vim.api.nvim_win_set_config(win_id, {
+        relative = "editor",
+        width = max_w,
+        height = max_h,
+        row = 0,
+        col = 0,
+        border = "rounded",
+      })
+      vim.notify("[TermEnhance] 🔍 Maximized terminal to full screen", vim.log.levels.INFO)
+      return true
+    end
+  else
+    -- Split window: toggle maximize via standard window sizing
+    if vim.w[win_id].is_split_zoomed then
+      vim.w[win_id].is_split_zoomed = false
+      vim.cmd("wincmd =")
+      vim.notify("[TermEnhance] Restored split sizes", vim.log.levels.INFO)
+      return false
+    else
+      vim.w[win_id].is_split_zoomed = true
+      vim.cmd("wincmd _")
+      vim.cmd("wincmd |")
+      vim.notify("[TermEnhance] 🔍 Maximized split window", vim.log.levels.INFO)
+      return true
+    end
+  end
+end
+
 return M

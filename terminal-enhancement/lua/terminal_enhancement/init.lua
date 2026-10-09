@@ -338,6 +338,19 @@ function M.toggle_sticky_scroll()
   M.toggle_status_bar()
 end
 
+---Toggle maximize / zoom for active terminal window (modal float or split)
+---@param win_id? integer
+---@return boolean is_zoomed
+function M.toggle_zoom(win_id)
+  return require("terminal_enhancement.ui.window").toggle_zoom(win_id)
+end
+
+---Alias for toggle_zoom
+---@param win_id? integer
+function M.zoom(win_id)
+  return M.toggle_zoom(win_id)
+end
+
 ---Tmux core bridge
 M.tmux = require("terminal_enhancement.core.tmux")
 
