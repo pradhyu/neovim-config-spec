@@ -8,9 +8,13 @@
 ## 1. Base Setup & Foundation
 * **Framework:** [LazyVim](https://www.lazyvim.org/) starter template.
 * **Neovim Version:** `>= 0.10.0`
-* **External CLI Dependencies:**
+* **External CLI & Multiplexer Dependencies:**
   * `ripgrep` (`rg`) - for fast project search.
   * `fd` - for fast file search.
+  * `tmux` (`>= 3.2`) with [TPM](https://github.com/tmux-plugins/tpm) and [tmux-sessionx](https://github.com/omerxx/tmux-sessionx) - fuzzy session manager with preview, window lists, zoxide navigation, and session creation/deletion.
+  * `fzf` (`>= 0.53`) - fuzzy finder for terminal and tmux-sessionx.
+  * `bat` - syntax-highlighted previewer for tmux-sessionx.
+  * `zoxide` - smart directory jumper integrated with tmux-sessionx.
   * `agy` (Antigravity CLI) - for AI pair programming.
   * `leaf` (`leaf-markdown-viewer`) - terminal Markdown reader with interactive TOC, fuzzy picker, and watch mode.
   * `mermaid-cli` (`mmdc`) - for compiling Mermaid diagrams into terminal images.
@@ -176,6 +180,18 @@
     * `<leader>tg`: Open LazyGit Popup Terminal
     * `<leader>top`: Open htop Process Monitor Terminal
     * `<leader>tm`: Open Leaf Markdown Viewer in Watch Mode for current buffer
+
+* **`omerxx/tmux-sessionx`** (GitHub: `https://github.com/omerxx/tmux-sessionx`, Config: `~/.config/tmux/tmux.conf`):
+  * Premium fuzzy Tmux session manager with real-time pane previews, session killing, renaming, and Zoxide project jumping.
+  * **Key Features:**
+    * **Interactive Floating Fuzzy Finder:** Opens a centered floating modal window powered by `fzf --tmux` and `bat` syntax previews.
+    * **Zoxide Directory Navigation:** Jump into any workspace or git repository registered in `zoxide` directly as a new or existing session.
+    * **Workspace Indexing:** Automatically indexes repositories across `~/git`, `~/projects`, and `~/.config`.
+    * **Session Controls:** Fast session creation (`<C-a>`), deletion (`<C-x>`), window expansion (`<C-w>`), and path navigation.
+    * **Configuration & Keymaps:**
+      * Keybinding: `<prefix>+o` (Prefix: `C-Space` or `C-b`).
+      * Managed via TPM (`~/.config/tmux/plugins/tpm`) with `@sessionx-zoxide-mode 'on'`, `@sessionx-preview-location 'right'`, and 85% height / 80% width geometry.
+      * Fully complementary to `terminal-enhancement.nvim`'s in-editor Neovim session manager (`<leader>tT`).
 
 * **`smart-highlighter.nvim`** (Local repo: `~/git/neovim-config-spec/smart-highlighter`):
   * Ultra-fast, 16-slot multi-keyword, pattern, regex, and Treesitter scope-aware visual highlighter with floating HUD and match navigation.
