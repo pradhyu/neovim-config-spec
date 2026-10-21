@@ -26,21 +26,23 @@ end
 ---@param buf integer
 ---@return boolean
 local function is_excluded(win, buf)
-  if not win or not vim.api.nvim_win_is_valid(win) then
+  if not win or type(win) ~= "number" or not vim.api.nvim_win_is_valid(win) then
     return true
   end
-  if not buf or not vim.api.nvim_buf_is_valid(buf) then
+  if not buf or type(buf) ~= "number" or not vim.api.nvim_buf_is_valid(buf) then
     return true
   end
 
   -- Exclude floating windows
-  local win_config = vim.api.nvim_win_get_config(win)
-  if win_config.relative and win_config.relative ~= "" then
+  local ok_cfg, win_config = pcall(vim.api.nvim_win_get_config, win)
+  if not ok_cfg or (win_config and win_config.relative and win_config.relative ~= "") then
     return true
   end
 
-  local ft = vim.bo[buf].filetype or ""
-  local bt = vim.bo[buf].buftype or ""
+  local ok_ft, ft = pcall(vim.api.nvim_get_option_value, "filetype", { buf = buf })
+  ft = ok_ft and ft or ""
+  local ok_bt, bt = pcall(vim.api.nvim_get_option_value, "buftype", { buf = buf })
+  bt = ok_bt and bt or ""
 
   local b_opts = (config.options and config.options.breadcrumbs) or {}
   for _, excluded_ft in ipairs(b_opts.excluded_filetypes or {}) do
@@ -58,6 +60,16 @@ local function is_excluded(win, buf)
   return false
 end
 
+---Escape special statusline characters (%)
+---@param str string
+---@return string
+local function escape_statusline(str)
+  if not str then
+    return ""
+  end
+  return str:gsub("%%", "%%%%")
+end
+
 ---Get icon and highlight for a file
 ---@param buf integer
 ---@param filename string
@@ -68,24 +80,23 @@ local function get_file_icon(buf, filename)
     return "", ""
   end
 
-  local ft = vim.bo[buf].filetype or ""
+  local ok_ft, ft = pcall(vim.api.nvim_get_option_value, "filetype", { buf = buf })
+  ft = ok_ft and ft or ""
   local icon, hl = nil, nil
 
   -- 1. Try mini.icons (standard in modern Neovim / LazyVim setups)
-  if package.loaded["mini.icons"] then
-    local ok, mini_icons = pcall(require, "mini.icons")
-    if ok then
-      icon, hl = mini_icons.get("file", filename)
-      if not icon and ft ~= "" then
-        icon, hl = mini_icons.get("filetype", ft)
-      end
+  local ok_mini, mini_icons = pcall(require, "mini.icons")
+  if ok_mini and mini_icons and mini_icons.get then
+    icon, hl = mini_icons.get("file", filename)
+    if not icon and ft ~= "" then
+      icon, hl = mini_icons.get("filetype", ft)
     end
   end
 
   -- 2. Try nvim-web-devicons
-  if not icon and package.loaded["nvim-web-devicons"] then
-    local ok, devicons = pcall(require, "nvim-web-devicons")
-    if ok then
+  if not icon then
+    local ok_dev, devicons = pcall(require, "nvim-web-devicons")
+    if ok_dev and devicons and devicons.get_icon then
       local ext = vim.fn.fnamemodify(filename, ":e")
       icon, hl = devicons.get_icon(filename, ext, { default = true })
     end
@@ -125,7 +136,7 @@ local function parse_path_segments(full_path)
   if #parts > max_depth then
     local first = parts[1]
     local truncated = { first, "…" }
-    local keep = max_depth - 2
+    local keep = math.max(0, max_depth - 2)
     for i = #parts - keep + 1, #parts do
       table.insert(truncated, parts[i])
     end
@@ -146,7 +157,7 @@ local function render_terminal(buf)
   local parts = {
     " %#BufferBuddyBreadcrumbDir# Terminal%*",
     "%#BufferBuddyBreadcrumbSep#" .. sep .. "%*",
-    "%#BufferBuddyBreadcrumbFile#" .. vim.fn.fnamemodify(term_cmd, ":t") .. "%*",
+    "%#BufferBuddyBreadcrumbFile#" .. escape_statusline(vim.fn.fnamemodify(term_cmd, ":t")) .. "%*",
   }
   return table.concat(parts, "")
 end
@@ -163,11 +174,11 @@ function M.build_breadcrumb_string(win, buf)
 
   -- 1. Workspace Tab Badge (if tab scoping is active)
   if b_opts.show_workspace and config.options.tab_scoping then
-    local cur_tab = vim.api.nvim_win_get_tabpage(win)
-    if vim.api.nvim_tabpage_is_valid(cur_tab) then
+    local ok_tab, cur_tab = pcall(vim.api.nvim_win_get_tabpage, win)
+    if ok_tab and vim.api.nvim_tabpage_is_valid(cur_tab) then
       local ws_name = tabs.get_tab_name(cur_tab)
       if ws_name and ws_name ~= "" then
-        table.insert(segments, string.format("%%#BufferBuddyBreadcrumbWorkspace#󰓩 %s%%* ", ws_name))
+        table.insert(segments, string.format("%%#BufferBuddyBreadcrumbWorkspace#󰓩 %s%%* ", escape_statusline(ws_name)))
         table.insert(segments, "%#BufferBuddyBreadcrumbSep#│ %*")
       end
     end
@@ -195,7 +206,7 @@ function M.build_breadcrumb_string(win, buf)
       table.insert(segments, string.format("%%#BufferBuddyBreadcrumbSep#%s%%*", sep))
     else
       table.insert(segments, string.format("%%#BufferBuddyBreadcrumbFolder#%s%%*", folder_icon))
-      table.insert(segments, string.format("%%#BufferBuddyBreadcrumbDir#%s%%*", dir))
+      table.insert(segments, string.format("%%#BufferBuddyBreadcrumbDir#%s%%*", escape_statusline(dir)))
       table.insert(segments, string.format("%%#BufferBuddyBreadcrumbSep#%s%%*", sep))
     end
   end
@@ -205,7 +216,7 @@ function M.build_breadcrumb_string(win, buf)
   if icon ~= "" then
     table.insert(segments, string.format("%%#%s#%s %%*", icon_hl, icon))
   end
-  table.insert(segments, string.format("%%#BufferBuddyBreadcrumbFile#%s%%*", filename))
+  table.insert(segments, string.format("%%#BufferBuddyBreadcrumbFile#%s%%*", escape_statusline(filename)))
 
   -- Modified state indicator
   if b_opts.show_modified and vim.bo[buf].modified then
@@ -237,40 +248,70 @@ function M.render()
     return ""
   end
 
-  local win = vim.g.actual_curwin or vim.api.nvim_get_current_win()
-  if not vim.api.nvim_win_is_valid(win) then
+  local raw_win = vim.g.actual_curwin
+  local win = raw_win and tonumber(raw_win) or vim.api.nvim_get_current_win()
+  if not win or type(win) ~= "number" or not vim.api.nvim_win_is_valid(win) then
     return ""
   end
 
   local buf = vim.api.nvim_win_get_buf(win)
-  if not vim.api.nvim_buf_is_valid(buf) or is_excluded(win, buf) then
+  if not buf or type(buf) ~= "number" or not vim.api.nvim_buf_is_valid(buf) or is_excluded(win, buf) then
     return ""
   end
 
-  return M.build_breadcrumb_string(win, buf)
+  local ok, res = pcall(M.build_breadcrumb_string, win, buf)
+  if not ok then
+    return ""
+  end
+  return res or ""
 end
 
 ---Toggle breadcrumbs on or off
 function M.toggle()
-  config.options.breadcrumbs = config.options.breadcrumbs or {}
-  config.options.breadcrumbs.enabled = not config.options.breadcrumbs.enabled
-  local state = config.options.breadcrumbs.enabled and "Enabled" or "Disabled"
-  vim.notify(string.format("[BufferBuddy] 🍞 Breadcrumbs %s", state), vim.log.levels.INFO)
-  pcall(vim.cmd, "redrawstatus!")
+  if M.is_enabled() then
+    M.disable()
+    vim.notify("[BufferBuddy] 🍞 Breadcrumbs Disabled", vim.log.levels.INFO)
+  else
+    M.enable()
+    vim.notify("[BufferBuddy] 🍞 Breadcrumbs Enabled", vim.log.levels.INFO)
+  end
 end
 
 ---Enable breadcrumbs
 function M.enable()
   config.options.breadcrumbs = config.options.breadcrumbs or {}
   config.options.breadcrumbs.enabled = true
-  pcall(vim.cmd, "redrawstatus!")
+  vim.o.winbar = "%{%v:lua.require('buffer_buddy.ui.breadcrumbs').render()%}"
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.api.nvim_win_is_valid(win) then
+      local buf = vim.api.nvim_win_get_buf(win)
+      if is_excluded(win, buf) then
+        pcall(function()
+          vim.wo[win].winbar = ""
+        end)
+      else
+        pcall(function()
+          vim.wo[win].winbar = "%{%v:lua.require('buffer_buddy.ui.breadcrumbs').render()%}"
+        end)
+      end
+    end
+  end
+  pcall(vim.cmd, "redraw!")
 end
 
 ---Disable breadcrumbs
 function M.disable()
   config.options.breadcrumbs = config.options.breadcrumbs or {}
   config.options.breadcrumbs.enabled = false
-  pcall(vim.cmd, "redrawstatus!")
+  vim.o.winbar = ""
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.api.nvim_win_is_valid(win) then
+      pcall(function()
+        vim.wo[win].winbar = ""
+      end)
+    end
+  end
+  pcall(vim.cmd, "redraw!")
 end
 
 ---Check if breadcrumbs are currently enabled
@@ -297,7 +338,11 @@ function M.setup()
     group = group,
     callback = function(args)
       local win = vim.api.nvim_get_current_win()
-      if not is_excluded(win, args.buf) and config.options.breadcrumbs.enabled then
+      if is_excluded(win, args.buf) then
+        pcall(function()
+          vim.wo[win].winbar = ""
+        end)
+      elseif config.options.breadcrumbs and config.options.breadcrumbs.enabled then
         pcall(function()
           vim.wo[win].winbar = "%{%v:lua.require('buffer_buddy.ui.breadcrumbs').render()%}"
         end)
@@ -309,7 +354,7 @@ function M.setup()
   vim.api.nvim_create_autocmd({ "BufModifiedSet", "BufWritePost" }, {
     group = group,
     callback = function()
-      if config.options.breadcrumbs.enabled then
+      if config.options.breadcrumbs and config.options.breadcrumbs.enabled then
         pcall(vim.cmd, "redrawstatus")
       end
     end,

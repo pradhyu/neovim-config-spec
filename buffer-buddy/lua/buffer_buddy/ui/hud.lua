@@ -108,7 +108,7 @@ function M.open()
       "  " .. string.rep("─", width - 6),
       "  [w] Trim Trailing Whitespace  | [D] Diff vs Saved File Disk",
       "  [j] Format/Prettify JSON      | [C] Diff vs Clipboard",
-      "  [m] Minify JSON               | [S] Create Named Snapshot",
+      "  [J] Minify JSON               | [S] Create Named Snapshot",
       "  [d] Deduplicate Lines         | [R] Restore Snapshot",
       "  [t] Align Markdown Table      | [b] Toggle Breadcrumbs (🍞)",
       "  " .. string.rep("─", width - 6),
@@ -158,6 +158,7 @@ function M.open()
   -- Transforms & Diffs
   vim.keymap.set("n", "w", function() transforms.trim_whitespace(cur_buf); render() end, k_opts)
   vim.keymap.set("n", "j", function() transforms.json_format(cur_buf); render() end, k_opts)
+  vim.keymap.set("n", "J", function() transforms.json_minify(cur_buf); render() end, k_opts)
   vim.keymap.set("n", "d", function() transforms.dedup_lines(cur_buf); render() end, k_opts)
   vim.keymap.set("n", "t", function() transforms.format_markdown_table(cur_buf); render() end, k_opts)
   vim.keymap.set("n", "b", function() require("buffer_buddy.ui.breadcrumbs").toggle(); render() end, k_opts)

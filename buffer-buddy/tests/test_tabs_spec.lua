@@ -1,6 +1,8 @@
 -- Automated headless test runner for Buffer Buddy tab workspace management
 local bb = require("buffer_buddy")
 
+vim.o.swapfile = false
+
 local function assert_eq(actual, expected, msg)
   if actual ~= expected then
     error(string.format("ASSERTION FAILED: %s (expected %s, got %s)", msg or "", vim.inspect(expected), vim.inspect(actual)))
@@ -154,3 +156,10 @@ print("✓ Workspace metadata reports passed")
 print("\n==========================================")
 print("🎉 ALL BUFFER BUDDY TAB TESTS PASSED! 🎉")
 print("==========================================")
+
+-- Clean up test buffers
+for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+  if vim.api.nvim_buf_is_valid(buf) then
+    pcall(vim.api.nvim_buf_delete, buf, { force = true })
+  end
+end

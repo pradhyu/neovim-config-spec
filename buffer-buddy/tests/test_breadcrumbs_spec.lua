@@ -90,6 +90,19 @@ assert_true(breadcrumbs.is_enabled(), "Should be enabled after enable()")
 assert_true(breadcrumbs.render() ~= "", "Should render breadcrumbs when re-enabled")
 print("✓ Toggle / Enable / Disable passed")
 
+print(">>> [Test 7] Neovim winbar actual_curwin string handle & % escaping...")
+vim.g.actual_curwin = tostring(win)
+local rendered_with_string_win = breadcrumbs.render()
+assert_true(rendered_with_string_win ~= "", "Render should succeed when actual_curwin is a string")
+
+local pct_buf = vim.api.nvim_create_buf(true, false)
+vim.api.nvim_buf_set_name(pct_buf, "/tmp/foo%20bar%2ftest.lua")
+local pct_result = breadcrumbs.build_breadcrumb_string(win, pct_buf)
+assert_true(pct_result:find("foo%%%%20bar") ~= nil, "% in path must be escaped as %% in statusline")
+print("✓ actual_curwin string handle & % escaping passed")
+
+vim.g.actual_curwin = nil
+
 print("\n==============================================")
 print("🎉 ALL BUFFER BUDDY BREADCRUMB TESTS PASSED! 🎉")
 print("==============================================")

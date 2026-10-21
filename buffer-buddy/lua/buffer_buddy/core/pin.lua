@@ -56,6 +56,9 @@ end
 ---@return boolean new_status
 function M.toggle_pin(buf)
   local target_buf = buf or vim.api.nvim_get_current_buf()
+  if not vim.api.nvim_buf_is_valid(target_buf) then
+    return false
+  end
   if vim.b[target_buf].buffer_buddy_pinned == true then
     M.unpin(target_buf)
     return false
