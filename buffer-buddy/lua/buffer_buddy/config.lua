@@ -8,6 +8,9 @@ local M = {}
 ---@field scratchpad_dir string
 ---@field scratchpad_style "float"|"split"|"vsplit"
 ---@field max_snapshots_per_buffer integer
+---@field tab_scoping boolean
+---@field tab_auto_name boolean
+---@field tab_clean_on_close boolean
 
 ---@type BufferBuddyOptions
 M.defaults = {
@@ -18,6 +21,9 @@ M.defaults = {
   scratchpad_dir = vim.fn.stdpath("data") .. "/buffer-buddy/scratchpads",
   scratchpad_style = "float",
   max_snapshots_per_buffer = 10,
+  tab_scoping = true,
+  tab_auto_name = true,
+  tab_clean_on_close = true,
 }
 
 ---@type BufferBuddyOptions

@@ -13,8 +13,9 @@ function M.get(buf)
   end
 
   local parts = {}
-  if pin.is_pinned(target_buf) then
-    table.insert(parts, "📌")
+  local pin_badge = pin.get_pin_badge(target_buf)
+  if pin_badge ~= "" then
+    table.insert(parts, pin_badge)
   end
 
   local info = inspector.get_info(target_buf)
@@ -23,6 +24,13 @@ function M.get(buf)
   end
 
   return table.concat(parts, " ")
+end
+
+---Get statusline badge for current workspace tab
+---@return string
+function M.get_workspace()
+  local tabs = require("buffer_buddy.core.tabs")
+  return tabs.get_workspace_label()
 end
 
 return M

@@ -1,6 +1,6 @@
 local M = {}
 
----Check if a buffer is pinned
+---Check if a buffer is pinned (locally or globally)
 ---@param buf? integer
 ---@return boolean
 function M.is_pinned(buf)
@@ -9,11 +9,23 @@ function M.is_pinned(buf)
     return false
   end
   return vim.b[target_buf].buffer_buddy_pinned == true
+      or vim.b[target_buf].buffer_buddy_global_pin == true
       or vim.b[target_buf].bufferline_pinned == true
       or vim.b[target_buf].pinned == true
 end
 
----Pin a buffer to protect it from automated closing
+---Check if a buffer is globally pinned across all tabs
+---@param buf? integer
+---@return boolean
+function M.is_global(buf)
+  local target_buf = buf or vim.api.nvim_get_current_buf()
+  if not vim.api.nvim_buf_is_valid(target_buf) then
+    return false
+  end
+  return vim.b[target_buf].buffer_buddy_global_pin == true
+end
+
+---Pin a buffer locally in current workspace
 ---@param buf? integer
 function M.pin(buf)
   local target_buf = buf or vim.api.nvim_get_current_buf()
@@ -21,11 +33,13 @@ function M.pin(buf)
     vim.b[target_buf].buffer_buddy_pinned = true
     local name = vim.api.nvim_buf_get_name(target_buf)
     local short = name ~= "" and vim.fn.fnamemodify(name, ":t") or string.format("Buf #%d", target_buf)
-    vim.notify(string.format("[BufferBuddy] 📌 Pinned buffer '%s'", short), vim.log.levels.INFO)
+    vim.notify(string.format("[BufferBuddy] 📌 Pinned buffer '%s' (workspace protected)", short), vim.log.levels.INFO)
   end
 end
 
----Unpin a buffer
+M.pin_local = M.pin
+
+---Unpin a buffer locally
 ---@param buf? integer
 function M.unpin(buf)
   local target_buf = buf or vim.api.nvim_get_current_buf()
@@ -37,12 +51,12 @@ function M.unpin(buf)
   end
 end
 
----Toggle pin status for a buffer
+---Toggle local pin status for a buffer
 ---@param buf? integer
 ---@return boolean new_status
 function M.toggle_pin(buf)
   local target_buf = buf or vim.api.nvim_get_current_buf()
-  if M.is_pinned(target_buf) then
+  if vim.b[target_buf].buffer_buddy_pinned == true then
     M.unpin(target_buf)
     return false
   else
@@ -51,7 +65,39 @@ function M.toggle_pin(buf)
   end
 end
 
----Get list of all currently pinned buffers
+---Pin a buffer globally across all tab workspaces
+---@param buf? integer
+function M.pin_global(buf)
+  require("buffer_buddy.core.tabs").set_global_buffer(buf, true)
+end
+
+---Unpin a globally pinned buffer
+---@param buf? integer
+function M.unpin_global(buf)
+  require("buffer_buddy.core.tabs").set_global_buffer(buf, false)
+end
+
+---Toggle global pin status for a buffer
+---@param buf? integer
+---@return boolean new_status
+function M.toggle_global(buf)
+  return require("buffer_buddy.core.tabs").toggle_global_buffer(buf)
+end
+
+---Get pin badge symbol for statusline / tabline
+---@param buf? integer
+---@return string
+function M.get_pin_badge(buf)
+  local target_buf = buf or vim.api.nvim_get_current_buf()
+  if M.is_global(target_buf) then
+    return "🌐"
+  elseif M.is_pinned(target_buf) then
+    return "📌"
+  end
+  return ""
+end
+
+---Get list of all currently pinned buffers (local and global)
 ---@return integer[]
 function M.get_pinned_buffers()
   local pinned = {}

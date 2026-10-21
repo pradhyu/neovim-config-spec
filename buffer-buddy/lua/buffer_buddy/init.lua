@@ -1,6 +1,7 @@
 local config = require("buffer_buddy.config")
 local hygiene = require("buffer_buddy.core.hygiene")
 local pin = require("buffer_buddy.core.pin")
+local tabs = require("buffer_buddy.core.tabs")
 local transforms = require("buffer_buddy.core.transforms")
 local snapshot = require("buffer_buddy.core.snapshot")
 local diff = require("buffer_buddy.core.diff")
@@ -16,6 +17,9 @@ local M = {}
 ---@param user_opts? table
 function M.setup(user_opts)
   config.setup(user_opts)
+
+  -- Initialize tab workspace tracking & scoping
+  tabs.setup_autocmds()
 
   -- Optional auto-trim whitespace on save
   if config.options.trim_whitespace_on_save then
@@ -42,21 +46,60 @@ function M.setup(user_opts)
   end
 end
 
--- Pin APIs
+-- =============================================================================
+-- Workspace / Tab APIs
+-- =============================================================================
+M.add_buffer_to_tab = tabs.add_buffer_to_tab
+M.remove_buffer_from_tab = tabs.remove_buffer_from_tab
+M.set_tab_name = tabs.set_tab_name
+M.get_tab_name = tabs.get_tab_name
+M.rename_tab_interactive = tabs.rename_tab_interactive
+M.new_tab = tabs.new_tab
+M.close_tab_safe = tabs.close_tab_safe
+M.close_tab = tabs.close_tab_safe
+M.move_buffer_to_tab = tabs.move_buffer_to_tab
+M.send_buffer_to_tab = tabs.send_buffer_to_tab
+M.move_buffer_interactive = tabs.move_buffer_interactive
+M.next_tab_buffer = tabs.next_buffer
+M.prev_tab_buffer = tabs.prev_buffer
+M.get_tab_buffers = tabs.get_tab_buffers
+M.is_buffer_in_tab = tabs.is_buffer_in_tab
+M.is_buffer_exclusive_to_tab = tabs.is_buffer_exclusive_to_tab
+M.sync_tab_scoping = tabs.sync_tab_scoping
+M.bufferline_filter = tabs.bufferline_filter
+M.get_workspace_label = tabs.get_workspace_label
+M.get_all_tabs_info = tabs.get_all_tabs_info
+
+-- =============================================================================
+-- Pin APIs (Local & Global)
+-- =============================================================================
 M.pin = pin.pin
+M.pin_local = pin.pin_local
 M.unpin = pin.unpin
 M.toggle_pin = pin.toggle_pin
 M.is_pinned = pin.is_pinned
+M.pin_global = pin.pin_global
+M.unpin_global = pin.unpin_global
+M.toggle_global_pin = pin.toggle_global
+M.is_global_pinned = pin.is_global
+M.get_pin_badge = pin.get_pin_badge
 M.get_pinned_buffers = pin.get_pinned_buffers
 
--- Hygiene APIs
+-- =============================================================================
+-- Hygiene APIs (Global & Tab-Scoped)
+-- =============================================================================
 M.close_unmodified = hygiene.close_unmodified
 M.close_hidden = hygiene.close_hidden
 M.close_others = hygiene.close_others
 M.close_dead = hygiene.close_dead
+M.close_tab_unmodified = hygiene.close_tab_unmodified
+M.close_tab_hidden = hygiene.close_tab_hidden
+M.close_tab_others = hygiene.close_tab_others
 M.close_current = function() hygiene.close_buffer_safely(vim.api.nvim_get_current_buf(), false) end
 
+-- =============================================================================
 -- Transform APIs
+-- =============================================================================
 M.trim_whitespace = transforms.trim_whitespace
 M.json_format = transforms.json_format
 M.json_minify = transforms.json_minify
@@ -68,23 +111,32 @@ M.dedup_lines = transforms.dedup_lines
 M.sort_lines = transforms.sort_lines
 M.format_markdown_table = transforms.format_markdown_table
 
+-- =============================================================================
 -- Diff APIs
+-- =============================================================================
 M.diff_disk = diff.diff_disk
 M.diff_clipboard = diff.diff_clipboard
 
+-- =============================================================================
 -- Snapshot APIs
+-- =============================================================================
 M.create_snapshot = snapshot.create_snapshot
 M.restore_snapshot = snapshot.restore_snapshot
 M.select_snapshot = snapshot.select_snapshot_interactive
 M.get_snapshots = snapshot.get_snapshots
 
+-- =============================================================================
 -- Scratchpad APIs
+-- =============================================================================
 M.open_scratchpad = scratchpad.open_scratchpad
 M.select_scratchpad = scratch_picker.open
 
+-- =============================================================================
 -- Inspector & UI
+-- =============================================================================
 M.get_info = inspector.get_info
 M.open_hud = hud.open
 M.statusline = statusline.get
+M.statusline_workspace = statusline.get_workspace
 
 return M

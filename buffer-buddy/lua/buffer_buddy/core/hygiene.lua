@@ -15,6 +15,23 @@ function M.is_buffer_visible(buf)
   return false
 end
 
+---Check if a buffer is currently visible in any window within a specific tabpage
+---@param buf integer
+---@param tab? integer
+---@return boolean
+function M.is_buffer_visible_in_tab(buf, tab)
+  local t = tab or vim.api.nvim_get_current_tabpage()
+  if not vim.api.nvim_tabpage_is_valid(t) then
+    return false
+  end
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(t)) do
+    if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf then
+      return true
+    end
+  end
+  return false
+end
+
 ---Safely delete a buffer while preserving window layouts
 ---@param buf integer
 ---@param force? boolean
@@ -56,7 +73,11 @@ function M.close_buffer_safely(buf, force)
   return ok
 end
 
----Close all unmodified buffers
+-- =============================================================================
+-- Global Sweepers (All Tabs)
+-- =============================================================================
+
+---Close all unmodified buffers across entire session
 ---@return integer closed_count
 function M.close_unmodified()
   local closed = 0
@@ -71,11 +92,11 @@ function M.close_unmodified()
       end
     end
   end
-  vim.notify(string.format("[BufferBuddy] 🧹 Closed %d unmodified buffer(s)", closed), vim.log.levels.INFO)
+  vim.notify(string.format("[BufferBuddy] 🧹 Closed %d unmodified buffer(s) across all tabs", closed), vim.log.levels.INFO)
   return closed
 end
 
----Close all hidden buffers (not visible in any window)
+---Close all hidden buffers (not visible in any window in any tab)
 ---@return integer closed_count
 function M.close_hidden()
   local closed = 0
@@ -90,7 +111,7 @@ function M.close_hidden()
       end
     end
   end
-  vim.notify(string.format("[BufferBuddy] 🧹 Closed %d hidden buffer(s)", closed), vim.log.levels.INFO)
+  vim.notify(string.format("[BufferBuddy] 🧹 Closed %d hidden buffer(s) across all tabs", closed), vim.log.levels.INFO)
   return closed
 end
 
@@ -110,7 +131,7 @@ function M.close_others()
       end
     end
   end
-  vim.notify(string.format("[BufferBuddy] 🧹 Closed %d other buffer(s)", closed), vim.log.levels.INFO)
+  vim.notify(string.format("[BufferBuddy] 🧹 Closed %d other buffer(s) across all tabs", closed), vim.log.levels.INFO)
   return closed
 end
 
@@ -129,6 +150,105 @@ function M.close_dead()
     end
   end
   vim.notify(string.format("[BufferBuddy] 🧹 Cleaned %d orphaned/deleted buffer(s)", closed), vim.log.levels.INFO)
+  return closed
+end
+
+-- =============================================================================
+-- Tab-Scoped Sweepers (Workspace-Isolated)
+-- =============================================================================
+
+---Close unmodified buffers belonging to the specified tab workspace
+---@param tab? integer
+---@return integer closed_count
+function M.close_tab_unmodified(tab)
+  local tabs = require("buffer_buddy.core.tabs")
+  local t = tab or vim.api.nvim_get_current_tabpage()
+  local bufs = tabs.get_tab_buffers(t)
+  local tab_num = vim.api.nvim_tabpage_get_number(t)
+  local tab_name = tabs.get_tab_name(t)
+  local closed = 0
+
+  for _, buf in ipairs(bufs) do
+    if vim.api.nvim_buf_is_valid(buf) and not vim.bo[buf].modified and vim.bo[buf].buftype ~= "terminal" then
+      if not (config.options.protect_pinned and pin.is_pinned(buf)) then
+        if tabs.is_buffer_exclusive_to_tab(buf, t) then
+          if M.close_buffer_safely(buf, false) then
+            closed = closed + 1
+          end
+        else
+          -- Shared with another tab: just remove from this tab's workspace
+          tabs.remove_buffer_from_tab(buf, t)
+          closed = closed + 1
+        end
+      end
+    end
+  end
+
+  tabs.sync_tab_scoping()
+  vim.notify(string.format("[BufferBuddy] 🧹 Tab %d [%s]: Cleaned %d unmodified buffer(s)", tab_num, tab_name, closed), vim.log.levels.INFO)
+  return closed
+end
+
+---Close buffers not currently visible in any window of the specified tab workspace
+---@param tab? integer
+---@return integer closed_count
+function M.close_tab_hidden(tab)
+  local tabs = require("buffer_buddy.core.tabs")
+  local t = tab or vim.api.nvim_get_current_tabpage()
+  local bufs = tabs.get_tab_buffers(t)
+  local tab_num = vim.api.nvim_tabpage_get_number(t)
+  local tab_name = tabs.get_tab_name(t)
+  local closed = 0
+
+  for _, buf in ipairs(bufs) do
+    if vim.api.nvim_buf_is_valid(buf) and not M.is_buffer_visible_in_tab(buf, t) and not vim.bo[buf].modified then
+      if not (config.options.protect_pinned and pin.is_pinned(buf)) then
+        if tabs.is_buffer_exclusive_to_tab(buf, t) then
+          if M.close_buffer_safely(buf, false) then
+            closed = closed + 1
+          end
+        else
+          tabs.remove_buffer_from_tab(buf, t)
+          closed = closed + 1
+        end
+      end
+    end
+  end
+
+  tabs.sync_tab_scoping()
+  vim.notify(string.format("[BufferBuddy] 🧹 Tab %d [%s]: Cleaned %d hidden buffer(s)", tab_num, tab_name, closed), vim.log.levels.INFO)
+  return closed
+end
+
+---Close other buffers in current tab except the active one
+---@param tab? integer
+---@return integer closed_count
+function M.close_tab_others(tab)
+  local tabs = require("buffer_buddy.core.tabs")
+  local t = tab or vim.api.nvim_get_current_tabpage()
+  local bufs = tabs.get_tab_buffers(t)
+  local current = vim.api.nvim_get_current_buf()
+  local tab_num = vim.api.nvim_tabpage_get_number(t)
+  local tab_name = tabs.get_tab_name(t)
+  local closed = 0
+
+  for _, buf in ipairs(bufs) do
+    if buf ~= current and vim.api.nvim_buf_is_valid(buf) and not vim.bo[buf].modified then
+      if not (config.options.protect_pinned and pin.is_pinned(buf)) then
+        if tabs.is_buffer_exclusive_to_tab(buf, t) then
+          if M.close_buffer_safely(buf, false) then
+            closed = closed + 1
+          end
+        else
+          tabs.remove_buffer_from_tab(buf, t)
+          closed = closed + 1
+        end
+      end
+    end
+  end
+
+  tabs.sync_tab_scoping()
+  vim.notify(string.format("[BufferBuddy] 🧹 Tab %d [%s]: Closed %d other buffer(s)", tab_num, tab_name, closed), vim.log.levels.INFO)
   return closed
 end
 
