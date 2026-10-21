@@ -143,7 +143,13 @@ autocmd BufEnter,TermOpen term://* startinsert
 | Keybinding | Mode | Action |
 | :--- | :---: | :--- |
 | **`<leader>B`** / **`<leader>BB`** | `n` | Open Buffer Buddy Dashboard & Inspector |
-| **`<leader>Bp`** | `n` | Toggle pin protection on current buffer |
+| **`<leader>Bb`** | `n` | Toggle Buffer Breadcrumbs Winbar on/off |
+| **`<leader>Bn`** | `n` | Rename Workspace Tab |
+| **`<leader>BN`** | `n` | Create New Workspace Tab |
+| **`<leader>Bm`** | `n` | Move Buffer to Workspace Tab |
+| **`<leader>Bx`** | `n` | Safely close tab and sweep exclusive buffers |
+| **`<leader>Bp`** | `n` | Toggle local pin protection (protects from tab sweeps) |
+| **`<leader>BP`** | `n` | Toggle global pin protection 🌐 (visible in all tabs) |
 | **`<leader>bc`** / **`<leader>Bc`** | `n` | Safely close current buffer (preserves split layout) |
 | **`<leader>bC`** / **`<leader>BC`** | `n` | Sweep all unmodified / clean buffers |
 | **`<leader>bh`** / **`<leader>Bh`** | `n` | Sweep all hidden buffers |

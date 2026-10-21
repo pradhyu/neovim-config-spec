@@ -10,6 +10,7 @@ local scratchpad = require("buffer_buddy.core.scratchpad")
 local hud = require("buffer_buddy.ui.hud")
 local scratch_picker = require("buffer_buddy.ui.scratch_picker")
 local statusline = require("buffer_buddy.ui.statusline")
+local breadcrumbs = require("buffer_buddy.ui.breadcrumbs")
 
 local M = {}
 
@@ -20,6 +21,9 @@ function M.setup(user_opts)
 
   -- Initialize tab workspace tracking & scoping
   tabs.setup_autocmds()
+
+  -- Initialize buffer breadcrumbs winbar
+  breadcrumbs.setup()
 
   -- Optional auto-trim whitespace on save
   if config.options.trim_whitespace_on_save then
@@ -140,5 +144,10 @@ M.get_info = inspector.get_info
 M.open_hud = hud.open
 M.statusline = statusline.get
 M.statusline_workspace = statusline.get_workspace
+M.toggle_breadcrumbs = breadcrumbs.toggle
+M.enable_breadcrumbs = breadcrumbs.enable
+M.disable_breadcrumbs = breadcrumbs.disable
+M.is_breadcrumbs_enabled = breadcrumbs.is_enabled
+M.get_breadcrumbs = breadcrumbs.build_breadcrumb_string
 
 return M

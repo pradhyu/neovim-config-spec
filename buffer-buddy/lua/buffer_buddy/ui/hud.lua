@@ -110,9 +110,9 @@ function M.open()
       "  [j] Format/Prettify JSON      | [C] Diff vs Clipboard",
       "  [m] Minify JSON               | [S] Create Named Snapshot",
       "  [d] Deduplicate Lines         | [R] Restore Snapshot",
-      "  [t] Align Markdown Table      | [U] Sweep All Tabs Unmodified",
+      "  [t] Align Markdown Table      | [b] Toggle Breadcrumbs (🍞)",
       "  " .. string.rep("─", width - 6),
-      "  [q / Esc] Close Dashboard",
+      "  [U] Sweep All Tabs Unmodified | [q / Esc] Close Dashboard",
     }
 
     vim.bo[buf].modifiable = true
@@ -160,6 +160,7 @@ function M.open()
   vim.keymap.set("n", "j", function() transforms.json_format(cur_buf); render() end, k_opts)
   vim.keymap.set("n", "d", function() transforms.dedup_lines(cur_buf); render() end, k_opts)
   vim.keymap.set("n", "t", function() transforms.format_markdown_table(cur_buf); render() end, k_opts)
+  vim.keymap.set("n", "b", function() require("buffer_buddy.ui.breadcrumbs").toggle(); render() end, k_opts)
   vim.keymap.set("n", "D", function() close(); diff.diff_disk(cur_buf) end, k_opts)
   vim.keymap.set("n", "C", function() close(); diff.diff_clipboard(cur_buf) end, k_opts)
   vim.keymap.set("n", "S", function()

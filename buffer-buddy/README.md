@@ -17,6 +17,11 @@ Comprehensive buffer & workspace companion for Neovim: Tab workspace buffer scop
 - **📌 Dual Buffer Pinning**:
   - **Local Pin** (`<leader>Bp` / `📌`): Protects buffer from sweeps in the current workspace.
   - **Global Pin** (`<leader>BP` / `🌐`): Keeps critical reference files or scratchpads permanently listed and accessible across **all** tabs.
+- **🍞 Buffer Breadcrumbs Winbar**:
+  - Live window breadcrumb path displaying directory hierarchy, file icons (`mini.icons` / `nvim-web-devicons`), and filename.
+  - Context indicators: Workspace badge (`󰓩 PK-Work`), Pin badges (`📌` / `🌐`), Modified status (`●`), and Read-only indicator (`🔒`).
+  - Path depth truncation (`…`) to avoid winbar overflow on deep nested paths.
+  - Automatically suppresses itself on popups, floats, sidebars, and filetrees.
 - **✂️ Transformation Toolkit**: Format/minify JSON, Base64 encode/decode, URL encode/decode, deduplicate lines, sort lines, strip trailing whitespace, and align Markdown tables.
 - **📸 In-Memory Undo Snapshots**: Create named checkpoints for any buffer before risky refactoring and revert instantly.
 - **🔀 Live Diff Utilities**: Compare unsaved buffer changes against the saved file on disk, or diff against the system clipboard.
@@ -55,6 +60,7 @@ Buffer Buddy uses the `<leader>B` prefix so all standard LazyVim / BufferLine `<
 | Keybinding | Action | Description |
 |---|---|---|
 | `<leader>B` / `<leader>BB` | `open_hud()` | Open interactive Buffer Buddy Dashboard & Workspaces |
+| `<leader>Bb` | `toggle_breadcrumbs()` | Toggle Buffer Breadcrumbs Winbar on/off |
 | `<leader>Bn` | `rename_tab_interactive()` | Name or rename current workspace tab |
 | `<leader>BN` | `new_tab()` | Create a new named workspace tab |
 | `<leader>Bm` | `move_buffer_interactive()` | Move current buffer to another workspace tab |
@@ -80,6 +86,7 @@ Buffer Buddy uses the `<leader>B` prefix so all standard LazyVim / BufferLine `<
 ## ⚡ User Commands
 
 - `:BufferBuddy` - Open interactive HUD & Workspace dashboard
+- `:BufferBreadcrumbsToggle` - Toggle buffer path breadcrumbs in winbar
 - `:BufferTabName [name]` - Name or rename workspace tab
 - `:BufferTabNew [name]` - Create new named workspace tab
 - `:BufferTabClose` - Close tab and sweep exclusive buffers

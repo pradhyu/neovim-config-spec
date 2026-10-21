@@ -1,5 +1,18 @@
 local M = {}
 
+---@class BufferBuddyBreadcrumbOptions
+---@field enabled boolean
+---@field separator string
+---@field show_icon boolean
+---@field show_workspace boolean
+---@field show_pin boolean
+---@field show_modified boolean
+---@field show_readonly boolean
+---@field folder_icon string
+---@field max_depth integer
+---@field excluded_filetypes string[]
+---@field excluded_buftypes string[]
+
 ---@class BufferBuddyOptions
 ---@field default_keymaps boolean
 ---@field auto_clean_on_exit boolean
@@ -11,6 +24,7 @@ local M = {}
 ---@field tab_scoping boolean
 ---@field tab_auto_name boolean
 ---@field tab_clean_on_close boolean
+---@field breadcrumbs BufferBuddyBreadcrumbOptions
 
 ---@type BufferBuddyOptions
 M.defaults = {
@@ -24,6 +38,37 @@ M.defaults = {
   tab_scoping = true,
   tab_auto_name = true,
   tab_clean_on_close = true,
+  breadcrumbs = {
+    enabled = true,
+    separator = "  ",
+    show_icon = true,
+    show_workspace = true,
+    show_pin = true,
+    show_modified = true,
+    show_readonly = true,
+    folder_icon = " ",
+    max_depth = 5,
+    excluded_filetypes = {
+      "neo-tree",
+      "snacks_picker",
+      "snacks_layout_box",
+      "snacks_dashboard",
+      "bufferbuddy_hud",
+      "bufferbuddy_scratch_picker",
+      "help",
+      "qf",
+      "trouble",
+      "lazy",
+      "mason",
+      "notify",
+      "noice",
+    },
+    excluded_buftypes = {
+      "nofile",
+      "quickfix",
+      "prompt",
+    },
+  },
 }
 
 ---@type BufferBuddyOptions

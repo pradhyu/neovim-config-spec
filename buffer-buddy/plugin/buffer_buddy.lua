@@ -224,6 +224,19 @@ end, {
   desc = "Format / Prettify JSON buffer or selection",
 })
 
+-- Breadcrumb Commands
+vim.api.nvim_create_user_command("BufferBreadcrumbsToggle", function()
+  bb.toggle_breadcrumbs()
+end, {
+  desc = "Toggle buffer breadcrumbs winbar: :BufferBreadcrumbsToggle",
+})
+
+vim.api.nvim_create_user_command("BufferBreadcrumbToggle", function()
+  bb.toggle_breadcrumbs()
+end, {
+  desc = "Toggle buffer breadcrumbs winbar: :BufferBreadcrumbToggle",
+})
+
 -- =============================================================================
 -- Default Keymaps
 -- =============================================================================
@@ -234,6 +247,7 @@ if config.options.default_keymaps then
   -- Hub / Dashboard
   map("n", "<leader>B", function() bb.open_hud() end, { desc = "BufferBuddy: Open Dashboard" })
   map("n", "<leader>BB", function() bb.open_hud() end, { desc = "BufferBuddy: Open Dashboard" })
+  map("n", "<leader>Bb", function() bb.toggle_breadcrumbs() end, { desc = "BufferBuddy: Toggle Breadcrumbs" })
 
   -- Workspace & Tab Management (<leader>B...)
   map("n", "<leader>Bn", function() bb.rename_tab_interactive() end, { desc = "BufferBuddy: Rename Workspace Tab" })

@@ -73,6 +73,7 @@ buffer-buddy/
 │   └── buffer_buddy.lua
 ├── tests/
 │   ├── test_tabs_spec.lua          -- Headless test suite for tab isolation
+│   ├── test_breadcrumbs_spec.lua   -- Headless test suite for breadcrumbs winbar
 │   └── test_commands_spec.lua      -- Headless test suite for user commands
 └── lua/
     └── buffer_buddy/
@@ -88,6 +89,7 @@ buffer-buddy/
         │   ├── diff.lua            -- Diff vs disk, diff vs clipboard
         │   └── inspector.lua       -- Word/token counts, metrics & properties
         └── ui/
+            ├── breadcrumbs.lua     -- Window breadcrumbs with file icons, directory path, pin/mod flags
             ├── hud.lua             -- Interactive Buffer Buddy HUD dashboard with Workspace overview
             ├── scratch_picker.lua  -- Scratchpad type selector
             └── statusline.lua      -- Statusline pinned badge (📌/🌐), workspace badge, & token count
