@@ -32,15 +32,18 @@ end
 ---@param buf integer
 ---@return boolean
 local function is_ignorable_buffer(buf)
-  if not vim.api.nvim_buf_is_valid(buf) then
+  if not buf or not vim.api.nvim_buf_is_valid(buf) then
     return true
   end
-  local ft = vim.bo[buf].filetype
+  local ft = vim.bo[buf].filetype or ""
   if ft == "bufferbuddy_hud" or ft == "bufferbuddy_scratch_picker" then
     return true
   end
-  local bt = vim.bo[buf].buftype
-  if bt == "quickfix" or bt == "prompt" then
+  if ft:match("^blink%-cmp") or ft:match("^snacks") or ft:match("^notify") or ft:match("^noice") then
+    return true
+  end
+  local bt = vim.bo[buf].buftype or ""
+  if bt == "quickfix" or bt == "prompt" or bt == "nofile" then
     return true
   end
   return false
@@ -194,6 +197,71 @@ end
 -- Tab Naming & Metadata
 -- =============================================================================
 
+---Trigger bufferline / tabline redraw across the editor
+function M.refresh_tabline()
+  pcall(function()
+    local ok, ui = pcall(require, "bufferline.ui")
+    if ok and ui and ui.refresh then
+      ui.refresh()
+    end
+  end)
+  pcall(vim.cmd, "redrawtabline")
+end
+
+---Update tab variable `name` for bufferline / tablines based on custom name or active buffer
+---@param tab? integer
+function M.update_tab_name(tab)
+  local t = resolve_tab(tab)
+  if not vim.api.nvim_tabpage_is_valid(t) then
+    return
+  end
+
+  -- 1. Prioritize explicit user-assigned name
+  if M._tab_names[t] and M._tab_names[t] ~= "" then
+    pcall(function()
+      vim.t[t].name = M._tab_names[t]
+      vim.t[t].bb_tab_name = M._tab_names[t]
+    end)
+    return
+  end
+
+  -- 2. If tab_auto_name is enabled, derive from the active window's buffer in this tab
+  if config.options.tab_auto_name then
+    local cur_win = vim.api.nvim_tabpage_get_win(t)
+    local cur_buf = vim.api.nvim_win_is_valid(cur_win) and vim.api.nvim_win_get_buf(cur_win) or 0
+    local bname = (vim.api.nvim_buf_is_valid(cur_buf) and not is_ignorable_buffer(cur_buf))
+      and vim.api.nvim_buf_get_name(cur_buf) or ""
+
+    if bname == "" then
+      for _, win in ipairs(vim.api.nvim_tabpage_list_wins(t)) do
+        if vim.api.nvim_win_is_valid(win) then
+          local b = vim.api.nvim_win_get_buf(win)
+          if vim.api.nvim_buf_is_valid(b) and not is_ignorable_buffer(b) then
+            local n = vim.api.nvim_buf_get_name(b)
+            if n ~= "" then
+              bname = n
+              break
+            end
+          end
+        end
+      end
+    end
+
+    if bname ~= "" then
+      local label = vim.fn.fnamemodify(bname, ":t")
+      pcall(function()
+        vim.t[t].name = label
+      end)
+      return
+    end
+  end
+
+  -- Default: clear explicit name so bufferline displays default or tabnr
+  pcall(function()
+    vim.t[t].name = nil
+  end)
+end
+
 ---Set custom name for a tab
 ---@param name string
 ---@param tab? integer
@@ -201,18 +269,23 @@ function M.set_tab_name(name, tab)
   local t = resolve_tab(tab)
   local num = vim.api.nvim_tabpage_get_number(t)
   if name and name:match("%S") then
-    M._tab_names[t] = name:match("^%s*(.-)%s*$")
+    local trimmed = name:match("^%s*(.-)%s*$")
+    M._tab_names[t] = trimmed
     pcall(function()
-      vim.t[t].bb_tab_name = M._tab_names[t]
+      vim.t[t].bb_tab_name = trimmed
+      vim.t[t].name = trimmed
     end)
-    vim.notify(string.format("[BufferBuddy] 🏷️ Tab %d workspace named: '%s'", num, M._tab_names[t]), vim.log.levels.INFO)
+    vim.notify(string.format("[BufferBuddy] 🏷️ Tab %d workspace named: '%s'", num, trimmed), vim.log.levels.INFO)
   else
     M._tab_names[t] = nil
     pcall(function()
       vim.t[t].bb_tab_name = nil
+      vim.t[t].name = nil
     end)
     vim.notify(string.format("[BufferBuddy] 🏷️ Tab %d name reset to default", num), vim.log.levels.INFO)
   end
+  M.update_tab_name(t)
+  M.refresh_tabline()
 end
 
 ---Get display name for a tab
@@ -226,7 +299,7 @@ function M.get_tab_name(tab)
   end
 
   -- Check vim tab variable
-  local ok, var = pcall(function() return vim.t[t].bb_tab_name end)
+  local ok, var = pcall(function() return vim.t[t].name or vim.t[t].bb_tab_name end)
   if ok and var and var ~= "" then
     M._tab_names[t] = var
     return var
@@ -625,23 +698,28 @@ end
 function M.setup_autocmds()
   local group = vim.api.nvim_create_augroup("BufferBuddyTabs", { clear = true })
 
-  -- Track buffers as they open in windows
-  vim.api.nvim_create_autocmd("BufWinEnter", {
+  -- Track buffers as they open in windows and maintain workspace labels
+  vim.api.nvim_create_autocmd({ "BufWinEnter", "BufEnter" }, {
     group = group,
     callback = function(args)
       local buf = args.buf
       if vim.api.nvim_buf_is_valid(buf) and not is_ignorable_buffer(buf) then
         local cur_tab = vim.api.nvim_get_current_tabpage()
         M.add_buffer_to_tab(buf, cur_tab)
+        M.update_tab_name(cur_tab)
+        M.refresh_tabline()
       end
     end,
   })
 
-  -- When switching tabs, update scoping
+  -- When switching tabs, update scoping and refresh tabline
   vim.api.nvim_create_autocmd("TabEnter", {
     group = group,
     callback = function()
+      local cur_tab = vim.api.nvim_get_current_tabpage()
       M.sync_tab_scoping()
+      M.update_tab_name(cur_tab)
+      M.refresh_tabline()
     end,
   })
 
@@ -656,6 +734,8 @@ function M.setup_autocmds()
         M.add_buffer_to_tab(cur_buf, cur_tab)
       end
       M.sync_tab_scoping()
+      M.update_tab_name(cur_tab)
+      M.refresh_tabline()
     end,
   })
 
@@ -672,6 +752,7 @@ function M.setup_autocmds()
       end
       vim.schedule(function()
         M.sync_tab_scoping()
+        M.refresh_tabline()
       end)
     end,
   })
@@ -705,6 +786,14 @@ function M.setup_autocmds()
     end
   end
   M.sync_tab_scoping()
+
+  -- Initialize tab names for all existing tabpages
+  for _, t in ipairs(vim.api.nvim_list_tabpages()) do
+    if vim.api.nvim_tabpage_is_valid(t) then
+      M.update_tab_name(t)
+    end
+  end
+  M.refresh_tabline()
 end
 
 return M
