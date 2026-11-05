@@ -217,9 +217,86 @@ function M.install_tabline_close_guard()
   end
 end
 
+---Integrate workspace tab badges and tab-aware jumping into Snacks.picker.sources.buffers
+function M.install_snacks_picker_integration()
+  if not rawget(_G, "Snacks") or not Snacks.config or not Snacks.config.picker then
+    return
+  end
+  Snacks.config.picker.sources = Snacks.config.picker.sources or {}
+  Snacks.config.picker.sources.buffers = vim.tbl_deep_extend("force", Snacks.config.picker.sources.buffers or {}, {
+    transform = function(item)
+      local all_tabs = vim.api.nvim_list_tabpages()
+      local win_tabs = {}
+      local tracked_tabs = {}
+      for _, t in ipairs(all_tabs) do
+        if vim.api.nvim_tabpage_is_valid(t) then
+          local num = vim.api.nvim_tabpage_get_number(t)
+          local tname = M.get_tab_name(t)
+          local label = string.format("%d. %s", num, tname)
+          local in_win = false
+          for _, w in ipairs(vim.api.nvim_tabpage_list_wins(t)) do
+            if vim.api.nvim_win_is_valid(w) and vim.api.nvim_win_get_buf(w) == item.buf then
+              in_win = true
+              break
+            end
+          end
+          if in_win then
+            table.insert(win_tabs, { tab = t, num = num, label = label })
+          elseif M.is_buffer_in_tab(item.buf, t) then
+            table.insert(tracked_tabs, { tab = t, num = num, label = label })
+          end
+        end
+      end
+      local chosen = #win_tabs > 0 and win_tabs or tracked_tabs
+      if #chosen > 0 then
+        local labels = {}
+        for _, entry in ipairs(chosen) do
+          table.insert(labels, entry.label)
+        end
+        item.bb_tab_badge = table.concat(labels, ", ")
+        item.bb_primary_tab = chosen[1].tab
+        if item.name == "" then
+          item.file = string.format("[Workspace: %s]", item.bb_tab_badge)
+        end
+        item.text = (item.text or "") .. " " .. item.bb_tab_badge
+      end
+    end,
+    format = function(item, picker)
+      local ret = Snacks.picker.format.buffer(item, picker)
+      if item.bb_tab_badge and item.bb_tab_badge ~= "" then
+        ret[#ret + 1] = { " " }
+        ret[#ret + 1] = { "[", "SnacksPickerDelim" }
+        ret[#ret + 1] = { "󰓩 " .. item.bb_tab_badge, "SnacksPickerSpecial" }
+        ret[#ret + 1] = { "]", "SnacksPickerDelim" }
+      end
+      return ret
+    end,
+    confirm = function(picker, item, action)
+      if item and item.bb_primary_tab and vim.api.nvim_tabpage_is_valid(item.bb_primary_tab) then
+        local cur_tab = vim.api.nvim_get_current_tabpage()
+        local in_cur = M.is_buffer_in_tab(item.buf, cur_tab) and item.name ~= ""
+        if item.bb_primary_tab ~= cur_tab and not in_cur then
+          picker:close()
+          vim.api.nvim_set_current_tabpage(item.bb_primary_tab)
+          for _, w in ipairs(vim.api.nvim_tabpage_list_wins(item.bb_primary_tab)) do
+            if vim.api.nvim_win_is_valid(w) and vim.api.nvim_win_get_buf(w) == item.buf then
+              vim.api.nvim_set_current_win(w)
+              return
+            end
+          end
+          vim.api.nvim_win_set_buf(0, item.buf)
+          return
+        end
+      end
+      return Snacks.picker.actions.jump(picker, item, action)
+    end,
+  })
+end
+
 ---Trigger bufferline / tabline redraw across the editor
 function M.refresh_tabline()
   M.install_tabline_close_guard()
+  M.install_snacks_picker_integration()
   pcall(function()
     local ok, ui = pcall(require, "bufferline.ui")
     if ok and ui and ui.refresh then
