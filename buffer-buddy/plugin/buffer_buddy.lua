@@ -244,8 +244,7 @@ local config = require("buffer_buddy.config")
 if config.options.default_keymaps then
   local map = vim.keymap.set
 
-  -- Hub / Dashboard
-  map("n", "<leader>B", function() bb.open_hud() end, { desc = "BufferBuddy: Open Dashboard" })
+  -- Hub / Dashboard (use <leader>BB so <leader>B prefix chord does not collide with <leader>B* mappings)
   map("n", "<leader>BB", function() bb.open_hud() end, { desc = "BufferBuddy: Open Dashboard" })
   map("n", "<leader>Bb", function() bb.toggle_breadcrumbs() end, { desc = "BufferBuddy: Toggle Breadcrumbs" })
 
