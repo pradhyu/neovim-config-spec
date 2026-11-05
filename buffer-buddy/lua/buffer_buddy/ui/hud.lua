@@ -140,7 +140,7 @@ function M.open()
   vim.keymap.set("n", "N", function() close(); tabs.new_tab() end, k_opts)
   vim.keymap.set("n", "m", function() tabs.move_buffer_interactive(cur_buf); render() end, k_opts)
   vim.keymap.set("n", "u", function() hygiene.close_tab_unmodified(); render() end, k_opts)
-  vim.keymap.set("n", "x", function() close(); tabs.close_tab_safe() end, k_opts)
+  vim.keymap.set("n", "x", function() close(); tabs.close_tab_confirm() end, k_opts)
 
   -- Number keys 1-9 to jump to tab
   for i = 1, 9 do

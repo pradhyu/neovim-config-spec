@@ -82,11 +82,40 @@ render_markdown.setup({
 
 ```python
 # Python snippet
-def calculate_efficiency(startup_ms: float, memory_mb: float) -> str:
-    score = (1000 / startup_ms) * (500 / memory_mb)
-    return f"Efficiency Index: {score:.2f} pts"
+from dataclasses import dataclass
 
-print(calculate_efficiency(42.5, 64.0))
+@dataclass
+class BenchmarkMetric:
+    name: str
+    startup_ms: float
+    memory_mb: float
+
+    def efficiency_index(self) -> str:
+        score = (1000 / self.startup_ms) * (500 / self.memory_mb)
+        return f"[{self.name}] Efficiency Index: {score:.2f} pts"
+
+print(BenchmarkMetric("Neovim", 42.5, 64.0).efficiency_index())
+```
+
+```java
+// Java snippet
+package dev.omarchy.showcase;
+
+import java.util.List;
+
+public record PluginStatus(String name, String category, boolean active) {
+    public String formatBadge() {
+        return String.format("%s (%s): %s", name, category, active ? "ACTIVE" : "INACTIVE");
+    }
+
+    public static void main(String[] args) {
+        var plugins = List.of(
+            new PluginStatus("render-markdown.nvim", "Documentation", true),
+            new PluginStatus("snacks.nvim", "Workflow", true)
+        );
+        plugins.stream().map(PluginStatus::formatBadge).forEach(System.out::println);
+    }
+}
 ```
 
 ---

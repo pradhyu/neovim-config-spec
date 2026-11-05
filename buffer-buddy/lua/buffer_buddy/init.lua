@@ -60,6 +60,7 @@ M.get_tab_name = tabs.get_tab_name
 M.rename_tab_interactive = tabs.rename_tab_interactive
 M.new_tab = tabs.new_tab
 M.close_tab_safe = tabs.close_tab_safe
+M.close_tab_confirm = tabs.close_tab_confirm
 M.close_tab = tabs.close_tab_safe
 M.move_buffer_to_tab = tabs.move_buffer_to_tab
 M.send_buffer_to_tab = tabs.send_buffer_to_tab

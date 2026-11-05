@@ -101,28 +101,28 @@ buffer-buddy/
 
 Buffer Buddy uses `<leader>B` as prefix to preserve all standard LazyVim / BufferLine `<leader>b*` mappings intact.
 
-| Keybinding | Action | Description |
-|---|---|---|
-| `<leader>B` / `<leader>BB` | `open_hud()` | Open interactive Buffer Buddy Dashboard & Workspaces |
-| `<leader>Bn` | `rename_tab_interactive()` | Name or rename current workspace tab |
-| `<leader>BN` | `new_tab()` | Create a new named workspace tab |
-| `<leader>Bm` | `move_buffer_interactive()` | Move current buffer to another workspace tab |
-| `<leader>Bx` | `close_tab_safe()` | Safely close tab and sweep exclusive buffers |
-| `<leader>Bu` / `<leader>bu` | `close_tab_unmodified()` | Sweep unmodified buffers in current tab only |
-| `[B` / `]B` | `prev/next_tab_buffer()` | Cycle strictly within current tab workspace |
-| `<leader>Bp` | `toggle_pin()` | Toggle local pin (protects from tab sweeps) |
-| `<leader>BP` | `toggle_global_pin()` | Toggle global pin 🌐 (visible across all tabs) |
-| `<leader>Bd` | `diff_disk()` | Diff current buffer against saved disk version |
-| `<leader>BD` | `diff_clipboard()`| Diff current buffer against system clipboard |
-| `<leader>Bs` / `<leader>bs` | `open_scratch()` | Open scratchpad (Markdown, Lua, SQL, JSON, Bash) |
-| `<leader>BS` | `create_snapshot()`| Create named snapshot checkpoint |
-| `<leader>BR` | `restore_snapshot()`| Revert buffer to snapshot checkpoint |
-| `<leader>Bc` / `<leader>bc` | `close_current()` | Close current buffer safely |
-| `<leader>BC` | `close_unmodified()`| Sweep all unmodified buffers across all tabs |
-| `<leader>Bo` | `close_others()` | Close all other non-pinned buffers |
-| `<leader>Bh` | `close_hidden()` | Close all hidden (unopened in win) buffers |
-| `<leader>Bt` / `<leader>bt` | `trim_whitespace()`| Trim trailing whitespace from buffer |
-| `<leader>Bj` / `<leader>bj` | `json_format()` | Format / Prettify JSON |
+| Keybinding                  | Action                      | Description                                          |
+| :-------------------------- | :-------------------------- | :--------------------------------------------------- |
+| `<leader>B` / `<leader>BB`  | `open_hud()`                | Open interactive Buffer Buddy Dashboard & Workspaces |
+| `<leader>Bn`                | `rename_tab_interactive()`  | Name or rename current workspace tab                 |
+| `<leader>BN`                | `new_tab()`                 | Create a new named workspace tab                     |
+| `<leader>Bm`                | `move_buffer_interactive()` | Move current buffer to another workspace tab         |
+| `<leader>Bx`                | `close_tab_safe()`          | Safely close tab and sweep exclusive buffers         |
+| `<leader>Bu` / `<leader>bu` | `close_tab_unmodified()`    | Sweep unmodified buffers in current tab only         |
+| `[B` / `]B`                 | `prev/next_tab_buffer()`    | Cycle strictly within current tab workspace          |
+| `<leader>Bp`                | `toggle_pin()`              | Toggle local pin (protects from tab sweeps)          |
+| `<leader>BP`                | `toggle_global_pin()`       | Toggle global pin 🌐 (visible across all tabs)       |
+| `<leader>Bd`                | `diff_disk()`               | Diff current buffer against saved disk version       |
+| `<leader>BD`                | `diff_clipboard()`          | Diff current buffer against system clipboard         |
+| `<leader>Bs` / `<leader>bs` | `open_scratch()`            | Open scratchpad (Markdown, Lua, SQL, JSON, Bash)     |
+| `<leader>BS`                | `create_snapshot()`         | Create named snapshot checkpoint                     |
+| `<leader>BR`                | `restore_snapshot()`        | Revert buffer to snapshot checkpoint                 |
+| `<leader>Bc` / `<leader>bc` | `close_current()`           | Close current buffer safely                          |
+| `<leader>BC`                | `close_unmodified()`        | Sweep all unmodified buffers across all tabs         |
+| `<leader>Bo`                | `close_others()`            | Close all other non-pinned buffers                   |
+| `<leader>Bh`                | `close_hidden()`            | Close all hidden (unopened in win) buffers           |
+| `<leader>Bt` / `<leader>bt` | `trim_whitespace()`         | Trim trailing whitespace from buffer                 |
+| `<leader>Bj` / `<leader>bj` | `json_format()`             | Format / Prettify JSON                               |
 
 ---
 

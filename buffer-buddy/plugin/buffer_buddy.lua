@@ -253,7 +253,7 @@ if config.options.default_keymaps then
   map("n", "<leader>Bn", function() bb.rename_tab_interactive() end, { desc = "BufferBuddy: Rename Workspace Tab" })
   map("n", "<leader>BN", function() bb.new_tab() end, { desc = "BufferBuddy: New Workspace Tab" })
   map("n", "<leader>Bm", function() bb.move_buffer_interactive() end, { desc = "BufferBuddy: Move Buffer to Tab" })
-  map("n", "<leader>Bx", function() bb.close_tab_safe() end, { desc = "BufferBuddy: Safe Tab Close & Clean" })
+  map("n", "<leader>Bx", function() bb.close_tab_confirm() end, { desc = "BufferBuddy: Safe Tab Close & Clean" })
   map("n", "<leader>Bu", function() bb.close_tab_unmodified() end, { desc = "BufferBuddy: Sweep Tab Unmodified" })
 
   -- Tab Buffer Cycling

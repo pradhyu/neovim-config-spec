@@ -197,8 +197,29 @@ end
 -- Tab Naming & Metadata
 -- =============================================================================
 
+---Wrap _G.nvim_bufferline so the far-right '%999X ' tab close button asks for confirmation
+function M.install_tabline_close_guard()
+  _G.BufferBuddyConfirmCloseTab = function()
+    M.close_tab_confirm()
+  end
+
+  if type(_G.nvim_bufferline) == "function" and not _G._bb_wrapped_nvim_bufferline then
+    local orig_bufferline = _G.nvim_bufferline
+    _G._bb_orig_nvim_bufferline = orig_bufferline
+    _G._bb_wrapped_nvim_bufferline = true
+    _G.nvim_bufferline = function(...)
+      local res = orig_bufferline(...)
+      if type(res) == "string" then
+        res = res:gsub("%%999X(.-)$", "%%@v:lua.BufferBuddyConfirmCloseTab@%1%%X")
+      end
+      return res
+    end
+  end
+end
+
 ---Trigger bufferline / tabline redraw across the editor
 function M.refresh_tabline()
+  M.install_tabline_close_guard()
   pcall(function()
     local ok, ui = pcall(require, "bufferline.ui")
     if ok and ui and ui.refresh then
@@ -216,11 +237,15 @@ function M.update_tab_name(tab)
     return
   end
 
+  local num = vim.api.nvim_tabpage_get_number(t)
+  local is_active = (t == vim.api.nvim_get_current_tabpage())
+  local suffix = is_active and "*" or ""
+
   -- 1. Prioritize explicit user-assigned name
   if M._tab_names[t] and M._tab_names[t] ~= "" then
     pcall(function()
-      vim.t[t].name = M._tab_names[t]
       vim.t[t].bb_tab_name = M._tab_names[t]
+      vim.t[t].name = string.format("%d. %s%s", num, M._tab_names[t], suffix)
     end)
     return
   end
@@ -250,16 +275,25 @@ function M.update_tab_name(tab)
     if bname ~= "" then
       local label = vim.fn.fnamemodify(bname, ":t")
       pcall(function()
-        vim.t[t].name = label
+        vim.t[t].name = string.format("%d. %s%s", num, label, suffix)
       end)
       return
     end
   end
 
-  -- Default: clear explicit name so bufferline displays default or tabnr
+  -- Default: show "<num>. Tab <num>" (with * when active)
   pcall(function()
-    vim.t[t].name = nil
+    vim.t[t].name = string.format("%d.%s", num, suffix)
   end)
+end
+
+---Update display names across all tabpages so only the active tab shows the '*' marker
+function M.update_all_tab_names()
+  for _, t in ipairs(vim.api.nvim_list_tabpages()) do
+    if vim.api.nvim_tabpage_is_valid(t) then
+      M.update_tab_name(t)
+    end
+  end
 end
 
 ---Set custom name for a tab
@@ -284,7 +318,7 @@ function M.set_tab_name(name, tab)
     end)
     vim.notify(string.format("[BufferBuddy] 🏷️ Tab %d name reset to default", num), vim.log.levels.INFO)
   end
-  M.update_tab_name(t)
+  M.update_all_tab_names()
   M.refresh_tabline()
 end
 
@@ -298,10 +332,18 @@ function M.get_tab_name(tab)
     return M._tab_names[t]
   end
 
-  -- Check vim tab variable
-  local ok, var = pcall(function() return vim.t[t].name or vim.t[t].bb_tab_name end)
+  -- Check vim tab variable (strip '<num>. ' prefix and trailing '*' marker if present)
+  local ok, var = pcall(function()
+    local raw = vim.t[t].bb_tab_name or vim.t[t].name
+    if raw and raw ~= "" then
+      return raw:gsub("^%*%s*", ""):gsub("^%d+%.%s*", ""):gsub("%s*%*$", "")
+    end
+    return nil
+  end)
   if ok and var and var ~= "" then
-    M._tab_names[t] = var
+    if vim.t[t].bb_tab_name and vim.t[t].bb_tab_name ~= "" then
+      M._tab_names[t] = var
+    end
     return var
   end
 
@@ -634,7 +676,45 @@ function M.close_tab_safe(tab, force)
   M._tab_names[t] = nil
 
   M.sync_tab_scoping()
+  M.update_all_tab_names()
+  M.refresh_tabline()
   vim.notify(string.format("[BufferBuddy] 🚪 Closed Tab %d [%s] and cleaned %d exclusive buffer(s)", tab_num, tab_name, closed_count), vim.log.levels.INFO)
+end
+
+---Prompt for confirmation before closing a workspace tab
+---@param tab? integer
+function M.close_tab_confirm(tab)
+  local t = resolve_tab(tab)
+  if not vim.api.nvim_tabpage_is_valid(t) then
+    return
+  end
+
+  local all_tabs = vim.api.nvim_list_tabpages()
+  if #all_tabs <= 1 then
+    vim.notify("[BufferBuddy] Cannot close the only remaining tab", vim.log.levels.WARN)
+    return
+  end
+
+  local tab_num = vim.api.nvim_tabpage_get_number(t)
+  local tab_name = M.get_tab_name(t)
+  local bufs = M.get_tab_buffers(t)
+  local exclusive_count = 0
+  for _, b in ipairs(bufs) do
+    if M.is_buffer_exclusive_to_tab(b, t) then
+      exclusive_count = exclusive_count + 1
+    end
+  end
+
+  local prompt = string.format(
+    "Close Workspace Tab %d [%s]? (%d exclusive buffer(s) will be cleaned)",
+    tab_num,
+    tab_name,
+    exclusive_count
+  )
+  local choice = vim.fn.confirm(prompt, "&Yes\n&No", 2)
+  if choice == 1 then
+    M.close_tab_safe(t, false)
+  end
 end
 
 -- =============================================================================
@@ -706,7 +786,7 @@ function M.setup_autocmds()
       if vim.api.nvim_buf_is_valid(buf) and not is_ignorable_buffer(buf) then
         local cur_tab = vim.api.nvim_get_current_tabpage()
         M.add_buffer_to_tab(buf, cur_tab)
-        M.update_tab_name(cur_tab)
+        M.update_all_tab_names()
         M.refresh_tabline()
       end
     end,
@@ -716,9 +796,8 @@ function M.setup_autocmds()
   vim.api.nvim_create_autocmd("TabEnter", {
     group = group,
     callback = function()
-      local cur_tab = vim.api.nvim_get_current_tabpage()
       M.sync_tab_scoping()
-      M.update_tab_name(cur_tab)
+      M.update_all_tab_names()
       M.refresh_tabline()
     end,
   })
@@ -734,7 +813,7 @@ function M.setup_autocmds()
         M.add_buffer_to_tab(cur_buf, cur_tab)
       end
       M.sync_tab_scoping()
-      M.update_tab_name(cur_tab)
+      M.update_all_tab_names()
       M.refresh_tabline()
     end,
   })
@@ -788,11 +867,7 @@ function M.setup_autocmds()
   M.sync_tab_scoping()
 
   -- Initialize tab names for all existing tabpages
-  for _, t in ipairs(vim.api.nvim_list_tabpages()) do
-    if vim.api.nvim_tabpage_is_valid(t) then
-      M.update_tab_name(t)
-    end
-  end
+  M.update_all_tab_names()
   M.refresh_tabline()
 end
 
