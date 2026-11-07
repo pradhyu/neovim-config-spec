@@ -155,8 +155,25 @@ function M.get_keychords(mode, buf)
     end
   end
 
-  -- Sort: prioritized by having a description, then mode, then display_lhs
+  local tracker = require("super_keychord.core.tracker")
+
+  -- Populate frecency usage metrics for each entry
+  for _, entry in ipairs(entries) do
+    local score, count, is_frequent = tracker.get_frecency_score(entry.display_lhs, entry.raw_lhs)
+    entry.frecency_score = score
+    entry.usage_count = count
+    entry.is_frequent = is_frequent
+  end
+
+  -- Sort: prioritized by frequent/frecency score (if enabled), then description presence, then mode, then chord
   table.sort(entries, function(a, b)
+    if config.options.boost_frequent then
+      local score_a = a.frecency_score or 0
+      local score_b = b.frecency_score or 0
+      if score_a ~= score_b then
+        return score_a > score_b
+      end
+    end
     local a_has_desc = a.desc ~= ""
     local b_has_desc = b.desc ~= ""
     if a_has_desc ~= b_has_desc then
@@ -175,6 +192,10 @@ end
 ---@param entry KeychordEntry
 function M.execute_keychord(entry)
   if not entry then return end
+
+  -- Track usage
+  local tracker = require("super_keychord.core.tracker")
+  tracker.record_usage(entry.display_lhs, true)
 
   -- If entry has a direct Lua callback, execute it directly
   if type(entry.callback) == "function" then

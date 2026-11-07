@@ -1,5 +1,7 @@
 local config = require("super_keychord.config")
 local keychords = require("super_keychord.core.keychords")
+local tracker = require("super_keychord.core.tracker")
+local listener = require("super_keychord.core.listener")
 local picker = require("super_keychord.ui.picker")
 
 local M = {}
@@ -8,6 +10,7 @@ local M = {}
 ---@param opts? table
 function M.setup(opts)
   config.setup(opts)
+  listener.setup()
 end
 
 ---Open interactive keychord search picker

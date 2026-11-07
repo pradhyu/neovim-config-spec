@@ -9,6 +9,9 @@ M.defaults = {
   execute_on_select = true, -- Pressing <CR> executes the keychord
   backend = "auto", -- "auto" (Snacks -> Telescope -> UI) | "snacks" | "telescope" | "ui"
   default_keymaps = true,
+  track_usage = true, -- Track keychords typed directly in Neovim or executed from picker
+  boost_frequent = true, -- Float frequently used keychords to the top
+  storage_dir = nil, -- defaults to stdpath("state") .. "/super-keychord"
 }
 
 M.options = vim.deepcopy(M.defaults)

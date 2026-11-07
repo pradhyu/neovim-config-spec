@@ -70,6 +70,10 @@ local function open_snacks_picker(list, opts)
         { desc_str, e.desc ~= "" and "Normal" or "Comment" },
       }
 
+      if e.usage_count and e.usage_count > 0 then
+        table.insert(row, { string.format(" 🔥 %dx", e.usage_count), "DiagnosticWarn" })
+      end
+
       if e.buffer then
         table.insert(row, { string.format(" [buf %d]", e.buffer), "DiagnosticHint" })
       end
@@ -119,9 +123,10 @@ local function open_telescope_picker(list, opts)
   local make_display = function(item)
     local e = item.value
     local desc = e.desc ~= "" and e.desc or e.rhs
+    local freq_badge = (e.usage_count and e.usage_count > 0) and string.format(" 🔥%d", e.usage_count) or ""
     return displayer({
       { string.format("[%s]", e.mode:upper()), "Directory" },
-      { e.display_lhs, "Bold" },
+      { e.display_lhs .. freq_badge, "Bold" },
       { "➔", "Comment" },
       { desc, e.desc ~= "" and "Normal" or "Comment" },
     })
@@ -145,6 +150,9 @@ local function open_telescope_picker(list, opts)
       local scope_str = e.buffer and string.format("Buffer-Local (buf #%d)", e.buffer) or "Global"
       local desc_str = e.desc ~= "" and e.desc or "[No human description provided]"
       local action_str = e.rhs ~= "" and e.rhs or (e.callback and "[Lua Callback Function]" or "[None]")
+      local usage_str = (e.usage_count and e.usage_count > 0)
+        and string.format("%d times (🔥 Frecency Boost Active)", e.usage_count)
+        or "0 times (Not yet tracked)"
 
       local lines = {
         "  🎹 KEYCHORD INSPECTOR",
@@ -153,6 +161,7 @@ local function open_telescope_picker(list, opts)
         string.format("  • Raw Key:     %s", e.raw_lhs),
         string.format("  • Mode:        %s [%s]", mode_name, e.mode:upper()),
         string.format("  • Scope:       %s", scope_str),
+        string.format("  • Usage:       %s", usage_str),
         "",
         "  📖 ACTION & DESCRIPTION",
         "  " .. string.rep("─", 45),

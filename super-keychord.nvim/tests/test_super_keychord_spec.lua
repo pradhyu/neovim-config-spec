@@ -70,6 +70,21 @@ assert_true(vim.fn.exists(":SuperKeychord") == 2, ":SuperKeychord command exists
 assert_true(vim.fn.exists(":SuperKeychordNormal") == 2, ":SuperKeychordNormal command exists")
 print("✓ Exports and user commands verified")
 
+print(">>> [Test 6] Frecency Tracking & Top Boost...")
+local tracker = require("super_keychord.core.tracker")
+tracker.stats = {} -- Reset stats table for test isolation
+-- Record usage for test chord
+tracker.record_usage("<leader>tst", true)
+tracker.record_usage("<leader>tst", true)
+local rec = tracker.get_record("<leader>tst")
+assert_true(rec ~= nil, "Record exists")
+assert_eq(rec.count, 2, "Count is 2")
+
+local sorted = sk.get_keychords("n")
+assert_eq(sorted[1].display_lhs, "<leader>tst", "Most used keychord must be ranked at top #1")
+assert_true(sorted[1].usage_count >= 2, "Usage count matches")
+print("✓ Frecency tracking & top ranking verified")
+
 print("\n==============================================")
 print("🎉 ALL SUPER-KEYCHORD TESTS PASSED! 🎉")
 print("==============================================")

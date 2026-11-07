@@ -17,7 +17,13 @@ Interactive keychord finder, exploratory discovery engine, and instant execution
 3. **Direct Execution on Select**:
    - Pressing `<CR>` on any discovered keychord immediately executes the chord (calling Lua functions directly, running `<Cmd>` ex commands, or dispatching via `nvim_feedkeys`).
 
-4. **Mode & Scope Filtering**:
+4. **Frecency Tracking & Persistent Top Ranking**:
+   - Tracks every keychord you type directly in Neovim or execute from the search picker.
+   - Calculates a frecency score (Frequency + Recency boost) and automatically ranks your most frequently used keychords at the very top.
+   - Persists usage statistics cleanly to `~/.local/state/nvim/super-keychord/usage.json` across Neovim sessions.
+   - Displays a `🔥 <count>x` badge next to frequently used keychords.
+
+5. **Mode & Scope Filtering**:
    - `:SuperKeychord` or `<leader>sk` / `<leader>k?`: Search all modes across global and buffer-local keymaps.
    - `:SuperKeychord normal` or `<leader>kn`: Filter specifically to Normal mode keychords.
    - `:SuperKeychord visual` or `<leader>kv`: Filter specifically to Visual mode keychords.
@@ -40,7 +46,9 @@ super-keychord.nvim/
         ├── init.lua               -- Public API & module entry
         ├── config.lua             -- Configuration options & defaults
         ├── core/
-        │   └── keychords.lua      -- Keymap introspection, leader normalization & execution
+        │   ├── keychords.lua      -- Keymap introspection, leader normalization & ranking
+        │   ├── tracker.lua        -- Frecency score calculation & JSON disk persistence
+        │   └── listener.lua       -- Background key listener for tracking live usage
         └── ui/
             └── picker.lua         -- Snacks / Telescope / vim.ui.select picker interface
 ```
