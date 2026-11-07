@@ -7,43 +7,103 @@ local M = {
   _tab_names = {},
   ---@type table<integer, boolean> buf_handle -> true if pinned globally across all tabs
   _global_buffers = {},
+  ---@type boolean internal guard while syncing buflisted across tabs
+  _is_syncing_scoping = false,
 }
 
 ---Get tabpage handle from tab index or handle
----@param tab? integer
+---@param tab? integer|string
 ---@return integer tab_handle
 local function resolve_tab(tab)
-  if not tab or tab == 0 then
+  if not tab or tab == 0 or tab == "" then
     return vim.api.nvim_get_current_tabpage()
   end
-  if vim.api.nvim_tabpage_is_valid(tab) then
+  if type(tab) == "number" and vim.api.nvim_tabpage_is_valid(tab) then
     return tab
   end
-  -- Maybe it's a 1-based tab index (e.g. 1, 2, 3)
-  for _, t in ipairs(vim.api.nvim_list_tabpages()) do
-    if vim.api.nvim_tabpage_get_number(t) == tab then
-      return t
+  local num = tonumber(tab)
+  if num then
+    for _, t in ipairs(vim.api.nvim_list_tabpages()) do
+      if vim.api.nvim_tabpage_get_number(t) == num then
+        return t
+      end
+    end
+  end
+  if type(tab) == "string" then
+    local target = tab:lower()
+    for _, t in ipairs(vim.api.nvim_list_tabpages()) do
+      local cname = M._tab_names[t] or (vim.t[t] and vim.t[t].bb_tab_name)
+      if cname and cname:lower() == target then
+        return t
+      end
     end
   end
   return vim.api.nvim_get_current_tabpage()
+end
+
+---Resolve a user-supplied tab target (1-based tab number or tab name prioritized over raw handle)
+---@param target integer|string
+---@return integer? tab_handle
+local function resolve_user_tab(target)
+  if not target or target == "" then
+    return nil
+  end
+  local num = tonumber(target)
+  if num then
+    for _, t in ipairs(vim.api.nvim_list_tabpages()) do
+      if vim.api.nvim_tabpage_get_number(t) == num then
+        return t
+      end
+    end
+    if type(target) == "number" and vim.api.nvim_tabpage_is_valid(target) then
+      return target
+    end
+  end
+  if type(target) == "string" then
+    local lower = target:lower()
+    for _, t in ipairs(vim.api.nvim_list_tabpages()) do
+      local cname = M.get_custom_tab_name(t)
+      local dname = M.get_tab_name(t)
+      if (cname and cname:lower() == lower) or (dname and dname:lower() == lower) then
+        return t
+      end
+    end
+  end
+  return nil
 end
 
 ---Check if buffer is an internal or ignorable buffer
 ---@param buf integer
 ---@return boolean
 local function is_ignorable_buffer(buf)
-  if not buf or not vim.api.nvim_buf_is_valid(buf) then
+  if not buf or type(buf) ~= "number" or not vim.api.nvim_buf_is_valid(buf) then
     return true
   end
-  local ft = vim.bo[buf].filetype or ""
-  if ft == "bufferbuddy_hud" or ft == "bufferbuddy_scratch_picker" then
+  local ok_bt, bt = pcall(vim.api.nvim_get_option_value, "buftype", { buf = buf })
+  bt = ok_bt and bt or ""
+  if bt ~= "" then
+    return true
+  end
+  local ok_ft, ft = pcall(vim.api.nvim_get_option_value, "filetype", { buf = buf })
+  ft = ok_ft and ft or ""
+  if
+    ft == "bufferbuddy_hud"
+    or ft == "bufferbuddy_scratch_picker"
+    or ft == "sidekick_terminal"
+    or ft == "neo-tree"
+    or ft == "trouble"
+    or ft == "qf"
+    or ft == "help"
+    or ft == "lazy"
+    or ft == "mason"
+  then
     return true
   end
   if ft:match("^blink%-cmp") or ft:match("^snacks") or ft:match("^notify") or ft:match("^noice") then
     return true
   end
-  local bt = vim.bo[buf].buftype or ""
-  if bt == "quickfix" or bt == "prompt" or bt == "nofile" then
+  local name = vim.api.nvim_buf_get_name(buf)
+  if name:match("^miniicons://") or name:match("^term://") then
     return true
   end
   return false
@@ -203,6 +263,23 @@ function M.install_tabline_close_guard()
     M.close_tab_confirm()
   end
 
+  pcall(function()
+    local ok, bl_cfg = pcall(require, "bufferline.config")
+    if ok and bl_cfg and bl_cfg.options and not bl_cfg.options._bb_filter_installed then
+      local orig_filter = bl_cfg.options.custom_filter
+      bl_cfg.options._bb_filter_installed = true
+      bl_cfg.options.custom_filter = function(buf_number, buf_numbers)
+        if not M.bufferline_filter(buf_number) then
+          return false
+        end
+        if type(orig_filter) == "function" then
+          return orig_filter(buf_number, buf_numbers)
+        end
+        return true
+      end
+    end
+  end)
+
   if type(_G.nvim_bufferline) == "function" and not _G._bb_wrapped_nvim_bufferline then
     local orig_bufferline = _G.nvim_bufferline
     _G._bb_orig_nvim_bufferline = orig_bufferline
@@ -224,7 +301,11 @@ function M.install_snacks_picker_integration()
   end
   Snacks.config.picker.sources = Snacks.config.picker.sources or {}
   Snacks.config.picker.sources.buffers = vim.tbl_deep_extend("force", Snacks.config.picker.sources.buffers or {}, {
+    hidden = true,
     transform = function(item)
+      if is_ignorable_buffer(item.buf) then
+        return false
+      end
       local all_tabs = vim.api.nvim_list_tabpages()
       local win_tabs = {}
       local tracked_tabs = {}
@@ -248,6 +329,9 @@ function M.install_snacks_picker_integration()
         end
       end
       local chosen = #win_tabs > 0 and win_tabs or tracked_tabs
+      if #chosen == 0 and not vim.bo[item.buf].buflisted then
+        return false
+      end
       if #chosen > 0 then
         local labels = {}
         for _, entry in ipairs(chosen) do
@@ -318,11 +402,12 @@ function M.update_tab_name(tab)
   local is_active = (t == vim.api.nvim_get_current_tabpage())
   local suffix = is_active and "*" or ""
 
-  -- 1. Prioritize explicit user-assigned name
-  if M._tab_names[t] and M._tab_names[t] ~= "" then
+  -- 1. Prioritize explicit user-assigned name (check both _tab_names and vim.t[t].bb_tab_name)
+  local custom_name = M.get_custom_tab_name(t)
+  if custom_name and custom_name ~= "" then
     pcall(function()
-      vim.t[t].bb_tab_name = M._tab_names[t]
-      vim.t[t].name = string.format("%d. %s%s", num, M._tab_names[t], suffix)
+      vim.t[t].bb_tab_name = custom_name
+      vim.t[t].name = string.format("%d. %s%s", num, custom_name, suffix)
     end)
     return
   end
@@ -397,6 +482,27 @@ function M.set_tab_name(name, tab)
   end
   M.update_all_tab_names()
   M.refresh_tabline()
+end
+
+---Get explicit custom name for a tab (nil if auto-named or unnamed)
+---@param tab? integer
+---@return string|nil
+function M.get_custom_tab_name(tab)
+  local t = resolve_tab(tab)
+  if not vim.api.nvim_tabpage_is_valid(t) then
+    return nil
+  end
+  if M._tab_names[t] and M._tab_names[t] ~= "" then
+    return M._tab_names[t]
+  end
+  local ok, custom = pcall(function()
+    return vim.t[t].bb_tab_name
+  end)
+  if ok and type(custom) == "string" and custom ~= "" then
+    M._tab_names[t] = custom
+    return custom
+  end
+  return nil
 end
 
 ---Get display name for a tab
@@ -490,41 +596,57 @@ function M.sync_tab_scoping()
 
   ensure_tab(cur_tab)
 
+  -- Clean any ignorable buffers from all tab sets
+  for _, bufs in pairs(M._tab_buffers) do
+    for b, _ in pairs(bufs) do
+      if is_ignorable_buffer(b) then
+        bufs[b] = nil
+      end
+    end
+  end
+
   local tab_bufs = M._tab_buffers[cur_tab] or {}
 
-  -- Update buflisted status for all loaded buffers
+  M._is_syncing_scoping = true
+  -- Update buflisted status for all buffers
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-    if vim.api.nvim_buf_is_valid(buf) and not is_ignorable_buffer(buf) then
-      local is_global = M.is_global_buffer(buf)
-      local in_cur = tab_bufs[buf] == true
-
-      if is_global or in_cur then
-        if not vim.bo[buf].buflisted then
-          vim.bo[buf].buflisted = true
+    if vim.api.nvim_buf_is_valid(buf) then
+      if is_ignorable_buffer(buf) then
+        if vim.bo[buf].buftype == "terminal" and vim.bo[buf].buflisted then
+          pcall(function()
+            vim.bo[buf].buflisted = false
+          end)
         end
       else
-        -- Check if tracked in any other active tab
-        local in_other = false
-        for t, bufs in pairs(M._tab_buffers) do
-          if t ~= cur_tab and vim.api.nvim_tabpage_is_valid(t) and bufs[buf] then
-            in_other = true
-            break
+        local is_global = M.is_global_buffer(buf)
+        local in_cur = tab_bufs[buf] == true
+
+        if is_global or in_cur then
+          if not vim.bo[buf].buflisted then
+            pcall(function()
+              vim.bo[buf].buflisted = true
+            end)
           end
-        end
-        if in_other then
+        else
           if vim.bo[buf].buflisted then
-            vim.bo[buf].buflisted = false
+            pcall(function()
+              vim.bo[buf].buflisted = false
+            end)
           end
         end
       end
     end
   end
+  M._is_syncing_scoping = false
 end
 
 ---Filter function for bufferline.nvim or custom tablines
 ---@param buf_number integer
 ---@return boolean
 function M.bufferline_filter(buf_number)
+  if is_ignorable_buffer(buf_number) then
+    return false
+  end
   if not config.options.tab_scoping then
     return true
   end
@@ -587,9 +709,9 @@ function M.move_buffer_to_tab(target_tab, buf)
   end
 
   local cur_tab = vim.api.nvim_get_current_tabpage()
-  local dest_tab = resolve_tab(tonumber(target_tab) or target_tab)
+  local dest_tab = resolve_user_tab(target_tab) or resolve_tab(target_tab)
 
-  if not vim.api.nvim_tabpage_is_valid(dest_tab) then
+  if not dest_tab or not vim.api.nvim_tabpage_is_valid(dest_tab) then
     vim.notify(string.format("[BufferBuddy] Invalid target tab '%s'", tostring(target_tab)), vim.log.levels.WARN)
     return
   end
@@ -642,8 +764,8 @@ function M.send_buffer_to_tab(target_tab, buf)
     return
   end
 
-  local dest_tab = resolve_tab(tonumber(target_tab) or target_tab)
-  if not vim.api.nvim_tabpage_is_valid(dest_tab) then
+  local dest_tab = resolve_user_tab(target_tab) or resolve_tab(target_tab)
+  if not dest_tab or not vim.api.nvim_tabpage_is_valid(dest_tab) then
     vim.notify(string.format("[BufferBuddy] Invalid target tab '%s'", tostring(target_tab)), vim.log.levels.WARN)
     return
   end
@@ -895,7 +1017,7 @@ function M.setup_autocmds()
     end,
   })
 
-  -- When closing a tab, clean up stale references
+  -- When closing a tab, clean up stale references and re-number remaining tabs
   vim.api.nvim_create_autocmd("TabClosed", {
     group = group,
     callback = function()
@@ -903,13 +1025,33 @@ function M.setup_autocmds()
       for t, _ in pairs(M._tab_buffers) do
         if not vim.api.nvim_tabpage_is_valid(t) then
           M._tab_buffers[t] = nil
+        end
+      end
+      for t, _ in pairs(M._tab_names) do
+        if not vim.api.nvim_tabpage_is_valid(t) then
           M._tab_names[t] = nil
         end
       end
       vim.schedule(function()
         M.sync_tab_scoping()
+        M.update_all_tab_names()
         M.refresh_tabline()
       end)
+    end,
+  })
+
+  -- When a buffer is explicitly deleted (:bd), remove from active tab unless caused by tab scoping sync
+  vim.api.nvim_create_autocmd("BufDelete", {
+    group = group,
+    callback = function(args)
+      if M._is_syncing_scoping then
+        return
+      end
+      local buf = args.buf
+      for _, bufs in pairs(M._tab_buffers) do
+        bufs[buf] = nil
+      end
+      M._global_buffers[buf] = nil
     end,
   })
 
@@ -925,20 +1067,37 @@ function M.setup_autocmds()
     end,
   })
 
-  -- Initial population of active tab
+  -- Initial population of all existing tabpages
   local initial_tab = vim.api.nvim_get_current_tabpage()
-  ensure_tab(initial_tab)
-  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(initial_tab)) do
-    if vim.api.nvim_win_is_valid(win) then
-      local b = vim.api.nvim_win_get_buf(win)
-      if vim.api.nvim_buf_is_valid(b) and not is_ignorable_buffer(b) then
-        M.add_buffer_to_tab(b, initial_tab)
+  for _, t in ipairs(vim.api.nvim_list_tabpages()) do
+    if vim.api.nvim_tabpage_is_valid(t) then
+      ensure_tab(t)
+      local cname = M.get_custom_tab_name(t)
+      if cname then
+        M._tab_names[t] = cname
+      end
+      for _, win in ipairs(vim.api.nvim_tabpage_list_wins(t)) do
+        if vim.api.nvim_win_is_valid(win) then
+          local b = vim.api.nvim_win_get_buf(win)
+          if vim.api.nvim_buf_is_valid(b) and not is_ignorable_buffer(b) then
+            M.add_buffer_to_tab(b, t)
+          end
+        end
       end
     end
   end
   for _, b in ipairs(vim.api.nvim_list_bufs()) do
-    if vim.api.nvim_buf_is_valid(b) and vim.bo[b].buflisted and not is_ignorable_buffer(b) then
-      M.add_buffer_to_tab(b, initial_tab)
+    if vim.api.nvim_buf_is_valid(b) and vim.api.nvim_buf_is_loaded(b) and vim.bo[b].buflisted and not is_ignorable_buffer(b) then
+      local already_tracked = false
+      for _, bufs in pairs(M._tab_buffers) do
+        if bufs[b] then
+          already_tracked = true
+          break
+        end
+      end
+      if not already_tracked then
+        M.add_buffer_to_tab(b, initial_tab)
+      end
     end
   end
   M.sync_tab_scoping()

@@ -90,18 +90,46 @@ assert_true(breadcrumbs.is_enabled(), "Should be enabled after enable()")
 assert_true(breadcrumbs.render() ~= "", "Should render breadcrumbs when re-enabled")
 print("✓ Toggle / Enable / Disable passed")
 
-print(">>> [Test 7] Neovim winbar actual_curwin string handle & % escaping...")
-vim.g.actual_curwin = tostring(win)
+print(">>> [Test 7] Neovim winbar statusline_winid handle & % escaping...")
+vim.g.statusline_winid = tostring(win)
 local rendered_with_string_win = breadcrumbs.render()
-assert_true(rendered_with_string_win ~= "", "Render should succeed when actual_curwin is a string")
+assert_true(rendered_with_string_win ~= "", "Render should succeed when statusline_winid is a string")
+vim.g.statusline_winid = nil
 
 local pct_buf = vim.api.nvim_create_buf(true, false)
 vim.api.nvim_buf_set_name(pct_buf, "/tmp/foo%20bar%2ftest.lua")
 local pct_result = breadcrumbs.build_breadcrumb_string(win, pct_buf)
 assert_true(pct_result:find("foo%%%%20bar") ~= nil, "% in path must be escaped as %% in statusline")
-print("✓ actual_curwin string handle & % escaping passed")
+print("✓ statusline_winid handle & % escaping passed")
 
-vim.g.actual_curwin = nil
+print(">>> [Test 8] Multi-window split breadcrumbs show each window's own buffer...")
+local buf_a = vim.api.nvim_create_buf(true, false)
+vim.api.nvim_buf_set_name(buf_a, vim.fn.getcwd() .. "/lua/alpha_file.lua")
+local buf_b = vim.api.nvim_create_buf(true, false)
+vim.api.nvim_buf_set_name(buf_b, vim.fn.getcwd() .. "/lua/beta_file.lua")
+
+local win_a = vim.api.nvim_get_current_win()
+vim.api.nvim_win_set_buf(win_a, buf_a)
+vim.cmd("vsplit")
+local win_b = vim.api.nvim_get_current_win()
+vim.api.nvim_win_set_buf(win_b, buf_b)
+
+-- Focus win_b, verify win_a still shows alpha_file.lua and win_b shows beta_file.lua
+vim.api.nvim_set_current_win(win_b)
+local eval_a_when_b_focused = vim.api.nvim_eval_statusline(vim.o.winbar, { winid = win_a }).str
+local eval_b_when_b_focused = vim.api.nvim_eval_statusline(vim.o.winbar, { winid = win_b }).str
+assert_true(eval_a_when_b_focused:find("alpha_file.lua") ~= nil, "win_a should show alpha_file.lua even when win_b is focused")
+assert_true(eval_a_when_b_focused:find("beta_file.lua") == nil, "win_a must NOT contain beta_file.lua when win_b is focused")
+assert_true(eval_b_when_b_focused:find("beta_file.lua") ~= nil, "win_b should show beta_file.lua when win_b is focused")
+assert_true(eval_b_when_b_focused:find("alpha_file.lua") == nil, "win_b must NOT contain alpha_file.lua")
+
+-- Focus win_a, verify win_a shows alpha_file.lua and win_b still shows beta_file.lua
+vim.api.nvim_set_current_win(win_a)
+local eval_a_when_a_focused = vim.api.nvim_eval_statusline(vim.o.winbar, { winid = win_a }).str
+local eval_b_when_a_focused = vim.api.nvim_eval_statusline(vim.o.winbar, { winid = win_b }).str
+assert_eq(eval_a_when_a_focused, eval_a_when_b_focused, "win_a breadcrumb should not change when focus switches")
+assert_eq(eval_b_when_a_focused, eval_b_when_b_focused, "win_b breadcrumb should not change when focus switches")
+print("✓ Multi-window split independent breadcrumbs passed")
 
 print("\n==============================================")
 print("🎉 ALL BUFFER BUDDY BREADCRUMB TESTS PASSED! 🎉")

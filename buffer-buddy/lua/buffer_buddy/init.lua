@@ -9,6 +9,7 @@ local inspector = require("buffer_buddy.core.inspector")
 local scratchpad = require("buffer_buddy.core.scratchpad")
 local hud = require("buffer_buddy.ui.hud")
 local scratch_picker = require("buffer_buddy.ui.scratch_picker")
+local tab_picker = require("buffer_buddy.ui.tab_picker")
 local statusline = require("buffer_buddy.ui.statusline")
 local breadcrumbs = require("buffer_buddy.ui.breadcrumbs")
 
@@ -74,6 +75,7 @@ M.sync_tab_scoping = tabs.sync_tab_scoping
 M.bufferline_filter = tabs.bufferline_filter
 M.get_workspace_label = tabs.get_workspace_label
 M.get_all_tabs_info = tabs.get_all_tabs_info
+M.select_tab = tab_picker.open
 M.update_tab_name = tabs.update_tab_name
 M.refresh_tabline = tabs.refresh_tabline
 

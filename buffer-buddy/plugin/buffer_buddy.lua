@@ -89,14 +89,14 @@ vim.api.nvim_create_user_command("BufferTabName", function(opts)
     bb.rename_tab_interactive()
   end
 end, {
-  nargs = "?",
+  nargs = "*",
   desc = "Name or rename workspace tab: :BufferTabName [name]",
 })
 
 vim.api.nvim_create_user_command("BufferTabNew", function(opts)
   bb.new_tab(opts.args ~= "" and opts.args or nil)
 end, {
-  nargs = "?",
+  nargs = "*",
   desc = "Create a new named workspace tab: :BufferTabNew [name]",
 })
 
@@ -116,7 +116,7 @@ vim.api.nvim_create_user_command("BufferTabMove", function(opts)
     bb.move_buffer_interactive()
   end
 end, {
-  nargs = "?",
+  nargs = "*",
   desc = "Move current buffer to target tab workspace: :BufferTabMove [tab_number]",
 })
 
@@ -127,7 +127,7 @@ vim.api.nvim_create_user_command("BufferTabSend", function(opts)
     vim.notify("[BufferBuddy] Please specify target tab number: :BufferTabSend <tab>", vim.log.levels.WARN)
   end
 end, {
-  nargs = 1,
+  nargs = "+",
   desc = "Share current buffer with target tab: :BufferTabSend <tab_number>",
 })
 
@@ -141,6 +141,18 @@ vim.api.nvim_create_user_command("BufferTabPrev", function()
   bb.prev_tab_buffer()
 end, {
   desc = "Previous buffer in current workspace tab",
+})
+
+vim.api.nvim_create_user_command("BufferTabSelect", function()
+  bb.select_tab()
+end, {
+  desc = "Search and select workspace tabs (Picker): :BufferTabSelect",
+})
+
+vim.api.nvim_create_user_command("BufferTabList", function()
+  bb.select_tab()
+end, {
+  desc = "Search and select workspace tabs (Picker): :BufferTabList",
 })
 
 -- Utilities
@@ -249,6 +261,8 @@ if config.options.default_keymaps then
   map("n", "<leader>Bb", function() bb.toggle_breadcrumbs() end, { desc = "BufferBuddy: Toggle Breadcrumbs" })
 
   -- Workspace & Tab Management (<leader>B...)
+  map("n", "<leader>Bt", function() bb.select_tab() end, { desc = "BufferBuddy: Search Workspace Tabs (Picker)" })
+  map("n", "<leader>BT", function() bb.select_tab() end, { desc = "BufferBuddy: Search Workspace Tabs (Picker)" })
   map("n", "<leader>Bn", function() bb.rename_tab_interactive() end, { desc = "BufferBuddy: Rename Workspace Tab" })
   map("n", "<leader>BN", function() bb.new_tab() end, { desc = "BufferBuddy: New Workspace Tab" })
   map("n", "<leader>Bm", function() bb.move_buffer_interactive() end, { desc = "BufferBuddy: Move Buffer to Tab" })

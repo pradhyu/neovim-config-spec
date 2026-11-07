@@ -11,13 +11,13 @@ local function assert_eq(a, b, msg)
 end
 
 print(">>> Testing :BufferTabName command...")
-vim.cmd("BufferTabName CoreAPI")
-assert_eq(bb.get_tab_name(vim.api.nvim_get_current_tabpage()), "CoreAPI", "Tab renamed via command")
+vim.cmd("BufferTabName testing 1")
+assert_eq(bb.get_tab_name(vim.api.nvim_get_current_tabpage()), "testing 1", "Tab renamed via command with spaces")
 
 print(">>> Testing :BufferTabNew command...")
-vim.cmd("BufferTabNew FrontendUI")
+vim.cmd("BufferTabNew testing 3")
 assert_eq(#vim.api.nvim_list_tabpages(), 2, "2 tabs exist")
-assert_eq(bb.get_tab_name(vim.api.nvim_get_current_tabpage()), "FrontendUI", "New tab has specified name")
+assert_eq(bb.get_tab_name(vim.api.nvim_get_current_tabpage()), "testing 3", "New tab has specified name with spaces")
 
 print(">>> Testing :BufferPin global & :BufferTogglePin global...")
 local cur = vim.api.nvim_get_current_buf()
@@ -41,6 +41,12 @@ assert_eq(#vim.api.nvim_list_tabpages(), 1, "Only 1 tab remains after BufferTabC
 print(">>> Testing :BufferSweep tab...")
 vim.cmd("BufferSweep tab")
 print("✓ BufferSweep tab command succeed")
+
+print(">>> Testing :BufferTabSelect & :BufferTabList commands...")
+assert_true(type(bb.select_tab) == "function", "bb.select_tab is a function")
+assert_true(vim.fn.exists(":BufferTabSelect") == 2, ":BufferTabSelect exists")
+assert_true(vim.fn.exists(":BufferTabList") == 2, ":BufferTabList exists")
+print("✓ Tab picker commands exist")
 
 print("\n==========================================")
 print("🎉 ALL BUFFER BUDDY COMMAND TESTS PASSED! 🎉")

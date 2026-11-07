@@ -63,6 +63,53 @@ Comprehensive buffer companion for Neovim: Intelligent hygiene sweeper, tab work
 
 ---
 
+### 8. `bufferline.nvim` & Tabline Integration Guide
+
+If you use `akinsho/bufferline.nvim` alongside `buffer-buddy.nvim`, add the following options to your `bufferline.nvim` setup to ensure seamless workspace tab isolation and safe tab close behavior:
+
+#### A. Wire up `custom_filter` for Tab-Scoped Buffers
+`bufferline.nvim` caches and displays all loaded buffers by default. To enforce that only buffers belonging to the active workspace tab appear in bufferline:
+
+```lua
+-- In your bufferline.nvim setup or config:
+require("bufferline").setup({
+  options = {
+    -- Filter out buffers not belonging to the current workspace tab
+    custom_filter = function(buf_number, buf_numbers)
+      local ok, bb = pcall(require, "buffer_buddy")
+      if ok and bb.bufferline_filter then
+        return bb.bufferline_filter(buf_number)
+      end
+      return true
+    end,
+  },
+})
+```
+
+> [!NOTE]
+> `buffer-buddy` also provides an automatic hook: when `buffer-buddy` initializes, it checks if `bufferline.config` is loaded and chains `bb.bufferline_filter` with any existing user filter without overriding your existing configuration.
+
+#### B. Safe Tab Close Guard (`` Tab Close Button)
+In `bufferline.nvim`, clicking the `` icon on the far right executes `:tabclose` by default. Closing a tab this way can leave untracked zombie buffers or close without saving.
+
+To protect workspace tabs, `buffer-buddy` injects a confirm dialog guard:
+```lua
+-- Users can manually call buffer-buddy's safe close confirmation on tab close:
+vim.keymap.set("n", "<leader>Bx", function()
+  require("buffer_buddy").close_tab_confirm()
+end, { desc = "BufferBuddy: Safe Tab Close" })
+```
+
+#### C. `Snacks.picker.buffers` Workspace Badging
+If using `folke/snacks.nvim` buffer picker, tabs are hidden by `buflisted = false`. Ensure `hidden = true` is set so buffers from other workspaces can be searched and switched to:
+```lua
+Snacks.picker.buffers({
+  hidden = true, -- Include background workspace buffers
+})
+```
+
+---
+
 ## 📐 Module Structure
 
 ```
@@ -92,6 +139,7 @@ buffer-buddy/
             ├── breadcrumbs.lua     -- Window breadcrumbs with file icons, directory path, pin/mod flags
             ├── hud.lua             -- Interactive Buffer Buddy HUD dashboard with Workspace overview
             ├── scratch_picker.lua  -- Scratchpad type selector
+            ├── tab_picker.lua      -- Fuzzy workspace tab picker (Snacks/Telescope/UI)
             └── statusline.lua      -- Statusline pinned badge (📌/🌐), workspace badge, & token count
 ```
 
@@ -110,6 +158,7 @@ Buffer Buddy uses `<leader>B` as prefix to preserve all standard LazyVim / Buffe
 | `<leader>Bx`                | `close_tab_safe()`          | Safely close tab and sweep exclusive buffers         |
 | `<leader>Bu` / `<leader>bu` | `close_tab_unmodified()`    | Sweep unmodified buffers in current tab only         |
 | `[B` / `]B`                 | `prev/next_tab_buffer()`    | Cycle strictly within current tab workspace          |
+| `<leader>Bt` / `<leader>BT` | `select_tab()`              | Search & select workspace tabs (Snacks/Telescope/UI) |
 | `<leader>Bp`                | `toggle_pin()`              | Toggle local pin (protects from tab sweeps)          |
 | `<leader>BP`                | `toggle_global_pin()`       | Toggle global pin 🌐 (visible across all tabs)       |
 | `<leader>Bd`                | `diff_disk()`               | Diff current buffer against saved disk version       |
@@ -135,6 +184,7 @@ Buffer Buddy uses `<leader>B` as prefix to preserve all standard LazyVim / Buffe
 - `:BufferTabMove [target_tab]` - Move buffer to target tab
 - `:BufferTabSend [target_tab]` - Share buffer with target tab
 - `:BufferTabNext` / `:BufferTabPrev` - Cycle within workspace tab
+- `:BufferTabSelect` / `:BufferTabList` - Search and switch workspace tabs via fuzzy picker
 - `:BufferPin [local|global]` - Pin buffer locally or globally
 - `:BufferUnpin [local|global]` - Unpin buffer
 - `:BufferTogglePin [local|global]` - Toggle pin state

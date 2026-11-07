@@ -109,9 +109,13 @@ end
 
 ---Parse path into directory segments and filename
 ---@param full_path string
+---@param win? integer
 ---@return string[] dirs, string filename
-local function parse_path_segments(full_path)
-  local cwd = vim.fn.getcwd()
+local function parse_path_segments(full_path, win)
+  local ok_cwd, cwd = pcall(vim.fn.getcwd, win)
+  if not ok_cwd or not cwd or cwd == "" then
+    cwd = vim.fn.getcwd()
+  end
   local rel_path = ""
 
   if full_path:sub(1, #cwd) == cwd then
@@ -176,7 +180,14 @@ function M.build_breadcrumb_string(win, buf)
   if b_opts.show_workspace and config.options.tab_scoping then
     local ok_tab, cur_tab = pcall(vim.api.nvim_win_get_tabpage, win)
     if ok_tab and vim.api.nvim_tabpage_is_valid(cur_tab) then
-      local ws_name = tabs.get_tab_name(cur_tab)
+      local ws_name = tabs.get_custom_tab_name and tabs.get_custom_tab_name(cur_tab) or nil
+      if not ws_name or ws_name == "" then
+        local ok_cwd, cwd = pcall(vim.fn.getcwd, win)
+        if not ok_cwd or not cwd or cwd == "" then
+          cwd = vim.fn.getcwd()
+        end
+        ws_name = vim.fn.fnamemodify(cwd, ":t")
+      end
       if ws_name and ws_name ~= "" then
         table.insert(segments, string.format("%%#BufferBuddyBreadcrumbWorkspace#󰓩 %s%%* ", escape_statusline(ws_name)))
         table.insert(segments, "%#BufferBuddyBreadcrumbSep#│ %*")
@@ -199,7 +210,7 @@ function M.build_breadcrumb_string(win, buf)
   end
 
   -- Directory hierarchy
-  local dirs, filename = parse_path_segments(full_path)
+  local dirs, filename = parse_path_segments(full_path, win)
   for _, dir in ipairs(dirs) do
     if dir == "…" then
       table.insert(segments, "%#BufferBuddyBreadcrumbSep#…%*")
@@ -248,7 +259,7 @@ function M.render()
     return ""
   end
 
-  local raw_win = vim.g.actual_curwin
+  local raw_win = vim.g.statusline_winid
   local win = raw_win and tonumber(raw_win) or vim.api.nvim_get_current_win()
   if not win or type(win) ~= "number" or not vim.api.nvim_win_is_valid(win) then
     return ""
