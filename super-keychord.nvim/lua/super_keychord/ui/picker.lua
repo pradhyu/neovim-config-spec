@@ -127,6 +127,60 @@ local function open_telescope_picker(list, opts)
     })
   end
 
+  local previewers = require("telescope.previewers")
+  local chord_previewer = previewers.new_buffer_previewer({
+    title = "Keychord Details",
+    define_preview = function(self, entry, status)
+      local e = entry.value
+      local mode_name = ({
+        n = "Normal",
+        v = "Visual / Select",
+        x = "Visual",
+        i = "Insert",
+        t = "Terminal",
+        c = "Command-Line",
+        o = "Operator-Pending",
+      })[e.mode] or string.format("Mode '%s'", e.mode)
+
+      local scope_str = e.buffer and string.format("Buffer-Local (buf #%d)", e.buffer) or "Global"
+      local desc_str = e.desc ~= "" and e.desc or "[No human description provided]"
+      local action_str = e.rhs ~= "" and e.rhs or (e.callback and "[Lua Callback Function]" or "[None]")
+
+      local lines = {
+        "  🎹 KEYCHORD INSPECTOR",
+        "  " .. string.rep("─", 45),
+        string.format("  • Chord:       %s", e.display_lhs),
+        string.format("  • Raw Key:     %s", e.raw_lhs),
+        string.format("  • Mode:        %s [%s]", mode_name, e.mode:upper()),
+        string.format("  • Scope:       %s", scope_str),
+        "",
+        "  📖 ACTION & DESCRIPTION",
+        "  " .. string.rep("─", 45),
+        string.format("  • Description: %s", desc_str),
+        string.format("  • Target/RHS:  %s", action_str),
+        "",
+        "  ⚙️ KEYMAP ATTRIBUTES",
+        "  " .. string.rep("─", 45),
+        string.format("  • Noremap:     %s", e.noremap and "Yes" or "No"),
+        string.format("  • Silent:      %s", e.silent and "Yes" or "No"),
+        string.format("  • Nowait:      %s", e.nowait and "Yes" or "No"),
+        string.format("  • Expression:  %s", e.expr and "Yes" or "No"),
+        "",
+        "  💡 Press <CR> to execute this keychord immediately",
+      }
+
+      vim.bo[self.state.bufnr].modifiable = true
+      vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
+      vim.bo[self.state.bufnr].modifiable = false
+
+      vim.api.nvim_buf_clear_namespace(self.state.bufnr, -1, 0, -1)
+      vim.api.nvim_buf_add_highlight(self.state.bufnr, -1, "Title", 0, 2, -1)
+      vim.api.nvim_buf_add_highlight(self.state.bufnr, -1, "Title", 7, 2, -1)
+      vim.api.nvim_buf_add_highlight(self.state.bufnr, -1, "Title", 12, 2, -1)
+      vim.api.nvim_buf_add_highlight(self.state.bufnr, -1, "Comment", 19, 2, -1)
+    end,
+  })
+
   pickers.new({}, {
     prompt_title = string.format("Search Keychords (%s mode)", (opts and opts.mode) or "all"),
     finder = finders.new_table({
@@ -140,6 +194,7 @@ local function open_telescope_picker(list, opts)
       end,
     }),
     sorter = conf.generic_sorter({}),
+    previewer = chord_previewer,
     attach_mappings = function(prompt_bufnr)
       actions.select_default:replace(function()
         actions.close(prompt_bufnr)
